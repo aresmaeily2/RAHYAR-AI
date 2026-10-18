@@ -72,3 +72,6 @@ scripts/ara-*.png
 
 # ─── ابزار داخلی push این نشست (سطح sandbox؛ جزو مخزن عمومی نیست) ───
 scripts/github-push.sh
+
+# ─── ابزار داخلی تغییر نام ریپو (سطح sandbox) ───
+scripts/github-rename.sh
