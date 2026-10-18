@@ -1,0 +1,71 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+!.env.example
+
+# vercel
+.vercel
+
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+local-*
+.claude
+.z-ai-config
+*.log
+dev.log
+dev.out.log
+test
+prompt
+
+server.log
+# Skills directory
+/skills/
+# ─── پایگاه‌داده و پشتیبان‌ها و اسرار (رفع SEC-H1) ───────
+db/*.db
+db/*.db-journal
+backups/
+# ─── مستندات تصویری ممیزی — خروجی محلی؛ تصاویر شامل داده کاربرند
+#     و باینری حجیم‌اند؛ طبق سیاست «هیچ فایل حساسی در گیت» track نمی‌شوند
+/artifacts/
+# ─── RC 1.0 — تحویل‌ها و ابزار داخلی نشست، خارج از مخزن عمومی ──
+/download/
+/upload/
+/tool-results/
+/worklog.md
+/agent-ctx/
+server-rc.log
+.zscripts/dev.pid
+scripts/ara-*.png
