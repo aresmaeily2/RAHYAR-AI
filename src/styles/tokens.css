@@ -1,0 +1,111 @@
+/* ═══════════════════════════════════════════════════════════════
+   رهیار AI — لایه ۱: توکن‌های طراحی (Design Tokens)
+   تنها منبع حقیقت مقادیر خام. هیچ صفحه یا کامپوننتی حق ندارد
+   مقدار hardcode برای رنگ/فاصله/سایه/بلور بنویسد.
+   نسخه ۴.۰ — «شیشه‌ی آرام» (Calm Glass)
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ─── ۱. تایپوگرافی ─────────────────────────────────────────── */
+  /* فونت Variable خودمیزبان — عرض متغیر wght بدون دانلود وزن‌های جدا */
+  --font-body: "Vazirmatn VF", "Vazirmatn", "Segoe UI", Tahoma, ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Estedad VF", "Vazirmatn VF", "Vazirmatn", ui-sans-serif, system-ui, sans-serif;
+
+  /* مقیاس اندازه — نرخ ۱٫۲۲ (Minor Third) برای سلسله‌مراتب واضح */
+  --text-2xs: 0.625rem;   /* 10px — کیبورد هینت، کپشن ریز */
+  --text-xs: 0.6875rem;   /* 11px — متادیتا */
+  --text-sm: 0.75rem;     /* 12px — بدنه فشرده */
+  --text-base: 0.8125rem; /* 13px — بدنه اصلی */
+  --text-md: 0.875rem;    /* 14px — بدنه برجسته */
+  --text-lg: 1rem;        /* 16px — زیرعنوان */
+  --text-xl: 1.25rem;     /* 20px — عنوان کارت */
+  --text-2xl: 1.5rem;     /* 24px — عنوان صفحه */
+  --text-hero: clamp(1.625rem, 3.2vw, 2rem); /* هیرو — سیال */
+
+  --leading-tight: 1.35;
+  --leading-normal: 1.7;
+  --leading-relaxed: 1.9;
+  --tracking-tight: -0.01em;
+
+  /* ─── ۲. شعاع (Radius) ──────────────────────────────────────── */
+  --radius: 0.875rem;              /* مبنای سیستم */
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.6875rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.125rem;
+  --radius-2xl: 1.375rem;
+  --radius-3xl: 1.75rem;
+  --radius-full: 9999px;
+
+  /* ─── ۳. فاصله (Spacing) — گام ۴px ─────────────────────────── */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* ─── ۴. بلور — سطوح شیشه ──────────────────────────────────── */
+  --blur-glass-1: 10px;   /* شیشه ظریف — چیپ، کنترل کوچک */
+  --blur-glass-2: 18px;   /* شیشه استاندارد — کارت، ناوبری */
+  --blur-glass-3: 28px;   /* شیشه عمیق — هدر چسبان، دیالوگ */
+  --blur-scene: 80px;     /* محو صحنه پس‌زمینه */
+
+  /* اشباع شیشه — زنده‌نگه‌داشتن رنگ پشت بلور */
+  --glass-sat-1: 1.3;
+  --glass-sat-2: 1.45;
+  --glass-sat-3: 1.6;
+
+  /* آلفای سطح شیشه (نسبت رنگ مات به شفاف) */
+  --glass-alpha-1: 0.5;
+  --glass-alpha-2: 0.62;
+  --glass-alpha-3: 0.74;
+
+  /* ─── ۵. عمق (Elevation) — ۵ سطح ───────────────────────────── */
+  --elev-key-1: 0 1px 2px rgb(0 0 0 / 0.04);
+  --elev-amb-1: 0 4px 14px -4px rgb(0 0 0 / 0.06);
+  --elev-key-2: 0 2px 4px rgb(0 0 0 / 0.05);
+  --elev-amb-2: 0 12px 30px -8px rgb(0 0 0 / 0.12);
+  --elev-key-3: 0 4px 10px -2px rgb(0 0 0 / 0.07);
+  --elev-amb-3: 0 18px 44px -10px rgb(0 0 0 / 0.16);
+  --elev-key-4: 0 8px 20px -6px rgb(0 0 0 / 0.1);
+  --elev-amb-4: 0 28px 64px -12px rgb(0 0 0 / 0.22);
+
+  /* ─── ۶. حرکت (Motion) ─────────────────────────────────────── */
+  --motion-instant: 120ms;  /* بازخورد فشرده‌سازی */
+  --motion-fast: 160ms;     /* hover، فشار */
+  --motion-base: 240ms;     /* ورود کارت، دیالوگ */
+  --motion-slow: 420ms;     /* تعویض نما، sheet */
+  --motion-scene: 800ms;    /* حرکت صحنه/محیط */
+
+  /* منحنی‌های امضا */
+  --ease-standard: cubic-bezier(0.25, 1, 0.5, 1);   /* خروج سریع، فرود نرم */
+  --ease-emphasized: cubic-bezier(0.34, 1.3, 0.64, 1); /* لهجه‌دار — pop */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);  /* الاستیک FAB */
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);           /* خروج شتابان */
+
+  /* ─── ۷. شفافیت (Opacity Scale) ────────────────────────────── */
+  --opacity-ghost: 0.04;  /* لایه‌های تقریباً نامرئی */
+  --opacity-whisper: 0.07;
+  --opacity-faint: 0.12;
+  --opacity-soft: 0.55;
+  --opacity-strong: 0.8;
+
+  /* ─── ۸. خط (Border) ───────────────────────────────────────── */
+  --border-hairline: 1px;
+  --border-emphasis: 1.5px;
+
+  /* ─── ۹. میزان هاله (Glow) ─────────────────────────────────── */
+  --glow-soft: 0 0 24px -6px;
+  --glow-float: 0 8px 24px -8px;
+  --glow-strength: 0.35;
+
+  /* ─── ۱۰. سایز کنترل‌های شناور ─────────────────────────────── */
+  --fab-size: 3.5rem;
+  --touch-min: 2.75rem; /* حداقل 44px — WCAG 2.5.8 */
+}

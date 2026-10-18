@@ -1,0 +1,222 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── رهیار AI — دستیار هوشمند شخصی (نام فنی مخزن: ara) ──────
+
+// ── کاربر و نشست (ایمن‌سازی فاز انتشار) ──────────────────────
+// رمزها با scrypt (استاندارد Node، بدون وابستگی بیرونی) هش می‌شوند:
+//   قالب: s1:<salt hex>:<hash hex>
+// توکن نشست: ۳۲ بایت تصادفی؛ در دیتابیس فقط SHA-256 توکن ذخیره می‌شود.
+model User {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  displayName  String
+  passwordHash String // هرگز مقدار خام یا نمونه واقعی در کد/گزارش نمی‌آید
+  createdAt    DateTime  @default(now())
+  sessions     Session[]
+  tasks        Task[]
+  reminders    Reminder[]
+  chatMessages ChatMessage[]
+  memories     Memory[]
+  settings     Setting[]
+  aiUsage      AiUsage[]
+  actionLogs   ActionLog[]
+  financeAccounts      FinanceAccount[]
+  financeTransactions  FinanceTransaction[]
+  financeBudgets       FinanceBudget[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ── ثبت مصرف مدل (بخش ۶ دستور: پایش بدون محتوای خصوصی) ──────
+// هیچ متن درخواست/پاسخی اینجا ذخیره نمی‌شود — فقط فراداده
+model AiUsage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  route     String // مسیر API فراخوان
+  task      String // chat | breakdown | plan | assistant
+  provider  String
+  model     String
+  inChars   Int
+  outChars  Int
+  latencyMs Int
+  status    String // ok | error | quota_exceeded | disabled
+  costEst   Float    @default(0) // هزینه تخمینی (ارائه‌دهنده فعلی: ۰ — سهمیه پلتفرم)
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
+// ── دفتر اقدامات (بخش ۷ دستور: نتیجه هر اقدام + idempotency) ─
+model ActionLog {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  actionType     String // add_task | complete_task | delete_task | ...
+  targetType     String? // task | reminder | memory | plan
+  targetId       String?
+  status         String // success | failed | canceled | needs_confirmation
+  idempotencyKey String? // جلوگیری از اجرای تکراری در retry — یکتا در سطح هر کاربر
+  detail         String? // فراداده غیرخصوصی (شمارنده‌ها، دلیل رد)
+  createdAt      DateTime @default(now())
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, createdAt])
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  notes       String?
+  priority    Int       @default(2) // ۱ = فوری، ۲ = متوسط، ۳ = کم‌اهمیت
+  status      String    @default("todo") // todo | done
+  tag         String?
+  dueDate     DateTime?
+  dueTime     String? // HH:mm
+  starred     Boolean   @default(false)
+  repeat      String? // null | daily | weekly
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+  subtasks    Subtask[]
+  reminders   Reminder[]
+
+  @@index([userId, status, dueDate])
+  @@index([completedAt])
+}
+
+model Subtask {
+  id        String  @id @default(cuid())
+  taskId    String
+  task      Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  title     String
+  done      Boolean @default(false)
+  order     Int     @default(0)
+
+  @@index([taskId])
+}
+
+model Reminder {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskId    String?
+  task      Task?     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  message   String
+  remindAt  DateTime
+  fired     Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  @@index([userId, fired, remindAt])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String // user | assistant
+  content   String
+  actions   String? // JSON — نتایج اکشن‌های اجرا شده
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// ─── حافظه بلندمدت دستیار (الگوی ChatGPT / Copilot Memory) ────
+model Memory {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fact      String // حقیقت کوتاه درباره کاربر
+  source    String   @default("chat") // chat | manual
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// ─── تنظیمات هر کاربر (پروفایل، اعلان‌ها، اتصال‌ها) ──────────
+model Setting {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key       String
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, key])
+}
+
+// ─── ماژول مالی شخصی (نسخه ۱٫۰) ─────────────────────────────
+// چند حساب (نقدی/بانکی/کارت) + درآمد/هزینه/انتقال + دسته‌بندی
+// مبلغ به واحد پایه (ریال) نگه‌داری می‌شود؛ نمایش با فرمت UI.
+// externalRef برای حذف تکراری‌های ورود SMS/Import یکتاست.
+model FinanceAccount {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  kind          String   @default("cash") // cash | bank | card
+  openingAmount Float    @default(0) // مانده افتتاحیه (می‌تواند منفی باشد)
+  currency      String   @default("IRR")
+  archived      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  transactions  FinanceTransaction[] @relation("fromAccount")
+  transfersIn   FinanceTransaction[] @relation("toAccount")
+
+  @@index([userId, archived])
+}
+
+model FinanceTransaction {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         String // income | expense | transfer
+  amount       Float // همیشه مثبت؛ جهت با type مشخص می‌شود
+  accountId    String
+  account      FinanceAccount @relation("fromAccount", fields: [accountId], references: [id], onDelete: Cascade)
+  toAccountId  String? // فقط برای انتقال
+  toAccount    FinanceAccount? @relation("toAccount", fields: [toAccountId], references: [id], onDelete: SetNull)
+  category     String   @default("other")
+  note         String?
+  occurredAt   DateTime @default(now())
+  source       String   @default("manual") // manual | sms | import
+  externalRef  String? // هش پایدار پیامک/رکورد — ضد تکرار
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, externalRef])
+  @@index([userId, occurredAt])
+  @@index([userId, type, occurredAt])
+  @@index([accountId, occurredAt])
+}
+
+// ─── بودجه ماهانه هر دسته هزینه ───────────────────────────────
+model FinanceBudget {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category     String   // دسته هزینه — مقادیر EXPENSE_CATEGORIES
+  monthlyLimit Float    // سقف ماهانه (مثبت)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, category])
+}

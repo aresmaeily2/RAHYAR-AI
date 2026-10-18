@@ -1,0 +1,348 @@
+/* ═══════════════════════════════════════════════════════════════
+   رهیار AI — لایه ۲: تم‌ها و رنگ تأکید
+   دو محور مستقل:
+   • data-theme  → «جهان» بصری: پس‌زمینه، صحنه، هاله محیطی، تینت شیشه
+     (ocean | forest | aurora | sunset | night | minimal)
+   • data-accent → رنگ تعاملی: دکمه‌ها، فوکوس، لینک، هاله برند
+     (teal | blue | violet | green | orange | pink | gold)
+   مقیاس خام هر اکسنت ۳۰۰…۷۰۰ تعریف می‌شود؛ نگاشت نهایی روشن/تیره
+   در انتهای فایل یک‌بار برای همه انجام می‌شود.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────
+   بخش A — خامِ تم‌ها (کاغذ، جوهر، صحنه، هاله)
+   ───────────────────────────────────────────── */
+
+:root,
+[data-theme="ocean"] {
+  --paper: #f5f9fb;        /* کاغذ روشن — سرد اقیانوسی */
+  --ink: #16232b;          /* جوهر روشن */
+  --paper-deep: #0a1016;   /* کاغذ تیره — شب دریا */
+  --ink-bright: #edf4f8;   /* جوهر تیره */
+  --scene-1: #7dd3fc;      /* آسمان */
+  --scene-2: #2dd4bf;      /* موج */
+  --scene-3: #818cf8;      /* ژرفا */
+  --ambient-a: #38bdf8;    /* هاله شناور اول */
+  --ambient-b: #14b8a6;    /* هاله شناور دوم */
+  --deco: #0ea5e9;         /* رنگ SVG تزئینی */
+  --glass-hue: #0ea5e9;    /* تینت شیشه */
+  --chart-2: #f59e0b;
+  --chart-3: #f43f5e;
+  --chart-4: #64748b;
+  --chart-5: #0ea5e9;
+}
+
+[data-theme="forest"] {
+  --paper: #f6faf5;
+  --ink: #17251b;
+  --paper-deep: #0a120c;
+  --ink-bright: #eef5ef;
+  --scene-1: #86efac;
+  --scene-2: #34d399;
+  --scene-3: #a3e635;
+  --ambient-a: #4ade80;
+  --ambient-b: #2dd4bf;
+  --deco: #22c55e;
+  --glass-hue: #22c55e;
+  --chart-2: #d97706;
+  --chart-3: #0ea5e9;
+  --chart-4: #78716c;
+  --chart-5: #84cc16;
+}
+
+[data-theme="aurora"] {
+  --paper: #f7f7fc;
+  --ink: #1d1b2e;
+  --paper-deep: #0c0a16;
+  --ink-bright: #f0eefb;
+  --scene-1: #a78bfa;
+  --scene-2: #22d3ee;
+  --scene-3: #f472b6;
+  --ambient-a: #8b5cf6;
+  --ambient-b: #22d3ee;
+  --deco: #8b5cf6;
+  --glass-hue: #8b5cf6;
+  --chart-2: #22d3ee;
+  --chart-3: #f472b6;
+  --chart-4: #94a3b8;
+  --chart-5: #a3e635;
+}
+
+[data-theme="sunset"] {
+  --paper: #fdf8f4;
+  --ink: #2a1f18;
+  --paper-deep: #130e0a;
+  --ink-bright: #f7efe8;
+  --scene-1: #fdba74;
+  --scene-2: #fb7185;
+  --scene-3: #c084fc;
+  --ambient-a: #fb923c;
+  --ambient-b: #f472b6;
+  --deco: #f97316;
+  --glass-hue: #f97316;
+  --chart-2: #38bdf8;
+  --chart-3: #e11d48;
+  --chart-4: #a8a29e;
+  --chart-5: #facc15;
+}
+
+[data-theme="night"] {
+  --paper: #f4f5f8;
+  --ink: #191c22;
+  --paper-deep: #060709;   /* مشکی واقعی OLED */
+  --ink-bright: #f2f4f8;
+  --scene-1: #94a3b8;      /* نور ماه */
+  --scene-2: #64748b;
+  --scene-3: #334155;
+  --ambient-a: #64748b;
+  --ambient-b: #94a3b8;
+  --deco: #94a3b8;
+  --glass-hue: #64748b;
+  --chart-2: #a5b4fc;
+  --chart-3: #f9a8d4;
+  --chart-4: #94a3b8;
+  --chart-5: #7dd3fc;
+}
+
+[data-theme="minimal"] {
+  --paper: #fbfbfa;
+  --ink: #1a1a19;
+  --paper-deep: #0b0b0c;
+  --ink-bright: #f2f2f0;
+  --scene-1: #d4d4d8;      /* خاکستری‌های بی‌ادعا */
+  --scene-2: #a1a1aa;
+  --scene-3: #e4e4e7;
+  --ambient-a: #a1a1aa;
+  --ambient-b: #d4d4d8;
+  --deco: #a1a1aa;
+  --glass-hue: #a1a1aa;
+  --chart-2: #d97706;
+  --chart-3: #e11d48;
+  --chart-4: #8a8a84;
+  --chart-5: #14b8a6;
+}
+
+[data-theme="sakura"] {
+  --paper: #fdf7f9;        /* کاغذ گل‌برگی */
+  --ink: #2b1d24;
+  --paper-deep: #140a0e;   /* شبِ شکوفه */
+  --ink-bright: #f7edf1;
+  --scene-1: #f9a8d4;      /* شکوفه */
+  --scene-2: #fbcfe8;      /* گلبرگ روشن */
+  --scene-3: #c084fc;      /* گرده بنفش */
+  --ambient-a: #f472b6;
+  --ambient-b: #c084fc;
+  --deco: #ec4899;
+  --glass-hue: #f472b6;
+  --chart-2: #38bdf8;
+  --chart-3: #e11d48;
+  --chart-4: #a8a29e;
+  --chart-5: #a3e635;
+}
+
+[data-theme="autumn"] {
+  --paper: #fbf6ef;        /* کاغذ کهربایی */
+  --ink: #2a2016;
+  --paper-deep: #120d08;   /* شب پاییزی */
+  --ink-bright: #f5ede3;
+  --scene-1: #fbbf24;      /* برگ زرین */
+  --scene-2: #fb923c;      /* نارنج خزان */
+  --scene-3: #b45309;      /* زنگار مسی */
+  --ambient-a: #f59e0b;
+  --ambient-b: #ea580c;
+  --deco: #d97706;
+  --glass-hue: #d97706;
+  --chart-2: #0ea5e9;
+  --chart-3: #dc2626;
+  --chart-4: #78716c;
+  --chart-5: #65a30d;
+}
+
+[data-theme="rain"] {
+  --paper: #f4f7f6;        /* کاغذ مه‌آلود */
+  --ink: #1c2528;
+  --paper-deep: #0a0f11;   /* شب بارانی */
+  --ink-bright: #ecf2f1;
+  --scene-1: #94b8c4;      /* آسمان ابری */
+  --scene-2: #6fa3ad;      /* باران نرم */
+  --scene-3: #52707b;      /* ژرفای برکه */
+  --ambient-a: #74a3b3;
+  --ambient-b: #8fb6ad;
+  --deco: #5f97a6;
+  --glass-hue: #5f97a6;
+  --chart-2: #d97706;
+  --chart-3: #e11d48;
+  --chart-4: #94a3b8;
+  --chart-5: #34d399;
+}
+
+/* ─────────────────────────────────────────────
+   بخش B — خامِ اکسنت‌ها (مقیاس ۳۰۰…۷۰۰)
+   ───────────────────────────────────────────── */
+
+:root,
+[data-accent="teal"] {
+  --ax-300: #5eead4;
+  --ax-400: #2dd4bf;
+  --ax-500: #14b8a6;
+  --ax-600: #0d9488;
+  --ax-700: #0f766e;
+  --ax-ink: #042f2e;      /* متن روی سطح اکسنت (تیره) */
+  --ax-on: #ffffff;       /* متن دکمه پرشده */
+}
+[data-accent="blue"] {
+  --ax-300: #93c5fd;
+  --ax-400: #60a5fa;
+  --ax-500: #3b82f6;
+  --ax-600: #2563eb;
+  --ax-700: #1d4ed8;
+  --ax-ink: #172554;
+  --ax-on: #ffffff;
+}
+[data-accent="violet"] {
+  --ax-300: #c4b5fd;
+  --ax-400: #a78bfa;
+  --ax-500: #8b5cf6;
+  --ax-600: #7c3aed;
+  --ax-700: #6d28d9;
+  --ax-ink: #2e1065;
+  --ax-on: #ffffff;
+}
+[data-accent="green"] {
+  --ax-300: #86efac;
+  --ax-400: #4ade80;
+  --ax-500: #22c55e;
+  --ax-600: #16a34a;
+  --ax-700: #15803d;
+  --ax-ink: #052e16;
+  --ax-on: #ffffff;
+}
+[data-accent="orange"] {
+  --ax-300: #fdba74;
+  --ax-400: #fb923c;
+  --ax-500: #f97316;
+  --ax-600: #ea580c;
+  --ax-700: #c2410c;
+  --ax-ink: #431407;
+  --ax-on: #ffffff;
+}
+[data-accent="pink"] {
+  --ax-300: #f9a8d4;
+  --ax-400: #f472b6;
+  --ax-500: #ec4899;
+  --ax-600: #db2777;
+  --ax-700: #be185d;
+  --ax-ink: #500724;
+  --ax-on: #ffffff;
+}
+[data-accent="gold"] {
+  --ax-300: #fcd34d;
+  --ax-400: #fbbf24;
+  --ax-500: #f59e0b;
+  --ax-600: #d97706;
+  --ax-700: #b45309;
+  --ax-ink: #451a03;
+  --ax-on: #ffffff;
+}
+
+/* ─────────────────────────────────────────────
+   بخش C — نگاشت مشترک → توکن‌های shadcn (تم روشن)
+   از خامِ تم + خامِ اکسنت ساخته می‌شود؛ برای هر ۶×۷ ترکیب بدون تکرار.
+   روی :root است تا پیش از اجرای اسکریپت تم هم رنگ‌ها موجود باشند.
+   ───────────────────────────────────────────── */
+
+:root {
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: color-mix(in oklab, var(--paper) 55%, #ffffff);
+  --card-foreground: var(--ink);
+  --popover: color-mix(in oklab, var(--paper) 40%, #ffffff);
+  --popover-foreground: var(--ink);
+
+  --secondary: color-mix(in oklab, var(--ink) 5%, var(--paper));
+  --secondary-foreground: color-mix(in oklab, var(--ink) 82%, var(--paper));
+  --muted: color-mix(in oklab, var(--ink) 5%, var(--paper));
+  --muted-foreground: color-mix(in oklab, var(--ink) 64%, var(--paper));
+
+  --accent: color-mix(in oklab, var(--ax-500) 8%, var(--paper));
+  --accent-foreground: var(--ax-700);
+
+  --primary: var(--ax-600);
+  --primary-strong: var(--ax-500);
+  --primary-foreground: var(--ax-on);
+  --primary-text: var(--ax-700);        /* متنِ رنگی روی کاغذ روشن — کنتراست AA */
+  --ring: var(--ax-500);
+
+  --border: color-mix(in oklab, var(--ink) 8%, transparent);
+  --input: color-mix(in oklab, var(--ink) 11%, transparent);
+
+  --chart-1: var(--ax-600);
+  --sidebar: transparent;
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--ax-600);
+  --sidebar-primary-foreground: var(--ax-on);
+  --sidebar-accent: color-mix(in oklab, var(--ink) 5%, var(--paper));
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: transparent;
+  --sidebar-ring: var(--ax-500);
+
+  --success: #059669;
+  --warning: #d97706;
+  --destructive: #e11d48;
+
+  /* هاله برند — سطح شناور اکسنت‌دار */
+  --glow-brand: color-mix(in oklab, var(--ax-500) calc(var(--glow-strength) * 100%), transparent);
+
+  /* سایه‌های سیستم — از توکن‌های elevation ساخته می‌شوند */
+  --shadow-soft: var(--elev-key-1), var(--elev-amb-1);
+  --shadow-lift: var(--elev-key-2), var(--elev-amb-2);
+  --shadow-float: var(--elev-key-3), var(--elev-amb-3);
+  --shadow-overlay: var(--elev-key-4), var(--elev-amb-4);
+}
+
+/* ─────────────────────────────────────────────
+   بخش D — نگاشت تم تیره
+   بعد از نگاشت روشن می‌آید تا در حالت .dark برنده cascade باشد.
+   ───────────────────────────────────────────── */
+
+.dark {
+  --background: var(--paper-deep);
+  --foreground: var(--ink-bright);
+  --card: color-mix(in oklab, var(--paper-deep) 90%, #ffffff 6%);
+  --card-foreground: var(--ink-bright);
+  --popover: color-mix(in oklab, var(--paper-deep) 84%, #ffffff 10%);
+  --popover-foreground: var(--ink-bright);
+
+  --secondary: color-mix(in oklab, var(--ink-bright) 6%, var(--paper-deep));
+  --secondary-foreground: color-mix(in oklab, var(--ink-bright) 80%, var(--paper-deep));
+  --muted: color-mix(in oklab, var(--ink-bright) 6%, var(--paper-deep));
+  --muted-foreground: color-mix(in oklab, var(--ink-bright) 62%, var(--paper-deep));
+
+  --accent: color-mix(in oklab, var(--ax-400) 12%, var(--paper-deep));
+  --accent-foreground: var(--ax-300);
+
+  --primary: var(--ax-400);
+  --primary-strong: var(--ax-500);
+  --primary-foreground: var(--ax-ink);
+  --primary-text: var(--ax-300);       /* متن رنگی روی کاغذ تیره */
+  --ring: var(--ax-400);
+
+  --border: color-mix(in oklab, var(--ink-bright) 9%, transparent);
+  --input: color-mix(in oklab, var(--ink-bright) 13%, transparent);
+
+  --chart-1: var(--ax-400);
+  --sidebar-primary: var(--ax-400);
+  --sidebar-accent: color-mix(in oklab, var(--ink-bright) 6%, var(--paper-deep));
+  --sidebar-ring: var(--ax-400);
+
+  --success: #34d399;
+  --warning: #fbbf24;
+  --destructive: #fb7185;
+
+  --glow-brand: color-mix(in oklab, var(--ax-400) calc(var(--glow-strength) * 100%), transparent);
+}
+
+/* اعداد نمودار تیره همیشه از نسخه روشن‌تر اکسنت */
+.dark {
+  --chart-1: var(--ax-400);
+}

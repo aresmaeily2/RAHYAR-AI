@@ -1,0 +1,238 @@
+@layer components {
+
+/* ═══════════════════════════════════════════════════════════════
+   رهیار AI — لایه ۳: سیستم شیشه (Calm Glass)
+   هشت خصیصه شیشه واقعی در سه سطح:
+   ۱) بلور واقعی backdrop-filter  ۲) شفافیت کنترل‌شده
+   ۳) خط داخلی (Inner Border)     ۴) بازتاب نرم (Sheen)
+   ۵) عمق لایه‌ای                 ۶) سایه شناور
+   ۷) شکست نور (Refraction)      ۸) هاله محیطی (Ambient Glow)
+   قاعده: شیشه ظریف است، نه اغراق‌آمیز. متن همیشه خوانا می‌ماند.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── پایه: عایق لایه‌ها برای ripple و pseudo ─── */
+.ara-float,
+.ara-press,
+.glass-card,
+.glass-panel,
+.glass-chip {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+/* ═══ سطح ۱ — شیشه ظریف: چیپ‌ها، کنترل‌های کوچک ═══ */
+.glass-chip {
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in oklab, var(--card) calc(var(--glass-alpha-1) * 100%), transparent),
+      color-mix(in oklab, var(--secondary) calc(var(--glass-alpha-1) * 82%), transparent)
+    );
+  backdrop-filter: blur(var(--blur-glass-1)) saturate(var(--glass-sat-1));
+  -webkit-backdrop-filter: blur(var(--blur-glass-1)) saturate(var(--glass-sat-1));
+  border: var(--border-hairline) solid color-mix(in oklab, var(--foreground) 8%, transparent);
+  box-shadow:
+    var(--elev-key-1),
+    inset 0 1px 0 color-mix(in oklab, #ffffff 14%, transparent); /* شکست نور لبه بالا */
+}
+
+/* ═══ سطح ۲ — شیشه استاندارد: کارت‌ها ═══ */
+.glass-card {
+  background:
+    linear-gradient(
+      155deg,
+      color-mix(in oklab, var(--card) calc(var(--glass-alpha-2) * 100%), transparent),
+      color-mix(in oklab, var(--glass-hue) 4%, transparent) 55%,
+      color-mix(in oklab, var(--secondary) calc(var(--glass-alpha-2) * 78%), transparent)
+    );
+  backdrop-filter: blur(var(--blur-glass-2)) saturate(var(--glass-sat-2));
+  -webkit-backdrop-filter: blur(var(--blur-glass-2)) saturate(var(--glass-sat-2));
+  border: var(--border-hairline) solid color-mix(in oklab, var(--foreground) 7%, transparent);
+  /* خط داخلی + بازتاب بالایی + سایه شناور */
+  box-shadow:
+    var(--shadow-soft),
+    inset 0 1px 0 color-mix(in oklab, #ffffff 16%, transparent),
+    inset 0 0 0 1px color-mix(in oklab, var(--glass-hue) 5%, transparent);
+  transition:
+    transform var(--motion-base) var(--ease-standard),
+    box-shadow var(--motion-base) var(--ease-standard),
+    border-color var(--motion-base) var(--ease-standard);
+}
+/* بازتاب نرم — شکست نور مورب که هرگز زیر متن نمی‌رود */
+.glass-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    color-mix(in oklab, #ffffff 7%, transparent) 0%,
+    transparent 28%,
+    transparent 72%,
+    color-mix(in oklab, var(--glass-hue) 3%, transparent) 100%
+  );
+  opacity: 0.9;
+}
+@media (hover: hover) {
+  .glass-card.glass-hoverable:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in oklab, var(--primary) 22%, transparent);
+    box-shadow:
+      var(--shadow-lift),
+      inset 0 1px 0 color-mix(in oklab, #ffffff 22%, transparent),
+      var(--glow-soft) var(--glow-brand);
+  }
+}
+.glass-card.glass-hoverable:active {
+  transform: translateY(0) scale(0.992);
+  transition-duration: var(--motion-instant);
+}
+
+/* ═══ سطح ۳ — شیشه عمیق: هدر چسبان، ناوبری، دیالوگ ═══ */
+.glass-panel {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--background) calc(var(--glass-alpha-3) * 100%), transparent),
+      color-mix(in oklab, var(--background) calc(var(--glass-alpha-3) * 86%), transparent)
+    );
+  backdrop-filter: blur(var(--blur-glass-3)) saturate(var(--glass-sat-3));
+  -webkit-backdrop-filter: blur(var(--blur-glass-3)) saturate(var(--glass-sat-3));
+  border: var(--border-hairline) solid color-mix(in oklab, var(--foreground) 6%, transparent);
+  box-shadow:
+    var(--elev-key-1),
+    inset 0 1px 0 color-mix(in oklab, #ffffff 12%, transparent);
+}
+
+/* ─── نام‌های قدیمی نسخه‌های اولیه → نگاشت به سیستم جدید (سازگاری کامپوننت‌ها) ── */
+.ara-glass {
+  background: color-mix(in oklab, var(--background) 74%, transparent);
+  backdrop-filter: blur(var(--blur-glass-3)) saturate(var(--glass-sat-3));
+  -webkit-backdrop-filter: blur(var(--blur-glass-3)) saturate(var(--glass-sat-3));
+  box-shadow: inset 0 -1px 0 color-mix(in oklab, var(--foreground) 5%, transparent);
+}
+.ara-elevated {
+  background: var(--card);
+  box-shadow:
+    var(--shadow-soft),
+    inset 0 1px 0 color-mix(in oklab, var(--foreground) 4%, transparent);
+}
+
+/* ═══ کنترل شناور شیشه‌ای — دکمه‌های اصلی ═══
+   hover: احساس معلق‌شدن (+۱px و عمق) | press: فرورفتن الاستیک */
+.ara-float {
+  background:
+    linear-gradient(
+      150deg,
+      color-mix(in oklab, var(--card) 78%, transparent),
+      color-mix(in oklab, var(--secondary) 55%, transparent)
+    );
+  backdrop-filter: blur(var(--blur-glass-2)) saturate(var(--glass-sat-2));
+  -webkit-backdrop-filter: blur(var(--blur-glass-2)) saturate(var(--glass-sat-2));
+  border: var(--border-hairline) solid color-mix(in oklab, var(--foreground) 7%, transparent);
+  box-shadow:
+    var(--shadow-soft),
+    inset 0 1px 0 color-mix(in oklab, #ffffff 14%, transparent);
+  transition:
+    transform var(--motion-base) var(--ease-standard),
+    box-shadow var(--motion-base) var(--ease-standard),
+    border-color var(--motion-base) var(--ease-standard);
+}
+@media (hover: hover) {
+  .ara-float:hover {
+    transform: translateY(-1.5px);
+    border-color: color-mix(in oklab, var(--primary) 28%, transparent);
+    box-shadow:
+      var(--shadow-lift),
+      inset 0 1px 0 color-mix(in oklab, #ffffff 20%, transparent),
+      var(--glow-soft) var(--glow-brand);
+  }
+}
+.ara-float:active {
+  transform: translateY(0.5px) scale(0.97);
+  transition-duration: var(--motion-instant);
+  transition-timing-function: var(--ease-emphasized);
+}
+
+/* واریانت برند — سطح اکسنت با هاله نرم (FAB، دکمه اصلی) */
+.ara-float-primary {
+  background:
+    linear-gradient(
+      145deg,
+      var(--primary),
+      color-mix(in oklab, var(--primary-strong) 72%, var(--ax-300))
+    );
+  border-color: color-mix(in oklab, var(--primary) 55%, transparent);
+  box-shadow:
+    var(--glow-float) var(--glow-brand),
+    inset 0 1px 0 color-mix(in oklab, #ffffff 24%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, var(--ax-ink) 22%, transparent);
+}
+@media (hover: hover) {
+  .ara-float-primary:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow:
+      0 14px 34px -8px var(--glow-brand),
+      inset 0 1px 0 color-mix(in oklab, #ffffff 30%, transparent);
+  }
+}
+.ara-float-primary:active {
+  transform: translateY(0) scale(0.94);
+  transition-timing-function: var(--ease-spring);
+}
+
+/* فشردن سبک — کنترل‌های ثانویه */
+.ara-press {
+  transition: transform var(--motion-fast) var(--ease-standard);
+}
+.ara-press:active {
+  transform: scale(0.96);
+}
+
+/* هاله کهربایی تایمر استراحت */
+.ara-glow-amber {
+  box-shadow: 0 8px 22px -6px rgb(245 158 11 / 0.45);
+}
+
+/* ─── کارت برجسته با گلوگرفت خیلی ملایم اکسنت ─── */
+.glass-card-accent {
+  border-color: color-mix(in oklab, var(--primary) 20%, transparent);
+  box-shadow:
+    var(--shadow-soft),
+    inset 0 1px 0 color-mix(in oklab, #ffffff 16%, transparent),
+    0 0 0 1px color-mix(in oklab, var(--primary) 6%, transparent),
+    var(--glow-soft) color-mix(in oklab, var(--primary) 10%, transparent);
+}
+
+/* ─── سطح شیشه برای Sheet/Dialog (پشت dim سراسری) ─── */
+.glass-overlay {
+  background: color-mix(in oklab, var(--popover) 86%, transparent);
+  backdrop-filter: blur(var(--blur-glass-3)) saturate(var(--glass-sat-3));
+  -webkit-backdrop-filter: blur(var(--blur-glass-3)) saturate(var(--glass-sat-3));
+  border: var(--border-hairline) solid color-mix(in oklab, var(--foreground) 7%, transparent);
+  box-shadow:
+    var(--shadow-overlay),
+    inset 0 1px 0 color-mix(in oklab, #ffffff 14%, transparent);
+}
+
+/* ─── چیپ‌های رنگی توکن‌دار — جایگزین کلاس‌های hardcode ─── */
+.chip-accent {
+  background: color-mix(in oklab, var(--primary) 8%, transparent);
+  color: var(--primary-text);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--primary) 20%, transparent);
+}
+.chip-warn {
+  background: color-mix(in oklab, var(--warning) 8%, transparent);
+  color: var(--warning);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--warning) 25%, transparent);
+}
+.chip-danger {
+  background: color-mix(in oklab, var(--destructive) 8%, transparent);
+  color: var(--destructive);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--destructive) 25%, transparent);
+}
+
+
+}
