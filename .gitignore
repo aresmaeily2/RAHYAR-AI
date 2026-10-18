@@ -69,3 +69,6 @@ backups/
 server-rc.log
 .zscripts/dev.pid
 scripts/ara-*.png
+
+# ─── ابزار داخلی push این نشست (سطح sandbox؛ جزو مخزن عمومی نیست) ───
+scripts/github-push.sh
