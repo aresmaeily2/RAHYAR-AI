@@ -645,4 +645,11 @@ export const en: Translations = {
   'تم': 'Theme',
   'رنگ': 'Color',
   'حساب': 'Account',
+  // ── GU2 (Grand Upgrade 2) ──
+  'کد راه‌اندازی': 'Setup code',
+  'مقدار RAHYAR_SETUP_TOKEN از تنظیمات سرور': 'The RAHYAR_SETUP_TOKEN value from the server environment',
+  'کد راه‌اندازی نامعتبر است': 'Invalid setup code',
+  'راه‌اندازی اولیه در محیط تولید به RAHYAR_SETUP_TOKEN نیاز دارد': 'Production setup requires RAHYAR_SETUP_TOKEN on the server',
+  'تلاش‌های ورود برای این حساب زیاد بوده؛ چند دقیقه دیگر تلاش کن': 'Too many sign-in attempts for this account; try again in a few minutes',
+  'فایل ورودی شامل تاریخ نامعتبر است': 'The import file contains an invalid date',
 }
