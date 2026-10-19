@@ -9,6 +9,7 @@ import {
   createSession,
   attachSessionCookie,
   passwordPolicyOk,
+  checkSetupToken,
   SETUP_SENTINEL,
 } from '@/lib/auth'
 import { rateLimit, tooManyRequests, sameOriginOk, forbiddenOrigin, readJsonSafe, cleanText } from '@/lib/security'
@@ -22,7 +23,20 @@ export async function POST(req: NextRequest) {
       username?: unknown
       displayName?: unknown
       password?: unknown
+      setupToken?: unknown
     } | null
+
+    // GU2-SEC1: پیش از هر نوشتن در DB، توکن راه‌اندازی خارج از باند بررسی شود
+    const tok = checkSetupToken(body?.setupToken)
+    if (tok === 'missing_config') {
+      return NextResponse.json(
+        { error: 'راه‌اندازی اولیه در محیط تولید به RAHYAR_SETUP_TOKEN نیاز دارد' },
+        { status: 503 },
+      )
+    }
+    if (tok === 'invalid') {
+      return NextResponse.json({ error: 'کد راه‌اندازی نامعتبر است' }, { status: 403 })
+    }
 
     let owner = await db.user.findUnique({ where: { username: 'owner' } })
     // نصب کاملاً خالی (بدون هیچ کاربری) → نگه‌دارنده را می‌سازیم و

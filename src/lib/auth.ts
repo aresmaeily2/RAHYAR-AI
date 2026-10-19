@@ -181,3 +181,26 @@ export async function ownerSetupPending(): Promise<boolean> {
 export function passwordPolicyOk(p: unknown): p is string {
   return typeof p === 'string' && p.length >= 8 && p.length <= 128
 }
+
+// ── گارد راه‌اندازی اولیه (GU2-SEC1) ────────────────────────
+// مشکل: روی نصب تازه که به اینترنت در دسترس است، «اولین کسی که فرم را پر کند»
+// مالک می‌شود (owner-claim race). راه‌حل: در تولید، راه‌اندازی فقط با توکن
+// خارج از باند (RAHYAR_SETUP_TOKEN در env سرور) مجاز است. در توسعه، اگر توکن
+// تعریف نشده باشد رفتار قبلی حفظ می‌شود. RAHYAR_ALLOW_OPEN_SETUP=1 فقط برای
+// استقرار صرفاً محلی/پشت VPN.
+export type SetupTokenCheck = 'ok' | 'missing_config' | 'invalid'
+
+export function checkSetupToken(
+  provided: unknown,
+  env: Record<string, string | undefined> = process.env,
+): SetupTokenCheck {
+  const expected = (env.RAHYAR_SETUP_TOKEN ?? '').trim()
+  if (!expected) {
+    if (env.NODE_ENV !== 'production' || env.RAHYAR_ALLOW_OPEN_SETUP === '1') return 'ok'
+    return 'missing_config'
+  }
+  if (typeof provided !== 'string' || !provided) return 'invalid'
+  const a = crypto.createHash('sha256').update(provided.trim()).digest()
+  const b = crypto.createHash('sha256').update(expected).digest()
+  return crypto.timingSafeEqual(a, b) ? 'ok' : 'invalid'
+}

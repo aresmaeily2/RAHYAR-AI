@@ -19,6 +19,8 @@ export default function LoginPage() {
   const [username, setUsername] = useState('owner')
   const [displayName, setDisplayName] = useState('')
   const [password, setPassword] = useState('')
+  const [setupToken, setSetupToken] = useState('')
+  const [needsToken, setNeedsToken] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const t = useI18n((st) => st.t)
@@ -31,6 +33,7 @@ export default function LoginPage() {
           setMode('done')
           window.location.replace('/')
         } else if (d.setupPasswordPending) {
+          setNeedsToken(d.setupTokenRequired === true)
           setMode('setup')
         } else {
           setMode('login')
@@ -47,7 +50,7 @@ export default function LoginPage() {
       const url = mode === 'setup' ? '/api/auth/setup' : '/api/auth/login'
       const payload =
         mode === 'setup'
-          ? { username, displayName, password }
+          ? { username, displayName, password, setupToken }
           : { username, password }
       const res = await fetch(url, {
         method: 'POST',
@@ -116,6 +119,22 @@ export default function LoginPage() {
                     onChange={(e) => setUsername(e.target.value)}
                   />
                 </div>
+                {needsToken && (
+                  <div className="space-y-1.5">
+                    <label htmlFor="setupToken" className="text-xs font-medium text-muted-foreground">{t('کد راه‌اندازی')}</label>
+                    <input
+                      id="setupToken"
+                      dir="ltr"
+                      autoComplete="one-time-code"
+                      required
+                      aria-describedby="setupTokenHint"
+                      className={inputCls}
+                      value={setupToken}
+                      onChange={(e) => setSetupToken(e.target.value)}
+                    />
+                    <p id="setupTokenHint" className="text-[10.5px] text-muted-foreground">{t('مقدار RAHYAR_SETUP_TOKEN از تنظیمات سرور')}</p>
+                  </div>
+                )}
                 <div className="space-y-1.5">
                   <label htmlFor="displayName" className="text-xs font-medium text-muted-foreground">{t('نام نمایشی')}</label>
                   <input
