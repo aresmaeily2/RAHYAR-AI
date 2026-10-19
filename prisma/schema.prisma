@@ -18,7 +18,11 @@ model User {
   username     String    @unique
   displayName  String
   passwordHash String // هرگز مقدار خام یا نمونه واقعی در کد/گزارش نمی‌آید
+  role         String    @default("USER") // OWNER | USER — مالک فقط یک‌بار و از مسیر setup
+  disabled     Boolean   @default(false) // غیرفعال → ورود و نشست فوراً رد می‌شود
+  mustChangePassword Boolean @default(false) // حساب ساخته‌شده توسط مالک → تغییر اجباری رمز
   createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
   sessions     Session[]
   tasks        Task[]
   reminders    Reminder[]
@@ -219,4 +223,19 @@ model FinanceBudget {
   updatedAt    DateTime @updatedAt
 
   @@unique([userId, category])
+}
+
+// ─── ممیزی مدیریت کاربران (مأموریت چندکاربره) ────────────────
+// بدون کلید خارجی — رد ممیزی حتی پس از حذف کاربر هدف باقی می‌ماند.
+// هرگز رمز/توکن در detail ثبت نمی‌شود؛ فقط نام‌کاربری و فراداده غیرخصوصی.
+model UserAudit {
+  id             String   @id @default(cuid())
+  actorUsername  String // چه کسی (snapshot — پس از حذف هم معنا دارد)
+  action         String // create_user | update_user | disable_user | enable_user | reset_password | revoke_sessions | delete_user | import_users
+  targetUsername String?
+  detail         String? // JSON فراداده غیرحساس (مثلاً تعداد ردیف‌های import)
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorUsername, createdAt])
 }

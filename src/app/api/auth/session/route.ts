@@ -14,7 +14,8 @@ export async function GET(req: NextRequest) {
     if (user) {
       return NextResponse.json({
         authenticated: true,
-        user: { username: user.username, displayName: user.displayName },
+        user: { username: user.username, displayName: user.displayName, role: user.role },
+        mustChangePassword: user.mustChangePassword,
       })
     }
     const setupPending = await ownerSetupPending()

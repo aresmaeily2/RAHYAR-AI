@@ -31,7 +31,7 @@ export async function PUT(req: NextRequest) {
     }
     await db.user.update({
       where: { id: user.id },
-      data: { passwordHash: hashPassword(body.newPassword) },
+      data: { passwordHash: hashPassword(body.newPassword), mustChangePassword: false },
     })
     // ابطال واقعی همه نشست‌های دیگر — نشست فعلی حفظ می‌شود (ادعای کامنت خط ۲ حالا عملی است)
     const revoked = await revokeOtherSessions(user.id, req.cookies.get(SESSION_COOKIE)?.value)

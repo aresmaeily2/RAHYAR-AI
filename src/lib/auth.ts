@@ -55,6 +55,8 @@ export interface SessionUser {
   id: string
   username: string
   displayName: string
+  role: 'OWNER' | 'USER'
+  mustChangePassword: boolean
 }
 
 /** ساخت نشست جدید — توکن خام فقط همین‌جا و فقط در کوکی برمی‌گردد */
@@ -72,14 +74,29 @@ export async function resolveUser(req: NextRequest): Promise<SessionUser | null>
   const tokenHash = hashToken(token)
   const session = await db.session.findUnique({
     where: { tokenHash },
-    include: { user: { select: { id: true, username: true, displayName: true } } },
+    include: {
+      user: {
+        select: { id: true, username: true, displayName: true, role: true, disabled: true, mustChangePassword: true },
+      },
+    },
   })
   if (!session) return null
   if (session.expiresAt.getTime() <= Date.now()) {
     await db.session.delete({ where: { id: session.id } }).catch(() => {})
     return null
   }
-  return { id: session.user.id, username: session.user.username, displayName: session.user.displayName }
+  // حساب غیرفعال‌شده توسط مالک → نشست موجود هم فوراً بی‌اعتبار می‌شود
+  if (session.user.disabled) {
+    await db.session.delete({ where: { id: session.id } }).catch(() => {})
+    return null
+  }
+  return {
+    id: session.user.id,
+    username: session.user.username,
+    displayName: session.user.displayName,
+    role: session.user.role === 'OWNER' ? 'OWNER' : 'USER',
+    mustChangePassword: session.user.mustChangePassword,
+  }
 }
 
 /** پایان نشست — حذف رکورد + انقضای کوکی */
@@ -160,6 +177,31 @@ export async function requireUser(req: NextRequest): Promise<SessionUser> {
 
 export const unauthorizedResponse = (): Response =>
   Response.json({ error: 'برای ادامه وارد حساب شوید' }, { status: 401 })
+
+export const ownerForbiddenResponse = (): Response =>
+  Response.json({ error: 'این بخش فقط برای مالک است' }, { status: 403 })
+
+/** ممیزی مدیریت کاربران — هرگز رمز/توکن در detail نمی‌آید */
+export async function logUserAudit(
+  actor: { username: string },
+  action: string,
+  targetUsername?: string,
+  detail?: Record<string, unknown>,
+): Promise<void> {
+  try {
+    await db.userAudit.create({
+      data: {
+        actorUsername: actor.username,
+        action,
+        targetUsername: targetUsername ?? null,
+        detail: detail ? JSON.stringify(detail) : null,
+      },
+    })
+  } catch (e) {
+    // ممیزی هرگز جریان اصلی را نمی‌شکند — فقط ثبت می‌شود
+    console.error('userAudit', e instanceof Error ? e.message : e)
+  }
+}
 
 /** آیا هیچ کاربری وجود ندارد؟ (حالت راه‌اندازی اولیه کل سامانه) */
 export async function needsOwnerSetup(): Promise<boolean> {

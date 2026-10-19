@@ -43,11 +43,16 @@ export async function POST(req: NextRequest) {
     if (!verifyPassword(password, user.passwordHash)) {
       return NextResponse.json({ error: 'نام کاربری یا رمز اشتباه است' }, { status: 401 })
     }
+    // حساب غیرفعال توسط مالک → فقط دارندهٔ رمز درست این وضعیت را می‌بیند
+    if (user.disabled) {
+      return NextResponse.json({ error: 'این حساب غیرفعال شده است؛ با مالک تماس بگیر' }, { status: 403 })
+    }
 
     const { token, expiresAt } = await createSession(user.id)
     const res = NextResponse.json({
       ok: true,
-      user: { username: user.username, displayName: user.displayName },
+      user: { username: user.username, displayName: user.displayName, role: user.role },
+      mustChangePassword: user.mustChangePassword,
     })
     attachSessionCookie(res, token, expiresAt)
     return res
