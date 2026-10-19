@@ -1,7 +1,7 @@
 // GET /api/auth/session — وضعیت نشست/راه‌اندازی برای لایه کلاینت
 // پاسخ هیچ اطلاع حساسی (هش رمز، توکن) برنمی‌گرداند.
 import { NextRequest, NextResponse } from 'next/server'
-import { resolveUser, ownerSetupPending } from '@/lib/auth'
+import { resolveUser, ownerSetupPending, checkSetupToken } from '@/lib/auth'
 import { rateLimit, tooManyRequests, sameOriginOk, forbiddenOrigin } from '@/lib/security'
 
 export async function GET(req: NextRequest) {
@@ -18,7 +18,9 @@ export async function GET(req: NextRequest) {
       })
     }
     const setupPending = await ownerSetupPending()
-    return NextResponse.json({ authenticated: false, setupPasswordPending: setupPending })
+    // GU2-SEC1: کلاینت می‌فهمد آیا فیلد «کد راه‌اندازی» لازم است (بدون افشای خود کد)
+    const setupTokenRequired = setupPending && checkSetupToken(undefined) !== 'ok'
+    return NextResponse.json({ authenticated: false, setupPasswordPending: setupPending, setupTokenRequired })
   } catch (e) {
     console.error('GET /api/auth/session', e)
     return NextResponse.json({ authenticated: false }, { status: 200 })
