@@ -12,6 +12,23 @@ export const metadata: Metadata = {
   keywords: ["دستیار هوشمند", "لیست کار", "بهره‌وری", "برنامه‌ریزی", "رهیار", "Rahyar AI", "AI assistant"],
   authors: [{ name: "Rahyar AI" }],
   manifest: "/manifest.webmanifest",
+  applicationName: "رهیار AI",
+  // ارتقای نهایی (GU-REL2): متای اشتراک‌گذاری — پیش‌نمایش درست لینک در پیام‌رسان‌ها
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  openGraph: {
+    type: "website",
+    siteName: "رهیار AI",
+    locale: "fa_IR",
+    title: "رهیار AI — از درخواست تا انجام",
+    description:
+      "دستیار هوشمند شخصی فارسی: برنامه‌ریزی روزانه، یادآوری هوشمند، چت عاملیت و مدیریت مالی — همه در یک جای آرام.",
+  },
+  twitter: {
+    card: "summary",
+    title: "رهیار AI — از درخواست تا انجام",
+    description: "دستیار هوشمند شخصی فارسی برای مدیریت و انجام کارها",
+  },
+  robots: { index: true, follow: true },
 };
 
 export const viewport: Viewport = {
