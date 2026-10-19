@@ -1,13 +1,18 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { rateLimit, tooManyRequests } from '@/lib/security'
 
 export const dynamic = 'force-dynamic'
 
 /**
  * Health check برای پایش و استقرار:
  * وضعیت فرایند + پاسخ‌گویی پایگاه‌داده + نسخه اسکیما
+ * RT-4 (اصلاح Red Team): هر درخواست یک ضربه DB است — سقف نرخ سبک
+ * تا مسیر عمومی برای فرسایش SQLite بی‌کران نماند (پایش با ۶۰/دقیقه کافی است).
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const rl = rateLimit(req, 60, 60_000)
+  if (!rl.ok) return tooManyRequests(rl)
   const started = Date.now()
   try {
     await db.$queryRaw`SELECT 1`

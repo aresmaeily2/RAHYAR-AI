@@ -12,6 +12,17 @@ interface Coords { lat: number; lon: number; name: string }
 const geoCache = new Map<string, Coords>()
 const weatherCache = new Map<string, { at: number; data: WeatherData }>()
 const WEATHER_TTL = 30 * 60 * 1000
+/** RT-5 (اصلاح Red Team): سقف کش‌ها — ورودی‌های یکتای بی‌کران (اسامی شهر جعلی)
+ *  رشد حافظه آهسته می‌سازند؛ با FIFO محدود می‌شود */
+const CACHE_MAX_ENTRIES = 200
+
+function setBounded<T>(m: Map<string, T>, key: string, value: T): void {
+  if (m.size >= CACHE_MAX_ENTRIES) {
+    const oldest = m.keys().next().value
+    if (oldest !== undefined) m.delete(oldest)
+  }
+  m.set(key, value)
+}
 
 interface WeatherData {
   city: string
@@ -36,7 +47,7 @@ async function geocode(city: string): Promise<Coords | null> {
     const r = d.results?.[0]
     if (!r) return null
     const c: Coords = { lat: r.latitude, lon: r.longitude, name: r.name }
-    geoCache.set(key, c)
+    setBounded(geoCache, key, c)
     return c
   } catch (e) {
     console.error('weather geocode failed:', e instanceof Error ? e.message : e)
@@ -62,7 +73,7 @@ async function fetchWeather(c: Coords): Promise<WeatherData | null> {
       code: d.current.weather_code,
       isDay: d.current.is_day === 1,
     }
-    weatherCache.set(wKey, { at: Date.now(), data })
+    setBounded(weatherCache, wKey, { at: Date.now(), data })
     return data
   } catch {
     return null

@@ -75,3 +75,6 @@ scripts/github-push.sh
 
 # ─── ابزار داخلی تغییر نام ریپو (سطح sandbox) ───
 scripts/github-rename.sh
+
+# ─── استثنا: Provider محلی AI سورس رسمی است، نه فایل محلی dev (رفع BRK-1) ───
+!src/lib/ai/providers/local-rules.ts

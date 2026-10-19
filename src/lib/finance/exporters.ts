@@ -44,8 +44,17 @@ function asDate(v: Date | string): Date {
   return v instanceof Date ? v : new Date(v)
 }
 
+/**
+ * RT-2 (اصلاح Red Team — CSV Formula Injection):
+ * سلولی که با = + - @ یا Tab/CR شروع شود در اکسل به‌عنوان فرمول اجرا می‌شود
+ * (مثل =HYPERLINK(...) یا =cmd|...). با پیشوند آپاستروف، اکسل آن را متن
+ * می‌بیند و اجرا نمی‌کند؛ داده اصلی سالم در سلول می‌ماند.
+ */
+const FORMULA_PREFIX = /^[=+\-@\t\r]/
+
 function csvCell(v: string): string {
-  return `"${v.replace(/"/g, '""')}"`
+  const safe = FORMULA_PREFIX.test(v) ? `'${v}` : v
+  return `"${safe.replace(/"/g, '""')}"`
 }
 
 export function buildCsv(txs: ExportTx[]): string {

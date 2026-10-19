@@ -4,6 +4,13 @@ import { requireUser, unauthorizedResponse, AuthRequiredError } from '@/lib/auth
 import { rateLimit, tooManyRequests, sameOriginOk, forbiddenOrigin } from '@/lib/security'
 
 /**
+ * RT-3 (اصلاح Red Team): کلید Endpoint مدل (ai_endpoint_key) یک راز است و
+ * نباید در فایل خروجی عمومیِ داده plaintext بیاید — کاربر ممکن است فایل را
+ * برای اشتراک‌گذاری/پشتیبان ارسال کند. کلید از خروجی حذف می‌شود.
+ */
+const SECRET_SETTING_KEYS = new Set(['ai_endpoint_key'])
+
+/**
  * خروجی داده کاربر — JSON خوانا از همه محتوای خودش:
  * کارها/زیرکارها، یادآورها، حافظه‌ها، گفتگو، مالی، تنظیمات.
  * هیچ داده‌ای از کاربران دیگر هرگز در پاسخ نیست.
@@ -34,7 +41,7 @@ export async function GET(req: NextRequest) {
       memories,
       chat,
       finance: { accounts, transactions },
-      settings,
+      settings: settings.filter((s) => !SECRET_SETTING_KEYS.has(s.key)),
     }
 
     const stamp = new Date().toISOString().slice(0, 10)
