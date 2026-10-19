@@ -69,6 +69,13 @@ backups/
 server-rc.log
 .zscripts/dev.pid
 scripts/ara-*.png
+# GU2-PRIV1: همهٔ اسکرین‌شات‌های ممیزی (v2/v3/rc) هم شامل دادهٔ کاربرند
+scripts/*.png
+scripts/*.gif
+scripts/*.webm
+# پشتیبان‌های محلی و اسرار
+*.db.bak
+*.sqlite*
 
 # ─── ابزار داخلی push این نشست (سطح sandbox؛ جزو مخزن عمومی نیست) ───
 scripts/github-push.sh
