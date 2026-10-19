@@ -12,7 +12,7 @@ import { AmbientStage } from '@/components/ambient/ambient-stage'
 import { AiOrb } from '@/components/ara/ai-orb'
 import { useI18n } from '@/i18n/store'
 
-type Mode = 'checking' | 'setup' | 'login' | 'done'
+type Mode = 'checking' | 'setup' | 'login' | 'force-change' | 'done'
 
 export default function LoginPage() {
   const [mode, setMode] = useState<Mode>('checking')
@@ -21,6 +21,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [setupToken, setSetupToken] = useState('')
   const [needsToken, setNeedsToken] = useState(false)
+  const [newPw, setNewPw] = useState('')
+  const [newPw2, setNewPw2] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const t = useI18n((st) => st.t)
@@ -56,6 +58,38 @@ export default function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+      })
+      const d = await res.json()
+      if (!res.ok) {
+        setError(d.error ? t(d.error) : t('انجام نشد؛ دوباره تلاش کن'))
+        return
+      }
+      // حساب‌های ساخته‌شده توسط مالک: تغییر اجباری رمز در اولین ورود
+      if (mode === 'login' && d.mustChangePassword === true) {
+        setMode('force-change')
+        return
+      }
+      window.location.replace('/')
+    } catch {
+      setError(t('ارتباط برقرار نشد؛ اتصال را بررسی کن'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function submitForceChange(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+    if (newPw !== newPw2) {
+      setError(t('رمز و تکرارش یکسان نیست'))
+      return
+    }
+    setBusy(true)
+    try {
+      const res = await fetch('/api/auth/password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: password, newPassword: newPw }),
       })
       const d = await res.json()
       if (!res.ok) {
@@ -181,6 +215,37 @@ export default function LoginPage() {
             <p className="text-center text-[10px] leading-4 text-muted-foreground">
               {t('نشست در همین مرورگر ۳۰ روز معتبر است؛ با «خروج» از پروفایل هر زمان تمام می‌شود.')}
             </p>
+          </form>
+        )}
+
+        {mode === 'force-change' && (
+          <form onSubmit={submitForceChange} className="w-full max-w-sm space-y-4" noValidate>
+            <div className="space-y-1 text-center">
+              <h1 className="text-lg font-black">{t('رمز موقت — رمز شخصی انتخاب کن')}</h1>
+              <p className="text-[11px] leading-5 text-muted-foreground">
+                {t('برای امنیت حساب، پیش از ادامه باید رمز موقتی را عوض کنی.')}
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="newPw" className="text-xs font-medium text-muted-foreground">{t('رمز جدید')}</label>
+              <input id="newPw" type="password" dir="ltr" required minLength={8} autoComplete="new-password"
+                className={inputCls} value={newPw} onChange={(e) => setNewPw(e.target.value)}
+                placeholder={t('حداقل ۸ نویسه')} />
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="newPw2" className="text-xs font-medium text-muted-foreground">{t('تکرار رمز جدید')}</label>
+              <input id="newPw2" type="password" dir="ltr" required minLength={8} autoComplete="new-password"
+                className={inputCls} value={newPw2} onChange={(e) => setNewPw2(e.target.value)}
+                placeholder={t('همان رمز جدید')} />
+            </div>
+            {error && (
+              <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/10 px-3.5 py-2 text-xs text-foreground">{error}</p>
+            )}
+            <button type="submit" disabled={busy || newPw.length < 8 || newPw !== newPw2}
+              className="ara-float ara-float-primary flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold disabled:opacity-50">
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+              {t('ثبت رمز جدید')}
+            </button>
           </form>
         )}
       </main>
