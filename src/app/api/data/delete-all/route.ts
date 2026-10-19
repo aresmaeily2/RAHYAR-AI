@@ -20,12 +20,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'برای حذف، عبارت تأیید لازم است' }, { status: 400 })
     }
 
-    const [tasks, reminders, chat, memories, accounts] = await Promise.all([
+    const [tasks, reminders, chat, memories, accounts, aiUsage, actionLogs] = await Promise.all([
       db.task.deleteMany({ where: { userId: user.id } }),
       db.reminder.deleteMany({ where: { userId: user.id } }),
       db.chatMessage.deleteMany({ where: { userId: user.id } }),
       db.memory.deleteMany({ where: { userId: user.id } }),
       db.financeAccount.deleteMany({ where: { userId: user.id } }),
+      // ارتقای نهایی (GU-PRIV1): حق فراموشی کامل‌تر — فراداده‌های مصرف مدل و
+      // دفتر اقدامات هم دادهٔ شخصی محسوب می‌شوند و با پاک‌سازی کامل حذف می‌شوند.
+      db.aiUsage.deleteMany({ where: { userId: user.id } }),
+      db.actionLog.deleteMany({ where: { userId: user.id } }),
     ])
 
     return NextResponse.json({
@@ -36,6 +40,8 @@ export async function POST(req: NextRequest) {
         chatMessages: chat.count,
         memories: memories.count,
         financeAccounts: accounts.count,
+        aiUsage: aiUsage.count,
+        actionLogs: actionLogs.count,
       },
     })
   } catch (e) {
