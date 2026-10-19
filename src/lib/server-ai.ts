@@ -17,6 +17,28 @@ import { hasExplicitDeleteVerb, hasExplicitForgetVerb } from '@/lib/security'
 
 export { hasExplicitDeleteVerb, hasExplicitForgetVerb }
 
+/**
+ * RT-6 (اصلاح Red Team): هرس تاریخچه چت — نگه‌داشتن آخرین ۲۰۰ پیام هر کاربر
+ * (دفاع LLM10 در برابر رشد بی‌کران دیتابیس). مشترک بین مسیر stream و POST عادی
+ * تا هر دو مسیر نوشتن، سقف یکسان داشته باشند.
+ */
+export async function trimChatHistory(userId: string): Promise<void> {
+  try {
+    const old = await db.chatMessage.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      skip: 200,
+      take: 500,
+      select: { id: true },
+    })
+    if (old.length > 0) {
+      await db.chatMessage.deleteMany({ where: { id: { in: old.map((r) => r.id) } } })
+    }
+  } catch {
+    /* هرس تاثیری بر پاسخ ندارد */
+  }
+}
+
 // ─── پرامپت اصلی دستیار ─────────────────────────────────────
 
 function activeTasksList(tasks: TaskT[]): string {

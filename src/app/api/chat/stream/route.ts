@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { buildChatSystemPrompt, executeChatActions, getMemories, type RawAction } from '@/lib/server-ai'
+import { buildChatSystemPrompt, executeChatActions, getMemories, trimChatHistory, type RawAction } from '@/lib/server-ai'
 import { getAllTasks, serializeTask } from '@/lib/server-tasks'
 import { getUserName } from '@/lib/server-profile'
 import { shouldSearch, performWebSearch } from '@/lib/server-search'
@@ -31,24 +31,6 @@ import type { ChatAction, SourceT } from '@/lib/types'
 
 export const runtime = 'nodejs'
 export const maxDuration = 120
-
-/** هرس گفتگو: نگه‌داشتن آخرین ۲۰۰ پیام هر کاربر (دفاع LLM10) */
-async function trimChatHistory(userId: string): Promise<void> {
-  try {
-    const old = await db.chatMessage.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      skip: 200,
-      take: 500,
-      select: { id: true },
-    })
-    if (old.length > 0) {
-      await db.chatMessage.deleteMany({ where: { id: { in: old.map((r) => r.id) } } })
-    }
-  } catch {
-    /* هرس تاثیری بر پاسخ ندارد */
-  }
-}
 
 /**
  * چت استریمی (SSE):

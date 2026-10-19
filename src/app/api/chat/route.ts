@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { buildChatSystemPrompt, executeChatActions, getMemories, type RawAction } from '@/lib/server-ai'
+import { buildChatSystemPrompt, executeChatActions, getMemories, trimChatHistory, type RawAction } from '@/lib/server-ai'
 import { chatWelcome, getAllTasks, serializeTask } from '@/lib/server-tasks'
 import { getUserName } from '@/lib/server-profile'
 import { shouldSearch, performWebSearch } from '@/lib/server-search'
@@ -169,8 +169,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ۱) ذخیره پیام کاربر
+    // ۱) ذخیره پیام کاربر + هرس تاریخچه (سقف ۲۰۰ — دفاع LLM10)
     const userMsg = await db.chatMessage.create({ data: { userId: user.id, role: 'user', content: message } })
+    void trimChatHistory(user.id)
 
     // ۲) ساخت زمینه: کارهای فعال + حافظه + تاریخچه اخیر — فقط داده همین کاربر
     const tasks = (await getAllTasks(user.id)).filter((t) => t.status === 'todo').slice(0, 40)
