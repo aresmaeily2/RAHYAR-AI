@@ -8,7 +8,9 @@
 // برنمی‌گردد)؛ URL فقط http/https؛ مهلت ۳۰ ثانیه؛ بدنه مهارشده.
 
 import type { LlmMessage } from '@/lib/ai'
+import { lookup } from 'node:dns/promises'
 import {
+  endpointHostAllowed,
   AIProvider,
   ProviderCallContext,
   ProviderChatResult,
@@ -31,21 +33,45 @@ async function postChat(
   const base = (ctx.endpointUrl ?? '').replace(/\/+$/, '')
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (ctx.endpointKey) headers.Authorization = `Bearer ${ctx.endpointKey}`
+  // GU2-SEC3: گارد SSRF — بررسی میزبان و IPهای resolve‌شده پیش از اتصال
+  let target: URL
+  try {
+    target = new URL(`${base}/chat/completions`)
+  } catch {
+    throw new ProviderConfigError('آدرس Endpoint نامعتبر است')
+  }
+  if (target.protocol !== 'http:' && target.protocol !== 'https:') {
+    throw new ProviderConfigError('آدرس Endpoint نامعتبر است')
+  }
+  const ips = await lookup(target.hostname.replace(/^\[|\]$/g, ''), { all: true })
+    .then((r) => r.map((x) => x.address))
+    .catch(() => [] as string[])
+  const allowPrivate = process.env.AI_ALLOW_PRIVATE_ENDPOINTS !== '0'
+  if (!endpointHostAllowed(target.hostname, ips, allowPrivate)) {
+    throw new ProviderConfigError('این آدرس Endpoint به دلایل امنیتی مجاز نیست')
+  }
   let res: Response
   try {
-    res = await fetch(`${base}/chat/completions`, {
+    res = await fetch(target, {
       method: 'POST',
       headers,
       body,
       signal,
+      // ریدایرکت دنبال نمی‌شود — وگرنه گارد بالا با 30x به آدرس داخلی دور زده می‌شود
+      redirect: 'manual',
     })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
-    throw new ProviderConfigError(`اتصال به Endpoint ناموفق بود: ${msg.slice(0, 120)}`)
+    console.warn('openai-compatible fetch failed', msg.slice(0, 120))
+    throw new ProviderConfigError('اتصال به Endpoint ناموفق بود')
+  }
+  if (res.status >= 300 && res.status < 400) {
+    throw new ProviderConfigError('Endpoint ریدایرکت داد؛ آدرس نهایی را مستقیم وارد کن')
   }
   if (!res.ok) {
-    const snippet = (await res.text().catch(() => '')).slice(0, 200)
-    throw new ProviderConfigError(`Endpoint پاسخ ${res.status} داد: ${snippet}`)
+    // بدنه پاسخ بازتاب داده نمی‌شود (جلوگیری از نشت محتوای سرویس داخلی) — فقط کد وضعیت
+    void res.body?.cancel().catch(() => {})
+    throw new ProviderConfigError(`Endpoint پاسخ ${res.status} داد`)
   }
   return res
 }

@@ -89,3 +89,50 @@ export function validateEndpointUrl(raw: unknown): string | null {
     return null
   }
 }
+
+// ── گارد SSRF برای Endpoint کاربر (GU2-SEC3) ─────────────────
+// Endpoint از سمت سرور فراخوانی می‌شود؛ بدون گارد، کاربر می‌توانست سرور را
+// به آدرس‌های داخلی/متادیتای ابری (169.254.169.254) بفرستد و بخشی از پاسخ را
+// در پیام خطا ببیند. سیاست:
+//  - link-local / متادیتا / 0.0.0.0 / multicast همیشه مسدود
+//  - loopback و شبکه خصوصی (Ollama/LM Studio محلی) پیش‌فرض مجاز؛ با
+//    AI_ALLOW_PRIVATE_ENDPOINTS=0 در استقرار عمومی چندکاربره مسدود می‌شوند
+export type EndpointHostVerdict = 'public' | 'private' | 'blocked'
+
+export function classifyIp(ip: string): EndpointHostVerdict {
+  const v = ip.trim().toLowerCase().replace(/^\[|\]$/g, '')
+  const m4 = v.match(/^(?:::ffff:)?(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
+  if (m4) {
+    const [a, b] = [Number(m4[1]), Number(m4[2])]
+    if (a === 0 || a >= 224) return 'blocked'
+    if (a === 169 && b === 254) return 'blocked'
+    if (a === 100 && b >= 64 && b <= 127) return 'blocked' // CGNAT / Alibaba metadata 100.100.100.200
+    if (a === 127 || a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)) return 'private'
+    return 'public'
+  }
+  if (v.includes(':')) {
+    if (v === '::' || v.startsWith('ff') || v.startsWith('fe8') || v.startsWith('fe9') || v.startsWith('fea') || v.startsWith('feb')) return 'blocked'
+    if (v.startsWith('fd00:ec2:')) return 'blocked'
+    if (v === '::1' || v.startsWith('fc') || v.startsWith('fd')) return 'private'
+    return 'public'
+  }
+  return 'public'
+}
+
+const BLOCKED_HOSTNAMES = new Set(['metadata.google.internal', 'metadata', 'instance-data', 'metadata.azure.com'])
+
+export function endpointHostAllowed(
+  hostname: string,
+  resolvedIps: string[],
+  allowPrivate: boolean,
+): boolean {
+  const h = hostname.toLowerCase().replace(/\.$/, '')
+  if (BLOCKED_HOSTNAMES.has(h)) return false
+  const all = [h.replace(/^\[|\]$/g, ''), ...resolvedIps].filter((x) => /^[\d.]+$|:/.test(x))
+  for (const ip of all) {
+    const c = classifyIp(ip)
+    if (c === 'blocked') return false
+    if (c === 'private' && !allowPrivate) return false
+  }
+  return true
+}
