@@ -160,6 +160,12 @@
     font-feature-settings: "ss01";
     font-family: var(--font-body);
   }
+  /* GU2-I18N1: محتوای ذاتاً لاتین (تاریخ میلادی در حالت دوگانه، ساعت/URL)
+     حتی در رابط فارسی نباید با ss01 به ارقام فارسی کشیده شود */
+  .latin-digits,
+  [lang='en'] {
+    font-feature-settings: normal;
+  }
 }
 
 /* اسکرول‌بار نامرئی تا هنگام نیاز */
