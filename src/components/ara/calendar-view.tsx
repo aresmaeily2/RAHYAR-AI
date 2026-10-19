@@ -270,7 +270,7 @@ export function CalendarView() {
                 </span>
                 {/* عدد دوم — میلادی کوچک، خاکستری، انگلیسی (فقط دوگانه فارسی) */}
                 {showDual && c.otherDay !== undefined && (
-                  <span className="tnum mt-0.5 text-[9.5px] font-semibold text-muted-foreground" dir="ltr">
+                  <span className="tnum latin-digits mt-0.5 text-[10.5px] font-semibold text-muted-foreground" dir="ltr" lang="en">
                     {c.otherDay}
                   </span>
                 )}
