@@ -9,7 +9,7 @@ import {
   attachSessionCookie,
   burnPasswordTiming,
 } from '@/lib/auth'
-import { rateLimit, tooManyRequests, sameOriginOk, forbiddenOrigin, readJsonSafe, cleanText } from '@/lib/security'
+import { rateLimit, rateLimitKeyed, tooManyRequests, sameOriginOk, forbiddenOrigin, readJsonSafe, cleanText } from '@/lib/security'
 
 export async function POST(req: NextRequest) {
   if (!sameOriginOk(req)) return forbiddenOrigin()
@@ -22,6 +22,16 @@ export async function POST(req: NextRequest) {
     const password = typeof body?.password === 'string' ? body.password : ''
     if (!username || !password || password.length > 128) {
       return NextResponse.json({ error: 'نام کاربری یا رمز اشتباه است' }, { status: 401 })
+    }
+
+    // GU2-SEC2: سقف دوم به ازای حساب (مستقل از IP) — با چرخاندن IP/پروکسی
+    // نمی‌توان رمز یک حساب را بی‌سقف حدس زد. ۲۰ تلاش در ۱۵ دقیقه.
+    const acct = rateLimitKeyed(`login-acct::${username.toLowerCase()}`, 20, 15 * 60_000)
+    if (!acct.ok) {
+      return NextResponse.json(
+        { error: 'تلاش‌های ورود برای این حساب زیاد بوده؛ چند دقیقه دیگر تلاش کن' },
+        { status: 429, headers: { 'Retry-After': String(Math.max(acct.retryAfter, 1)) } },
+      )
     }
 
     const user = await db.user.findUnique({ where: { username } })
