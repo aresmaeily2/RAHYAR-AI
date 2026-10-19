@@ -11,6 +11,9 @@ const securityHeaders = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-DNS-Prefetch-Control", value: "off" },
   { key: "Permissions-Policy", value: "camera=(), geolocation=(), payment=(), usb=(), microphone=(self)" },
+  // ارتقای نهایی (GU-SEC1): اجبار HTTPS در مرورگر پس از اولین بازدید امن —
+  // روی HTTP محلی توسط مرورگرها نادیده گرفته می‌شود؛ در انتشار HTTPS بی‌ضرر و مؤثر است.
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
 ];
 
 const nextConfig: NextConfig = {
