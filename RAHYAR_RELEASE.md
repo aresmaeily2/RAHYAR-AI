@@ -1,6 +1,12 @@
 # انتشار مخزن GitHub — رهیار AI (Rahyar)
-**Owner:** `aresmaeily2` · **Repository:** `Rahyar` · **Tag:** `v1.0.0-rc1`
-**Commit نهایی:** تگ `v1.0.0-rc1` — هش دقیق در بسته تحویل (`download/rahyar-rc-1.0/18-انتشار-GitHub.md`)
+**Owner:** `aresmaeily2` · **Repository:** `HAMYAR-AI` (تغییرنام به Rahyar در انتظار اقدام مالک) · **نسخهٔ نهایی:** `1.0.0`
+
+> **به‌روزرسانی 2026-10-19 — نسخهٔ نهایی 1.0.0 (مأموریت ارتقای جامع):**
+> مخزن در `aresmaeily2/HAMYAR-AI` منتشر شده (کامیت‌های rc1 تا rc2 پوش شدند) و موج ارتقای نهایی ۱٫۰ روی آن اعمال شد:
+> HSTS، حق فراموشی کامل‌تر، مرز خطای سراسری، اسکلت بارگذاری، حذف ۷ وابستگی مرده، متای OG/Twitter، نسخهٔ `1.0.0` و CHANGELOG.
+> جزئیات: `CHANGELOG.md` و `docs/GRAND_UPGRADE_RC3.md`. انتشار نهایی = push پس از دروازه‌های سبز با `scripts/github-push.sh` (توکن فقط runtime خوانده می‌شود).
+
+---
 
 ## وضعیت آماده‌سازی (انجام‌شده در این نشست)
 - ✓ نام یکپارچه در `package.json`/README/Manifest/PWA/عنوان پنجره/آیکون/مستندات = **Rahyar / رهیار AI**
