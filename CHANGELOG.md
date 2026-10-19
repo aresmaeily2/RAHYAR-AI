@@ -1,5 +1,17 @@
 # Change Log — رهیار AI (Rahyar AI)
 
+## [1.0.1-gu2] — 2026-10-19 (NOT READY FOR RELEASE)
+### Security
+- First-run owner setup requires `RAHYAR_SETUP_TOKEN` in production (GU2-SEC1)
+- Per-account login rate limit (GU2-SEC2)
+- SSRF guard on OpenAI-compatible endpoint; redirects not followed; no response-body reflection (GU2-SEC3)
+- Safe `TRUST_PROXY_HEADERS=0` default; screenshots with user data untracked
+### Fixed
+- Data import: invalid dates no longer cause 500 + partial import; writes are atomic (GU2-DATA1)
+- Persian dual calendar: Gregorian sub-date keeps Latin digits, slightly larger (GU2-I18N1)
+### Tests
+- 10 new regression tests (165 total). See docs/GRAND_UPGRADE_GU2.md
+
 تمام تغییرات قابل توجه این پروژه در این فایل ثبت می‌شود.
 قالب بر پایهٔ [Keep a Changelog](https://keepachangelog.com/) و نسخه‌بندی معنایی (SemVer).
 
