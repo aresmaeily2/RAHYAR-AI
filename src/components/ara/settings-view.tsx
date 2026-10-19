@@ -37,6 +37,7 @@ import { formatNum } from '@/i18n/core'
 import { AppearancePicker } from './appearance-picker'
 import { ReminderSettingsDialog } from './reminder-settings-dialog'
 import { ConnectionsDialog } from './connections-dialog'
+import { UsersAdmin } from './users-admin'
 import {
   WeatherRow,
   EffectsRow,
@@ -151,6 +152,9 @@ export function SettingsView() {
       </div>
 
       <div ref={scrollRef} className="space-y-4">
+        {/* ── مدیریت کاربران — فقط برای مالک رندر می‌شود ── */}
+        <UsersAdmin />
+
         {/* ── حساب کاربری ── */}
         <SettingsSection id="account" icon={User} title={t('حساب کاربری')}>
           <label htmlFor="settings-name" className="text-[10px] text-muted-foreground">{t('نام تو')}</label>
