@@ -14,6 +14,9 @@ const securityHeaders = [
   // ارتقای نهایی (GU-SEC1): اجبار HTTPS در مرورگر پس از اولین بازدید امن —
   // روی HTTP محلی توسط مرورگرها نادیده گرفته می‌شود؛ در انتشار HTTPS بی‌ضرر و مؤثر است.
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+  // GRAND-F4 (SEC-F9): جداسازی زمینهٔ مرورگر — کوست صفر، بهرهٔ دفاعی واقعی
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+  { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
 ];
 
 const nextConfig: NextConfig = {

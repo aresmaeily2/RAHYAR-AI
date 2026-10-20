@@ -1,5 +1,6 @@
 // ─── آزمون احراز هویت — scrypt و سیاست رمز (بخش ۴ و ۱۲ دستور) ──
 import { describe, expect, test } from 'bun:test'
+import crypto from 'crypto'
 import {
   hashPassword,
   verifyPassword,
@@ -10,10 +11,22 @@ import {
 } from '@/lib/auth'
 
 describe('hashPassword / verifyPassword', () => {
-  test('رفت‌وبرگشت رمز درست', () => {
+  test('رفت‌وبرگشت رمز درست (s2 — GRAND-F4)', () => {
     const h = hashPassword('رمز-امن-۱۲۳۴')
-    expect(h.startsWith('s1:')).toBe(true)
+    expect(h.startsWith('s2:')).toBe(true)
     expect(verifyPassword('رمز-امن-۱۲۳۴', h)).toBe(true)
+  })
+  test('سازگاری رو به عقب: هش قدیمی s1 هنوز تأیید می‌شود (GRAND-F4)', () => {
+    const salt = crypto.randomBytes(16)
+    const hash = crypto.scryptSync('legacy-pass', salt, 64, { N: 16384 })
+    const s1 = `s1:${salt.toString('hex')}:${hash.toString('hex')}`
+    expect(verifyPassword('legacy-pass', s1)).toBe(true)
+    expect(verifyPassword('wrong', s1)).toBe(false)
+  })
+  test('پیشوند ناشناخته/هش خراب هرگز معتبر نیست', () => {
+    expect(verifyPassword('x', 's9:aa:bb')).toBe(false)
+    expect(verifyPassword('x', 'garbage')).toBe(false)
+    expect(verifyPassword('x', 's2:zz:bb')).toBe(false)
   })
   test('رمز اشتباه رد می‌شود', () => {
     const h = hashPassword('رمز-امن-۱۲۳۴')
