@@ -1,4 +1,9 @@
-// ماژول اپ — سورس مشترک با خط لولهٔ v11 (src/ داخل sourceSets مپ شده؛ کپی/انشعاب سورس وجود ندارد)
+// ماژول اپ — نسخهٔ مستقل v1.2.0 (versionCode 12)
+// تغییر نسبت به v1.1.0:
+//  - HomeActivity (خانهٔ محلی ۱۰۰٪ آفلاین) نقطهٔ ورود شده است
+//  - androidx.webkit برای WebViewAssetLoader (مبدأ امن دارایی‌های محلی)
+//  - دارایی‌های UI محلی از ../src/www بارگذاری می‌شوند
+//  - حالت متصل (MainActivity/LoginActivity) بدون تغییر حفظ شده است
 // امضای release عمداً پیکربندی نشده — کلید انتشار قبلی از دست رفته و ساخت کلید جدید نیازمند تأیید مالک است.
 plugins {
     id 'com.android.application'
@@ -12,8 +17,8 @@ android {
         applicationId 'com.rahyarai.app'
         minSdk 24
         targetSdk 34
-        versionCode 11          // = versionCode APK منتشرشدهٔ v1.1.0 (تطبیق badging تأیید شد)
-        versionName '1.1.0'
+        versionCode 12          // نسخهٔ مستقل v1.2.0
+        versionName '1.2.0'
     }
 
     sourceSets {
@@ -21,6 +26,7 @@ android {
             manifest.srcFile 'gradle/AndroidManifest.xml'   // بدون صفت package (الزام AGP 8) — همگام با src/
             java.srcDirs = ['../src/java']
             res.srcDirs = ['../src/res']
+            assets.srcDirs = ['../src/www']                 // UI محلی داخل APK — بدون هیچ منبع شبکه
         }
     }
 
@@ -35,8 +41,21 @@ android {
         abortOnError false
         checkReleaseBuilds false
     }
+
+    testOptions {
+        unitTests.all {
+            // مسیر دارایی‌های UI برای تست OfflineContract (بدون وابستگی به دایرکتوری جاری)
+            systemProperty 'rahyar.www.dir', file('../src/www').absolutePath
+            // هشدارهای deprecation بومی اهمیت نتایج را تغییر نمی‌دهند
+            jvmArgs '-Xmx1024m'
+        }
+    }
 }
 
 dependencies {
+    // WebViewAssetLoader — مبدأ امن برای دارایی‌های محلی (بدون file://)
+    implementation 'androidx.webkit:webkit:1.11.0'
     testImplementation 'junit:junit:4.13.2'
+    // نسخهٔ JVM کتابخانهٔ org.json برای تست واحد (در اجرای واقعی اپ، org.json خود پلتفرم استفاده می‌شود)
+    testImplementation 'org.json:json:20240303'
 }

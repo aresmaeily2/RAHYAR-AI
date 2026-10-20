@@ -50,6 +50,8 @@ dev.out.log
 test
 # GRAND-F5: استثنا — مسیر API «تست اتصال» نباید نادیده گرفته شود
 !src/app/api/settings/ai/test/
+# STANDALONE-1: تست‌های واحد اندروید (JVM) باید در مخزن باشند — الگوی «test» بالاتر آن‌ها را می‌بندید
+!android/app/src/test/
 prompt
 
 server.log

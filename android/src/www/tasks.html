@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<!-- رهیار — وظایف (ذخیرهٔ محلی با پل RahyarNative؛ بدون شبکه) -->
+<html lang="fa" dir="rtl" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body data-page="tasks">
+  <header class="top">
+    <h1 data-i18n="tasks">وظایف</h1>
+    <span id="netbadge" class="badge off">…</span>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2 data-i18n="addTask">افزودن وظیفه</h2>
+      <label class="f" for="tTitle" data-i18n="taskTitle">عنوان وظیفه</label>
+      <input type="text" id="tTitle" maxlength="200">
+      <label class="f" for="tNote" data-i18n="taskNote">یادداشت (اختیاری)</label>
+      <input type="text" id="tNote" maxlength="500">
+      <label class="f" for="tPrio" data-i18n="priority">اولویت</label>
+      <select id="tPrio">
+        <option value="low" data-i18n="low">کم</option>
+        <option value="med" selected data-i18n="med">متوسط</option>
+        <option value="high" data-i18n="high">زیاد</option>
+      </select>
+      <div class="row" style="margin-top:12px">
+        <button class="primary" id="tAdd" data-i18n="save">ذخیره</button>
+      </div>
+      <div id="tMsg" class="msg"></div>
+    </div>
+
+    <div id="list"></div>
+  </main>
+
+  <nav class="bottom" id="nav"></nav>
+  <script src="js/app.js"></script>
+  <script>
+    window.PAGE_INIT = function () {
+      RH.buildNav('tasks.html');
+      var list = document.getElementById('list');
+
+      function tasks() { return RH.readDoc('tasks', []); }
+
+      function persist(arr) {
+        var r = RH.putDoc('tasks', arr);
+        if (!r || !r.ok) { RH.msg('tMsg', false, r && r.error === 'too_large' ? 'too large' : 'save failed'); return false; }
+        return true;
+      }
+
+      function render() {
+        var arr = tasks();
+        // بازها اول (اولویت زیاد → کم)، سپس انجام‌شده‌ها
+        var order = { high: 0, med: 1, low: 2 };
+        arr.sort(function (a, b) {
+          if ((a.status === 'done') !== (b.status === 'done')) return a.status === 'done' ? 1 : -1;
+          return (order[a.priority] || 1) - (order[b.priority] || 1);
+        });
+        if (!arr.length) {
+          list.innerHTML = '<div class="empty">' + RH.esc(RH.t('noTasks')) + '</div>';
+          return;
+        }
+        var html = '';
+        for (var i = 0; i < arr.length; i++) {
+          var it = arr[i];
+          var done = it.status === 'done';
+          html += '<div class="item' + (done ? ' done' : '') + '">'
+            + '<div class="grow"><div class="t">' + RH.esc(it.title) + '</div>'
+            + (it.note ? '<div class="d">' + RH.esc(it.note) + '</div>' : '')
+            + '<div class="d">' + RH.esc(RH.fmtDate(it.createdAt)) + '</div></div>'
+            + '<span class="chip ' + (done ? 'done' : RH.esc(it.priority)) + '">'
+            + RH.esc(done ? RH.t('done') : RH.t(it.priority === 'high' ? 'high' : it.priority === 'low' ? 'low' : 'med'))
+            + '</span>'
+            + '<div class="list-actions">'
+            + '<button data-act="toggle" data-id="' + RH.esc(it.id) + '">' + RH.esc(done ? RH.t('reopen') : RH.t('done')) + '</button>'
+            + '<button data-act="del" data-id="' + RH.esc(it.id) + '">' + RH.esc(RH.t('delete')) + '</button>'
+            + '</div></div>';
+        }
+        list.innerHTML = html;
+      }
+
+      list.addEventListener('click', function (ev) {
+        var btn = ev.target && ev.target.closest ? ev.target.closest('button[data-act]') : null;
+        if (!btn) return;
+        var id = btn.getAttribute('data-id'), act = btn.getAttribute('data-act');
+        var arr = tasks();
+        for (var i = 0; i < arr.length; i++) {
+          if (arr[i].id === id) {
+            if (act === 'toggle') {
+              arr[i].status = (arr[i].status === 'done') ? 'open' : 'done';
+              arr[i].doneAt = arr[i].status === 'done' ? new Date().toISOString() : null;
+            } else if (act === 'del') {
+              if (!window.confirm(RH.t('confirmDelete'))) return;
+              arr.splice(i, 1);
+            }
+            break;
+          }
+        }
+        if (persist(arr)) render();
+      });
+
+      document.getElementById('tAdd').addEventListener('click', function () {
+        var title = document.getElementById('tTitle').value.trim();
+        if (!title) { RH.msg('tMsg', false, RH.t('taskTitle')); return; }
+        var arr = tasks();
+        arr.push({
+          id: RH.uid(), title: title,
+          note: document.getElementById('tNote').value.trim(),
+          priority: document.getElementById('tPrio').value,
+          status: 'open', createdAt: new Date().toISOString(), doneAt: null
+        });
+        if (persist(arr)) {
+          document.getElementById('tTitle').value = '';
+          document.getElementById('tNote').value = '';
+          render();
+          RH.msg('tMsg', true, RH.t('saved'));
+        }
+      });
+
+      render();
+    };
+  </script>
+</body>
+</html>

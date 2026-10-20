@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<!-- رهیار — خانهٔ محلی (۱۰۰٪ داخل APK؛ بدون هیچ منبع شبکه) -->
+<html lang="fa" dir="rtl" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body data-page="home">
+  <header class="top">
+    <h1 data-i18n="appName">رهیار</h1>
+    <span id="netbadge" class="badge off">…</span>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2><span data-i18n="hello">سلام</span>، <span id="who">…</span></h2>
+      <p class="sub" data-i18n="aboutDesc">نسخهٔ مستقل اندروید — اجرای کامل بدون هاست و بدون اینترنت.</p>
+    </div>
+
+    <div class="stat">
+      <div class="box"><div class="n" id="stOpen">0</div><div class="l" data-i18n="openTasks">وظایف باز</div></div>
+      <div class="box"><div class="n" id="stDone">0</div><div class="l" data-i18n="doneTasks">انجام‌شده</div></div>
+      <div class="box"><div class="n" id="stRem">0</div><div class="l" data-i18n="remindersUp">یادآورهای پیش‌رو</div></div>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="about">درباره و قابلیت‌ها</h2>
+      <p class="sub"><b data-i18n="featuresLocal">کاملاً محلی:</b><br><span data-i18n="featuresLocalVal">خانه، وظایف، یادآورها، تنظیمات، پشتیبان</span></p>
+      <p class="sub"><b data-i18n="featuresPerm">محلی با مجوز (نسخهٔ بعد):</b><br><span data-i18n="featuresPermVal">اعلان یادآورها</span></p>
+      <p class="sub"><b data-i18n="featuresNet">نیازمند اینترنت:</b><br><span data-i18n="featuresNetVal">اتصال به سرور شما، گفتگوی هوش مصنوعی ابری، آب‌وهوا — در این نسخه در اپ موجود نیستند</span></p>
+      <p class="hint" id="verLine">…</p>
+    </div>
+  </main>
+
+  <nav class="bottom" id="nav"></nav>
+  <script src="js/app.js"></script>
+  <script>
+    window.PAGE_INIT = function () {
+      RH.buildNav('index.html');
+      var p = RH.profile();
+      document.getElementById('who').textContent = (p.name && p.name.trim()) ? p.name.trim() : RH.t('guest');
+      var tasks = RH.readDoc('tasks', []);
+      var open = 0, done = 0;
+      for (var i = 0; i < tasks.length; i++) (tasks[i] && tasks[i].status === 'done') ? done++ : open++;
+      var rems = RH.readDoc('reminders', []);
+      var up = 0, now = Date.now();
+      for (var j = 0; j < rems.length; j++) {
+        var at = rems[j] && rems[j].at ? Date.parse(rems[j].at) : NaN;
+        if (isNaN(at) || at >= now) up++;
+      }
+      document.getElementById('stOpen').textContent = open;
+      document.getElementById('stDone').textContent = done;
+      document.getElementById('stRem').textContent = up;
+      var m = RH.meta();
+      document.getElementById('verLine').textContent =
+        RH.t('version') + ': ' + (m.versionName || '') + ' (local) — ' + RH.t('localMode') + ' — ' + RH.t('storageLocal');
+    };
+  </script>
+</body>
+</html>
