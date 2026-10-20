@@ -48,6 +48,8 @@ local-*
 dev.log
 dev.out.log
 test
+# GRAND-F5: استثنا — مسیر API «تست اتصال» نباید نادیده گرفته شود
+!src/app/api/settings/ai/test/
 prompt
 
 server.log

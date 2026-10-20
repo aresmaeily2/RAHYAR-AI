@@ -50,6 +50,16 @@ async function postChat(
   if (!endpointHostAllowed(target.hostname, ips, allowPrivate)) {
     throw new ProviderConfigError('این آدرس Endpoint به دلایل امنیتی مجاز نیست')
   }
+  // GRAND-F5 (SEC-F2): کاهش TOCTOU/rebinding DNS — resolve دوم بلافاصله پیش از
+  // fetch؛ همهٔ IPهای تازه هم باید مجاز باشند. پنجرهٔ حمله از «بین lookup و اتصال»
+  // به چند میلی‌ثانیه می‌رسد. ریشه‌کنی کامل نیازمند pin کردن IP در لایهٔ اتصال
+  // است (undici dispatcher در دسترس نیست — محدودیت مستند در گزارش).
+  const ips2 = await lookup(target.hostname.replace(/^\[|\]$/g, ''), { all: true })
+    .then((r) => r.map((x) => x.address))
+    .catch(() => [] as string[])
+  if (!endpointHostAllowed(target.hostname, ips2, allowPrivate)) {
+    throw new ProviderConfigError('این آدرس Endpoint به دلایل امنیتی مجاز نیست')
+  }
   let res: Response
   try {
     res = await fetch(target, {
