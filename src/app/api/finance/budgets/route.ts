@@ -4,6 +4,7 @@ import { rateLimit, tooManyRequests, sameOriginOk, forbiddenOrigin, readJsonSafe
 import { listBudgets, upsertBudget, deleteBudget, FinanceValidationError } from '@/lib/finance/server'
 import { db } from '@/lib/db'
 import { budgetStatuses, monthKeyOf, budgetTotals } from '@/lib/finance/budget'
+import { tehranMonthRange } from '@/lib/persian-date'
 
 /**
  * بودجه ماهانه دسته‌های هزینه —
@@ -17,17 +18,16 @@ export async function GET(req: NextRequest) {
   try {
     const user = await requireUser(req)
     const budgets = await listBudgets(user.id)
-    // وضعیت مصرف ماه جاری — تراکنش‌های هزینه همین ماه
-    const monthStart = new Date()
-    monthStart.setUTCDate(1)
-    monthStart.setUTCHours(0, 0, 0, 0)
-    const monthEnd = new Date(monthStart)
-    monthEnd.setUTCMonth(monthEnd.getUTCMonth() + 1)
+    // وضعیت مصرف ماه جاری — مرز ماه GRAND-F6: تقویم تهران (قبلاً UTC بود)
+    const mk = monthKeyOf(new Date())
+    const range = tehranMonthRange(mk)
     const txs = await db.financeTransaction.findMany({
-      where: { userId: user.id, occurredAt: { gte: monthStart, lt: monthEnd } },
+      where: {
+        userId: user.id,
+        ...(range ? { occurredAt: { gte: range.start, lt: range.end } } : {}),
+      },
       select: { type: true, category: true, amount: true, occurredAt: true },
     })
-    const mk = monthKeyOf(new Date())
     const statuses = budgetStatuses(budgets, txs, mk)
     return NextResponse.json({
       budgets,
