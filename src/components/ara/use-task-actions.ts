@@ -80,7 +80,7 @@ export function useTaskActions() {
               const d = await res.json()
               if (res.ok) upsertTask(d.task as TaskT)
             } catch {
-              toast.error('بازگردانی ناموفق بود')
+              toast.error(t('بازگردانی ناموفق بود'))
             }
           },
         },
