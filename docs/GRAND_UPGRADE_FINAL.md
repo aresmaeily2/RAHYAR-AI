@@ -105,3 +105,28 @@ axe-core روی login+settings: **0 serious/critical**. این موج: MotionCon
 - [x] شواهد اجرا و تست پیوست
 
 **نتیجه: READY FOR RELEASE (نسخهٔ محدود)** — برای «انتشار عمومی چندکاربره» پیش‌نیازهای §۲۱ بندهای 2/3/6 + تصمیم VAPID توصیه می‌شود.
+
+---
+
+## ۲۳) تثبیت نسخهٔ وب — بازتأیید کامل روی build تازه (STAGE-WEB، 2026-10-20)
+این سکشن پس از ریست محیط و بازسازی خط مبنا اضافه شد؛ سکشن‌های ۱–۲۲ سابقهٔ قبلی‌اند و دست‌نخورده مانده‌اند.
+
+### شواهد تازه (همه با اجرای واقعی روی main@`ce1f703`، production standalone :3000)
+| دروازه | نتیجه واقعی | لاگ/شاهد |
+|---|---|---|
+| typecheck + lint + unit (`bun run verify`) | **181/181 pass، 0 fail** (611 expect، 13 فایل)؛ tsc ✅ eslint ✅ — 17.8s | `artifacts/reports/baseline-verify-*.log` |
+| production build | ✅ موفق — compile 10.9s، 39/39 صفحه، static مرورگر 1.6MB | `artifacts/reports/prod-build-20261020.log` |
+| سناریوی چندکاربره (`users-scenario.sh`) | **14/14 PASS** — 20 کاربر، BAC 403، تغییر اجباری رمز، ابطال رمز موقت، غیرفعال‌سازی، جداسازی داده (مالک تسک کاربر را نمی‌بیند)، CSV بدون هش، UserAudit 21 | `artifacts/reports/users-scenario-*.log` |
+| E2E پروداکشن + axe | **11/11 PASS، کنسول=0، axe serious=0** — fa/Jalali، en/Gregorian بدون نشت ارقام فارسی، بدون سرریز افقی دسکتاپ/تبلت/موبایل | `artifacts/reports/grand-e2e-run.log` |
+| امنیت زنده | **18/18 PASS** — 8 هدر + CSP nonce + کوکی `Secure;HttpOnly;SameSite=lax` + 401 ناشناس روی مسیرهای حساس + گارد SSRF owner-only (کاربر عادی endpoint خصوصی → رد) + 429 نرخ ورود | `artifacts/reports/live-security-b.log` |
+| بازیابی سرویس | **7/7 PASS** — restart پروداکشن → health 200، 21 کاربر ماندگار، لاگین سالم، خروج = ابطال نشست (401) | `artifacts/reports/restart-resilience.log` |
+| جریان مالی واقعی | **6/6 PASS** — حساب→تراکنش→بودجه (PUT، دسته `food`)→فیلتر ماه `2026-10` (مرز تهران)→اکسپورت CSV→پاکسازی | `scripts/stage-web-finance.sh` |
+| import کاربران | **3/3 PASS** — CSV دو کاربر، ورود موفق، حذف پاکسازی | `scripts/stage-web-import.sh` |
+| ممیزی وابستگی (npm audit روی lockfile تازه) | **critical=0**؛ 19 high/3 moderate/1 low — **هیچ‌کدام در باندل runtime نیستند** (runtime فقط @prisma/client/next/sharp — همه پاک)؛ عمدتاً ابزار build/dev (postcss/micromatch/browserslist/prisma CLI/…) | `artifacts/reports/dependency-audit.json` |
+| اسکرین‌شات تازه | 12 شات از همین build: login/dashboard/calendar/users fa، dashboard/calendar/today en، mobile fa، tablet | `download/screenshots/grand/` |
+
+### محدودیت مستندشدهٔ جدید
+- صفحهٔ ورود همیشه فارسی/RTL رندر می‌شود (`getServerLang` برای کاربر ناشناس `fa` برمی‌گرداند؛ زبان هر کاربر پس از ورود از DB اعمال می‌شود — E2E تأیید). سوییچ زبان ناشناس روی login اکنون وجود ندارد → دِبت UX مستند (پیشنهاد: کوکی زبان ناشناس). محصول فارسی‌مبنا است؛ مسدودکنندهٔ انتشار نیست.
+
+### نتیجهٔ تثبیت
+همهٔ دروازه‌ها روی build تازه سبز هستند؛ نتیجهٔ §۲۲ (READY FOR RELEASE — نسخهٔ محدود) **مجدد تأیید شد**.
