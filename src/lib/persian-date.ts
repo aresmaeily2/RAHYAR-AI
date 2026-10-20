@@ -60,6 +60,60 @@ export function tehranDayOf(isoUtc: string): string {
   }
 }
 
+/** ماه تقویمی تهران (YYYY-MM) برای یک لحظه — GRAND-F6: مرز ماه مالی یکدست تهران */
+export function tehranMonthKeyOf(d: Date | string): string {
+  const dt = typeof d === 'string' ? new Date(d) : d
+  const time = Number.isNaN(dt.getTime()) ? Date.now() : dt.getTime()
+  return tehranDayOf(new Date(time).toISOString()).slice(0, 7)
+}
+
+/** آفست منطقهٔ زمانی (دقیقه) در یک لحظه — دقیق حتی در دوره‌های DST تاریخی */
+function tzOffsetMinutes(tz: string, at: Date): number {
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  })
+  const p: Record<string, string> = {}
+  for (const part of dtf.formatToParts(at)) if (part.type !== 'literal') p[part.type] = part.value
+  const asUTC = Date.UTC(
+    Number(p.year),
+    Number(p.month) - 1,
+    Number(p.day),
+    Number(p.hour) % 24,
+    Number(p.minute),
+    Number(p.second),
+  )
+  return (asUTC - at.getTime()) / 60000
+}
+
+/**
+ * بازهٔ UTCِ یک ماه میلادی بر اساس تقویم تهران — GRAND-F6.
+ * پیش‌تر فهرست تراکنش‌ها با زمان server-local و بودجه با UTC مرز ماه می‌گرفتند؛
+ * اکنون هر دو (و monthKeyOf) از همین تابع استفاده می‌کنند: مرز ماه = ۰۰:۰۰ تهران.
+ */
+export function tehranMonthRange(month: string): { start: Date; end: Date } | null {
+  if (!/^\d{4}-\d{2}$/.test(month)) return null
+  const [y, m] = month.split('-').map(Number)
+  if (y < 1970 || y > 2999 || m < 1 || m > 12) return null
+  const ny = m === 12 ? y + 1 : y
+  const nm = m === 12 ? 1 : m + 1
+  const edge = (Y: number, M: number) => {
+    const guess = new Date(Date.UTC(Y, M - 1, 1))
+    const off1 = tzOffsetMinutes(TZ, guess)
+    let start = new Date(guess.getTime() - off1 * 60000)
+    const off2 = tzOffsetMinutes(TZ, start)
+    if (off2 !== off1) start = new Date(Date.UTC(Y, M - 1, 1) - off2 * 60000)
+    return start
+  }
+  return { start: edge(y, m), end: edge(ny, nm) }
+}
+
 /** تاریخ میلادی ISO → شمسی خوانا با ارقام فارسی */
 export function formatJalali(
   iso: string | Date,

@@ -4,6 +4,7 @@
 // نیستند. خروجی کاملاً قطعی و بدون هیچ فراخوانی مدل است.
 
 import { EXPENSE_CATEGORIES } from './core'
+import { tehranMonthKeyOf } from '@/lib/persian-date'
 
 export interface BudgetLike {
   category: string
@@ -30,12 +31,10 @@ export interface BudgetStatus {
   warn: boolean
 }
 
-/** کلید ماه «YYYY-MM» از تاریخ — بدون وابستگی به منطقه زمانی سرور (UTC) */
+/** کلید ماه «YYYY-MM» از تاریخ — GRAND-F6: مبنای واحد تقویم تهران
+ *  (قبلاً UTC بود و با مرز ماه server-local در فهرست تراکنش‌ها ناسازگار بود) */
 export function monthKeyOf(d: Date | string): string {
-  const dt = typeof d === 'string' ? new Date(d) : d
-  const y = dt.getUTCFullYear()
-  const m = String(dt.getUTCMonth() + 1).padStart(2, '0')
-  return `${y}-${m}`
+  return tehranMonthKeyOf(d)
 }
 
 /** آیا این دسته بودجه‌پذیر است؟ (فقط دسته‌های هزینه) */

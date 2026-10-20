@@ -69,9 +69,24 @@ describe('بودجه مالی', () => {
     expect(tot.overCount).toBe(0)
   })
 
-  test('monthKeyOf از رشته و تاریخ', () => {
+  test('monthKeyOf از رشته و تاریخ (مبنای تهران — GRAND-F6)', () => {
     expect(monthKeyOf('2026-02-10T12:00:00.000Z')).toBe('2026-02')
-    expect(monthKeyOf(new Date('2026-12-31T23:59:59.000Z'))).toBe('2026-12')
+    // ۳۱ دسامبر ۲۳:۵۹ UTC = ۱ ژانویه ۰۳:۲۹ تهران → ماه تهران
+    expect(monthKeyOf(new Date('2026-12-31T23:59:59.000Z'))).toBe('2027-01')
+    // مرز دقیق: ۲۰:۳۰ UTC روز آخر ماه = نیم‌شب تهران ماه بعد
+    expect(monthKeyOf(new Date('2026-09-30T20:29:59.000Z'))).toBe('2026-09')
+    expect(monthKeyOf(new Date('2026-09-30T20:30:00.000Z'))).toBe('2026-10')
+  })
+
+  test('tehranMonthRange — مرز ماه مالی یکدست تهران (GRAND-F6)', async () => {
+    const { tehranMonthRange } = await import('@/lib/persian-date')
+    const r = tehranMonthRange('2026-10')
+    expect(r).not.toBeNull()
+    expect(r!.start.toISOString()).toBe('2026-09-30T20:30:00.000Z')
+    expect(r!.end.toISOString()).toBe('2026-10-31T20:30:00.000Z')
+    // ورودی نامعتبر
+    expect(tehranMonthRange('2026-13')).toBeNull()
+    expect(tehranMonthRange('garbage')).toBeNull()
   })
 
   test('فقط دسته‌های هزینه بودجه‌پذیرند', () => {

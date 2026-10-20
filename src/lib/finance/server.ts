@@ -2,6 +2,7 @@
 
 import { db } from '@/lib/db'
 import { isFinanceType, isAccountKind, EXPENSE_CATEGORIES, type FinanceType } from './core'
+import { tehranMonthRange } from '@/lib/persian-date'
 
 export interface FinanceTxCreate {
   type: FinanceType
@@ -88,10 +89,9 @@ export async function listTransactions(
 ) {
   const where: { userId: string; occurredAt?: { gte: Date; lt: Date }; type?: string } = { userId }
   if (opts.month && /^\d{4}-\d{2}$/.test(opts.month)) {
-    const [y, m] = opts.month.split('-').map(Number)
-    const start = new Date(y, m - 1, 1)
-    const end = new Date(y, m, 1)
-    where.occurredAt = { gte: start, lt: end }
+    // GRAND-F6: مرز ماه بر اساس تقویم تهران (قبلاً server-local — ناسازگار با بودجه)
+    const range = tehranMonthRange(opts.month)
+    if (range) where.occurredAt = { gte: range.start, lt: range.end }
   }
   if (opts.type && isFinanceType(opts.type)) where.type = opts.type
   return db.financeTransaction.findMany({
