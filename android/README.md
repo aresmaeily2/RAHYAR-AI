@@ -26,8 +26,8 @@ bash scripts/build-android-apk-v11.sh
 # خروجی: artifacts/android-build/out/Rahyar-Android-v1.1.0-{debug,release}.apk
 ```
 
-- keystore release: در `backups/android-release-keystore/` (رمز تصادفی، فقط محلی). برای انتشار عمومی، مالک باید این keystore را امن نگه دارد؛ به‌روزرسانی‌های بعدی باید با همان کلید امضا شوند.
-- تست واحد منطق: `javac`+`java -ea` روی `android/test/.../AppConfigTest.java` (21 بررسی) — یا با ECJ مطابق لاگ بیلد.
+- ~~keystore release: در `backups/android-release-keystore/`~~ — **اصلاح 2026-10-20 (ممیزی):** این keystore در reset محیط از دست رفت و در هیچ repo/ZIP/Release کپی نبوده است. APK منتشرشده با گواهی `CN=Rahyar Release` (SHA-256: `60f762d7ee570f500780cc20e1c910e5c6baa5edbb0715dfff7f5ff1a3679810`) امضا شده؛ تصمیم دربارهٔ کلید جایگزین با مالک است (به‌روزرسانی درجا با کلید متفاوت ممکن نیست).
+- ~~تست واحد منطق: `javac`+`java -ea` روی `android/test/.../AppConfigTest.java` (21 بررسی)~~ — **اصلاح 2026-10-20 (ممیزی):** آن فایل هرگز commit نشده بود و با reset از دست رفت؛ ادعای «21 بررسی» از مخزن قابل‌بازتولید نیست (`git log --all --diff-filter=A -- "*AppConfigTest*"` خالی است). تست قابل‌اجرا و ثبت‌شدهٔ فعلی: `android/app/src/test/java/com/rahyarai/app/AppConfigTest.java` (6 بررسی، JUnit4) — تأیید مجدد در ممیزی 2026-10-20: Gradle 8.10.2 + JDK 17 → tests=6 failures=0 errors=0 skipped=0.
 
 ## ساختار
 ```
@@ -40,7 +40,7 @@ android/
     LoginActivity.java             — ورود بومی دوزبانه (fa پیش‌فرض، values-en انگلیسی)
     MainActivity.java              — WebView + وضعیت اتصال + آفلاین + خروج
   src/res/                         — layout/strings (fa+en)/network_security_config/آیکن برداری
-  test/java/com/rahyarai/app/      — تست واحد لایهٔ منطق (JDK runner)
+  test/java/com/rahyarai/app/      — (مسیر قدیمی v11؛ این فایل هرگز commit نشد — تست فعلی در app/src/test/ است)
 ```
 
 ## محدودیت‌های شناخته‌شده
