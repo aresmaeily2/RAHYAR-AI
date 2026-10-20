@@ -1,0 +1,6 @@
+filebin|APK|https://filebin.net/rahyar-v120-210839/Rahyar-Android-v1.2.0-debug-test.apk
+x0|APK-as-zip|https://x0.at/hQxW.zip
+filebin|SRC|https://filebin.net/rahyar-v120-210839/Rahyar-Android-Source-v1.2.0.zip
+x0|SRC|https://x0.at/KIqv.zip
+filebin|GUIDE|https://filebin.net/rahyar-v120-210839/INSTALL_GUIDE_FA.md
+x0|GUIDE|https://x0.at/EABI.md
