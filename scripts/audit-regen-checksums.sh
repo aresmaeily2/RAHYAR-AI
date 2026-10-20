@@ -11,7 +11,7 @@ OUT=checksums/SHA256SUMS.txt
   find android reports screenshots web -type f | LC_ALL=C sort | while read -r f; do
     sha256sum "$f"
   done
-  sha256sum LINKS.txt
+  sha256sum INSTALL_GUIDE_FA.md LINKS.txt
 } > "$OUT"
 
 echo "--- entries: $(grep -vc '^#' "$OUT") ---"
