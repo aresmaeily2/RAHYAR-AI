@@ -533,7 +533,7 @@ export function ChatView() {
               <>
                 <span className="ara-live-dot h-1.5 w-1.5 rounded-full bg-primary" />
                 {orbState === 'listening'
-                  ? t('گوش می‌دهم…')
+                  ? t('گوش می‌دهم...')
                   : orbState === 'thinking'
                     ? t('در حال فکر کردن…')
                     : orbState === 'streaming'

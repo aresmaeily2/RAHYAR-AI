@@ -716,4 +716,13 @@ export const en: Translations = {
   'تکرار رمز جدید': 'Repeat new password',
   'همان رمز جدید': 'Same new password',
   'ثبت رمز جدید': 'Save new password',
+
+  // ── GRAND-F2: کلیدهای جاافتاده (نشت فارسی در حالت انگلیسی) ──
+  'ایجاد کاربر انجام نشد': 'Could not create user',
+  'خروجی CSV انجام نشد': 'CSV export failed',
+  'مشکلی پیش آمد': 'Something went wrong',
+  'پردازش این بخش ناتمام ماند. معمولاً با یک تلاش مجدد درست می‌شود و داده‌های تو سالم‌اند.':
+    'This part did not finish. A retry usually fixes it — your data is safe.',
+  'تلاش مجدد': 'Try again',
+  'صفحهٔ اصلی': 'Home',
 }

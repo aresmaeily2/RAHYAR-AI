@@ -240,7 +240,7 @@ export function PasswordRow() {
             disabled={busy || next.length < 8 || !current}
             className="w-full rounded-lg bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground disabled:opacity-50"
           >
-            {busy ? 'در حال تغییر…' : 'ذخیره رمز جدید'}
+            {busy ? t('در حال تغییر…') : t('ذخیره رمز جدید')}
           </button>
         </div>
       )}
