@@ -90,3 +90,6 @@ scripts/github-rename.sh
 /scripts/*.png
 /RUN.md
 scripts/gh-*.sh
+
+# ─── DELIVERY-4: خروجی تحویل کاربر — باینری/گزارش محلی؛ هرگز وارد مخزن نمی‌شود ───
+/release-delivery/
