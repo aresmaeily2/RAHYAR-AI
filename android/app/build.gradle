@@ -1,0 +1,42 @@
+// ماژول اپ — سورس مشترک با خط لولهٔ v11 (src/ داخل sourceSets مپ شده؛ کپی/انشعاب سورس وجود ندارد)
+// امضای release عمداً پیکربندی نشده — کلید انتشار قبلی از دست رفته و ساخت کلید جدید نیازمند تأیید مالک است.
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.rahyarai.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.rahyarai.app'
+        minSdk 24
+        targetSdk 34
+        versionCode 11          // = versionCode APK منتشرشدهٔ v1.1.0 (تطبیق badging تأیید شد)
+        versionName '1.1.0'
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'gradle/AndroidManifest.xml'   // بدون صفت package (الزام AGP 8) — همگام با src/
+            java.srcDirs = ['../src/java']
+            res.srcDirs = ['../src/res']
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // signingConfig نمی‌گذاریم → خروجی release بدون امضا (app-release-unsigned.*)
+        }
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
+
+dependencies {
+    testImplementation 'junit:junit:4.13.2'
+}
