@@ -6,6 +6,7 @@ import {
   isSetupPending,
   passwordPolicyOk,
   SETUP_SENTINEL,
+  ownerSetupClaimData,
 } from '@/lib/auth'
 
 describe('hashPassword / verifyPassword', () => {
@@ -48,5 +49,18 @@ describe('سیاست رمز', () => {
     expect(passwordPolicyOk(undefined)).toBe(false)
     expect(passwordPolicyOk(12345678)).toBe(false)
     expect(passwordPolicyOk('x'.repeat(129))).toBe(false)
+  })
+})
+
+describe('ادعای راه‌اندازی مالک (رگرسیون نصب تازه — GRAND-F1)', () => {
+  test('ادعای setup نقش OWNER را تعیین می‌کند — وگرنه مالک تازه‌نصب از مدیریت کاربران قفل می‌ماند', () => {
+    const data = ownerSetupClaimData('مالک', 'hashed-x')
+    expect(data.role).toBe('OWNER')
+    expect(data.passwordHash).toBe('hashed-x')
+    expect(data.displayName).toBe('مالک')
+  })
+  test('خروجی فقط فیلدهای مجاز claim را دارد (بدون نشت فیلد اضافی)', () => {
+    const data = ownerSetupClaimData('مالک', 'hashed-x')
+    expect(Object.keys(data).sort()).toEqual(['displayName', 'passwordHash', 'role'])
   })
 })

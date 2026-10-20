@@ -46,6 +46,20 @@ export function isSetupPending(passwordHash: string): boolean {
   return passwordHash === SETUP_SENTINEL
 }
 
+/**
+ * دادهٔ ادعای راه‌اندازی اولیهٔ مالک (GU2-SEC1 claim).
+ * رفع باگ نصب تازه: پیش‌تر این UPDATE فقط رمز را می‌گذاشت و مالک با پیش‌فرض
+ * schema (`role:"USER"`) می‌ماند → مدیریت کاربران برای مالک تازه‌نصب قفل بود.
+ * نقش OWNER فقط و فقط همین‌جا تعیین می‌شود.
+ */
+export function ownerSetupClaimData(displayName: string, passwordHash: string) {
+  return {
+    displayName,
+    passwordHash,
+    role: 'OWNER' as const,
+  }
+}
+
 // ── نشست‌ها ──────────────────────────────────────────────────
 function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex')

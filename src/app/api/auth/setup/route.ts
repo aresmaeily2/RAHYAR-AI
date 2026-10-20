@@ -10,6 +10,7 @@ import {
   attachSessionCookie,
   passwordPolicyOk,
   checkSetupToken,
+  ownerSetupClaimData,
   SETUP_SENTINEL,
 } from '@/lib/auth'
 import { rateLimit, tooManyRequests, sameOriginOk, forbiddenOrigin, readJsonSafe, cleanText } from '@/lib/security'
@@ -72,8 +73,7 @@ export async function POST(req: NextRequest) {
       where: { id: owner.id, passwordHash: SETUP_SENTINEL },
       data: {
         username: username === owner.username ? owner.username : username,
-        displayName,
-        passwordHash: hashPassword(body.password),
+        ...ownerSetupClaimData(displayName, hashPassword(body.password)),
       },
     })
     if (claimed.count !== 1) {
