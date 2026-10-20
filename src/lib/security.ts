@@ -8,6 +8,8 @@ import { NextRequest } from 'next/server'
 type Bucket = { hits: number[] }
 
 const buckets = new Map<string, Bucket>()
+// GRAND-F4 (SEC-F3): سقف تعداد سبد کلیدها — مهار رشد حافظه با کلیدهای جعلی
+const MAX_BUCKETS = 10_000
 // هرس دوره‌ای برای جلوگیری از رشد حافظه
 let lastSweep = Date.now()
 
@@ -97,7 +99,22 @@ export function rateLimitKeyed(key: string, limit: number, windowMs: number): Ra
   }
   bucket.hits.push(now)
   buckets.set(key, bucket)
+  // GRAND-F4 (SEC-F3): مهار حافظه در برابر کلیدهای بی‌پایان (مثل XFF جعلی وقتی
+  // TRUST_PROXY=1 است) — FIFO: قدیمی‌ترین سبد حذف می‌شود؛ هرس دوره‌ای هم فعال است
+  if (buckets.size > MAX_BUCKETS) {
+    const oldestKey = buckets.keys().next().value
+    if (oldestKey !== undefined) buckets.delete(oldestKey)
+  }
   return { ok: true, remaining: limit - bucket.hits.length, retryAfter: 0 }
+}
+
+/**
+ * GRAND-F4 (SEC-F4): موفقیت ورود سبد حساب را پاک می‌کند —
+ * تلاش‌های موفق نباید کاربر فعال را به سقف قفل نزدیک کنند؛
+ * حدس رمز همچنان فقط با تلاش‌های ناموفق شمرده می‌شود.
+ */
+export function resetRateLimitKey(key: string): void {
+  buckets.delete(key)
 }
 
 /** پاسخ استاندارد ۴۲۹ فارسی */

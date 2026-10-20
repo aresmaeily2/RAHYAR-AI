@@ -9,7 +9,7 @@ import {
   attachSessionCookie,
   burnPasswordTiming,
 } from '@/lib/auth'
-import { rateLimit, rateLimitKeyed, tooManyRequests, sameOriginOk, forbiddenOrigin, readJsonSafe, cleanText } from '@/lib/security'
+import { rateLimit, rateLimitKeyed, resetRateLimitKey, tooManyRequests, sameOriginOk, forbiddenOrigin, readJsonSafe, cleanText } from '@/lib/security'
 
 export async function POST(req: NextRequest) {
   if (!sameOriginOk(req)) return forbiddenOrigin()
@@ -18,7 +18,9 @@ export async function POST(req: NextRequest) {
   if (!rl.ok) return tooManyRequests(rl)
   try {
     const body = (await readJsonSafe(req)) as { username?: unknown; password?: unknown } | null
-    const username = cleanText(body?.username, 40)
+    // GRAND-F4 (SEC-F11b): ایجاد حساب همیشه lowercase است؛ جستجوی ورود هم باید
+    // lowercase باشد وگرنه ورود با حروف بزرگ همیشه شکست می‌خورد (ناسازگاری)
+    const username = cleanText(body?.username, 40).toLowerCase()
     const password = typeof body?.password === 'string' ? body.password : ''
     if (!username || !password || password.length > 128) {
       return NextResponse.json({ error: 'نام کاربری یا رمز اشتباه است' }, { status: 401 })
@@ -26,7 +28,8 @@ export async function POST(req: NextRequest) {
 
     // GU2-SEC2: سقف دوم به ازای حساب (مستقل از IP) — با چرخاندن IP/پروکسی
     // نمی‌توان رمز یک حساب را بی‌سقف حدس زد. ۲۰ تلاش در ۱۵ دقیقه.
-    const acct = rateLimitKeyed(`login-acct::${username.toLowerCase()}`, 20, 15 * 60_000)
+    const acctKey = `login-acct::${username.toLowerCase()}`
+    const acct = rateLimitKeyed(acctKey, 20, 15 * 60_000)
     if (!acct.ok) {
       return NextResponse.json(
         { error: 'تلاش‌های ورود برای این حساب زیاد بوده؛ چند دقیقه دیگر تلاش کن' },
@@ -47,6 +50,10 @@ export async function POST(req: NextRequest) {
     if (user.disabled) {
       return NextResponse.json({ error: 'این حساب غیرفعال شده است؛ با مالک تماس بگیر' }, { status: 403 })
     }
+
+    // GRAND-F4 (SEC-F4): ورود موفق شمارندهٔ حساب را پاک می‌کند — تلاش موفق جزو
+    // حدس رمز نیست؛ تلاش ناموفق همچنان می‌شمارد
+    resetRateLimitKey(acctKey)
 
     const { token, expiresAt } = await createSession(user.id)
     const res = NextResponse.json({
