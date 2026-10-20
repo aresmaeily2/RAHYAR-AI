@@ -69,6 +69,7 @@ export default function AppErrorBoundary({
           <Button
             variant="outline"
             onClick={() => {
+              // مرز خطا عمداً ناوبری سخت می‌کند — router ممکن است خودش خراب باشد
               window.location.href = '/'
             }}
             className="gap-2 w-full sm:w-auto"

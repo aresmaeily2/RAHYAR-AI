@@ -175,7 +175,10 @@ export function ChatView() {
   const { lang, voiceReplies, t } = useI18n()
   const voiceOriginRef = useRef(false) // آخرین پیام با صدا فرستاده شد؟
   const langRef = useRef(lang)
-  langRef.current = lang
+  // GRAND-F4-lint: نوشتن ref فقط در effect — نوشتن حین رندر ضدالگوی React 19 است
+  useEffect(() => {
+    langRef.current = lang
+  }, [lang])
   const bottomRef = useRef<HTMLDivElement>(null)
   const recRef = useRef<unknown>(null)
   const abortRef = useRef<AbortController | null>(null)
