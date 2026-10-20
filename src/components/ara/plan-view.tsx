@@ -387,20 +387,21 @@ export function PlanView() {
                   {d.count > 0 ? d.count : ''}
                 </span>
                 <motion.div
-                  initial={{ height: 0 }}
-                  animate={{ height: `${Math.max(6, (d.count / maxCount) * 72)}px` }}
+                  initial={{ scaleY: 0 }}
+                  animate={{ scaleY: 1 }}
                   transition={{ delay: i * 0.05, duration: 0.4, ease: 'easeOut' }}
-                  className="w-full max-w-7 rounded-md"
-                  style={
-                    isToday
+                  className="w-full max-w-7 origin-bottom rounded-md"
+                  style={{
+                    height: `${Math.max(6, (d.count / maxCount) * 72)}px`,
+                    ...(isToday
                       ? {
                           background: 'var(--primary)',
                           boxShadow: '0 0 0 2px color-mix(in oklab, var(--primary) 25%, transparent)',
                         }
                       : d.count > 0
                         ? { background: 'color-mix(in oklab, var(--primary) 55%, transparent)' }
-                        : { background: 'var(--secondary)' }
-                  }
+                        : { background: 'var(--secondary)' }),
+                  }}
                 />
                 <span
                   className={cn(

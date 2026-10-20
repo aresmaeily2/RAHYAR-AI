@@ -5,7 +5,7 @@
 // منطق (یادآورها، شورتکات‌ها، بارگذاری داده) دست‌نخورده مانده است.
 
 import { useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
 import {
   CalendarDays,
   Command,
@@ -256,8 +256,17 @@ export function AppShell() {
   }, [setTasks, reloadTick])
 
   return (
+    <MotionConfig reducedMotion="user">
     <div className="relative min-h-dvh">
       <AmbientStage />
+
+      {/* GRAND-F3: skip-link — دسترسی مستقیم کیبورد به محتوای اصلی */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:end-4 focus:top-4 focus:z-[60] focus:rounded-xl focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-primary-foreground"
+      >
+        {t('پرش به محتوای اصلی')}
+      </a>
 
       {/* حالت خطای بارگذاری — پیام + تلاش دوباره */}
       {loadError && (
@@ -374,7 +383,7 @@ export function AppShell() {
         </aside>
 
         {/* محتوای اصلی */}
-        <main className="min-w-0 flex-1 pb-28 md:pb-6">
+        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 pb-28 outline-none md:pb-6">
           {/* هدر شیشه‌ای */}
           <header className="ara-glass sticky top-0 z-20 rounded-b-3xl">
             <div className="flex items-center gap-3 px-4 py-3 sm:px-6">
@@ -491,6 +500,7 @@ export function AppShell() {
       <FocusTimer />
       <AraRippleLayer />
     </div>
+    </MotionConfig>
   )
 }
 

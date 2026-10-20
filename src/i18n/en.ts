@@ -725,4 +725,5 @@ export const en: Translations = {
     'This part did not finish. A retry usually fixes it — your data is safe.',
   'تلاش مجدد': 'Try again',
   'صفحهٔ اصلی': 'Home',
+  'پرش به محتوای اصلی': 'Skip to main content',
 }
