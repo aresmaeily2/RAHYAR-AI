@@ -314,6 +314,9 @@ export async function POST(req: NextRequest) {
         send('meta', { userMessageId: userMsg.id, searched: sources.length > 0 })
 
         let raw = ''
+        // GRAND-F5 (2-b#10): فرادادهٔ واقعی مصرف — مدل از payload و وضعیت خطا
+        let modelLabel = ''
+        let streamFailed = false
         try {
           const reader = upstream.getReader()
           const decoder = new TextDecoder()
@@ -334,7 +337,9 @@ export async function POST(req: NextRequest) {
               try {
                 const json = JSON.parse(payload) as {
                   choices?: Array<{ delta?: { content?: string } }>
+                  model?: string
                 }
+                if (!modelLabel && typeof json?.model === 'string' && json.model) modelLabel = json.model
                 const delta: string = json?.choices?.[0]?.delta?.content ?? ''
                 if (delta) {
                   if (raw.length >= outCap) {
@@ -352,6 +357,7 @@ export async function POST(req: NextRequest) {
           }
         } catch {
           // اگر استریم وسط کار قطع شد، با همان raw ادامه می‌دهیم
+          streamFailed = true
         }
 
         // ثبت مصرف استریم — فقط فراداده، بدون محتوای خصوصی
@@ -362,9 +368,9 @@ export async function POST(req: NextRequest) {
           inChars: messages.reduce((n, m) => n + m.content.length, 0),
           outBytes,
           latencyMs: Date.now() - startedAt,
-          status: 'ok',
+          status: streamFailed ? 'error' : 'ok',
           provider: providerId,
-          model: providerId,
+          model: modelLabel || providerId,
         }).catch(() => {})
 
         // ۴) استخراج reply + اجرای اکشن‌ها (مهار خروجی مدل — OWASP LLM05)

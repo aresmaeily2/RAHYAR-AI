@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireUser, unauthorizedResponse, AuthRequiredError } from '@/lib/auth'
 import { rateLimit, tooManyRequests, sameOriginOk, forbiddenOrigin, readJsonSafe } from '@/lib/security'
 import { getEngineStatus } from '@/lib/ai/providers/registry'
-import { validateEndpointUrl, isAiEngineId } from '@/lib/ai/providers/types'
+import { validateEndpointUrl, isAiEngineId, endpointHostAllowed } from '@/lib/ai/providers/types'
 import {
   getUserSetting,
   setUserSetting,
@@ -67,6 +67,21 @@ export async function PUT(req: NextRequest) {
       } else {
         const url = validateEndpointUrl(body.endpointUrl)
         if (!url) return NextResponse.json({ error: 'آدرس Endpoint نامعتبر است (فقط http/https)' }, { status: 400 })
+        // GRAND-F5 (SEC-F1): Endpoint خصوصی/loopback فقط برای مالک — کاربر عادی
+        // با Endpoint داخلی نمی‌تواند شبکهٔ داخلی را پویش کند
+        if (user.role !== 'OWNER') {
+          const { lookup } = await import('node:dns/promises')
+          const host = new URL(url).hostname.replace(/^\[|\]$/g, '')
+          const ips = await lookup(host, { all: true })
+            .then((r) => r.map((x) => x.address))
+            .catch(() => [] as string[])
+          if (!endpointHostAllowed(host, ips, false)) {
+            return NextResponse.json(
+              { error: 'آدرس خصوصی/داخلی فقط برای مالک مجاز است' },
+              { status: 403 },
+            )
+          }
+        }
         await setUserSetting(user.id, SETTING_KEYS.aiEndpointUrl, url)
       }
     }
