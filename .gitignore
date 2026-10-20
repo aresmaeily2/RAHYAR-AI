@@ -95,3 +95,6 @@ scripts/gh-*.sh
 
 # ─── DELIVERY-4: خروجی تحویل کاربر — باینری/گزارش محلی؛ هرگز وارد مخزن نمی‌شود ───
 /release-delivery/
+
+# GRAND-F7: lockfile فقط ابزار ممیزی npm است — مخزن از bun.lock استفاده می‌کند
+package-lock.json
