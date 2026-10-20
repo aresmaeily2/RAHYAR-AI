@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<!-- رهیار — یادآورها (ذخیره و نمایش درون‌برنامه‌ای؛ اعلان سیستم‌عامل در این نسخه فعال نیست) -->
+<html lang="fa" dir="rtl" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body data-page="reminders">
+  <header class="top">
+    <h1 data-i18n="reminders">یادآورها</h1>
+    <span id="netbadge" class="badge off">…</span>
+  </header>
+
+  <main>
+    <div class="card">
+      <p class="sub" data-i18n="remNote">اعلان سیستم‌عامل در این نسخه فعال نیست؛ یادآورها درون برنامه نمایش داده می‌شوند.</p>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="addReminder">افزودن یادآور</h2>
+      <label class="f" for="rTitle" data-i18n="remTitle">عنوان یادآور</label>
+      <input type="text" id="rTitle" maxlength="200">
+      <label class="f" for="rAt" data-i18n="remAt">زمان</label>
+      <input type="datetime-local" id="rAt">
+      <label class="f" for="rRep" data-i18n="repeat">تکرار</label>
+      <select id="rRep">
+        <option value="none" data-i18n="none">بدون تکرار</option>
+        <option value="daily" data-i18n="daily">روزانه</option>
+        <option value="weekly" data-i18n="weekly">هفتگی</option>
+      </select>
+      <div class="row" style="margin-top:12px">
+        <button class="primary" id="rAdd" data-i18n="save">ذخیره</button>
+      </div>
+      <div id="rMsg" class="msg"></div>
+    </div>
+
+    <div id="list"></div>
+  </main>
+
+  <nav class="bottom" id="nav"></nav>
+  <script src="js/app.js"></script>
+  <script>
+    window.PAGE_INIT = function () {
+      RH.buildNav('reminders.html');
+      var list = document.getElementById('list');
+
+      function rems() { return RH.readDoc('reminders', []); }
+
+      function persist(arr) {
+        var r = RH.putDoc('reminders', arr);
+        if (!r || !r.ok) { RH.msg('rMsg', false, 'save failed'); return false; }
+        return true;
+      }
+
+      function render() {
+        var arr = rems();
+        arr.sort(function (a, b) { return (Date.parse(a.at) || 0) - (Date.parse(b.at) || 0); });
+        if (!arr.length) {
+          list.innerHTML = '<div class="empty">' + RH.esc(RH.t('noReminders')) + '</div>';
+          return;
+        }
+        var html = '';
+        for (var i = 0; i < arr.length; i++) {
+          var it = arr[i];
+          var at = Date.parse(it.at);
+          var past = !isNaN(at) && at < Date.now();
+          html += '<div class="item">'
+            + '<div class="grow"><div class="t">' + RH.esc(it.title) + '</div>'
+            + '<div class="d">' + RH.esc(RH.fmtDate(it.at)) + ' · '
+            + RH.esc(RH.t(it.repeat === 'daily' ? 'daily' : it.repeat === 'weekly' ? 'weekly' : 'none'))
+            + (past ? ' · ⏱' : '') + '</div></div>'
+            + '<div class="list-actions"><button data-act="del" data-id="' + RH.esc(it.id) + '">'
+            + RH.esc(RH.t('delete')) + '</button></div></div>';
+        }
+        list.innerHTML = html;
+      }
+
+      list.addEventListener('click', function (ev) {
+        var btn = ev.target && ev.target.closest ? ev.target.closest('button[data-act]') : null;
+        if (!btn) return;
+        var id = btn.getAttribute('data-id');
+        var arr = rems();
+        for (var i = 0; i < arr.length; i++) {
+          if (arr[i].id === id) { if (!window.confirm(RH.t('confirmDelete'))) return; arr.splice(i, 1); break; }
+        }
+        if (persist(arr)) render();
+      });
+
+      document.getElementById('rAdd').addEventListener('click', function () {
+        var title = document.getElementById('rTitle').value.trim();
+        var at = document.getElementById('rAt').value;
+        if (!title || !at) { RH.msg('rMsg', false, RH.t('remTitle') + ' / ' + RH.t('remAt')); return; }
+        var arr = rems();
+        arr.push({
+          id: RH.uid(), title: title, at: new Date(at).toISOString(),
+          repeat: document.getElementById('rRep').value,
+          createdAt: new Date().toISOString()
+        });
+        if (persist(arr)) {
+          document.getElementById('rTitle').value = '';
+          render();
+          RH.msg('rMsg', true, RH.t('saved'));
+        }
+      });
+
+      render();
+    };
+  </script>
+</body>
+</html>

@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- رهیار — کلاینت اندروید مستقل ( hybrid native + web view از endpoint قابل‌تنظیم) -->
+<!-- رهیار — نسخهٔ مستقل اندروید (v1.2.0): خانهٔ محلی ۱۰۰٪ آفلاین + حالت متصل اختیاری -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
 >
 
-    <!-- حداقل مجوز: فقط اینترنت — هیچ مجوز دیگری لازم نیست -->
+    <!-- حداقل مجوز: فقط اینترنت (مخصوص حالت متصل اختیاری به سرور مالک).
+         حالت محلی (پیش‌فرض) هیچ درخواست شبکه‌ای انجام نمی‌دهد.
+         هیچ مجوز دیگری لازم نیست. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
@@ -15,8 +17,9 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:supportsRtl="true">
 
+        <!-- ورودی اصلی نسخهٔ مستقل: خانهٔ محلی (بدون سرور) -->
         <activity
-            android:name=".MainActivity"
+            android:name=".HomeActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|keyboardHidden|locale|layoutDirection">
             <intent-filter>
@@ -24,6 +27,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- حالت متصل به سرور مالک (رفتار v1.1.0 حفظ شده) — فقط از تنظیمات -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden|locale|layoutDirection" />
 
         <activity
             android:name=".LoginActivity"

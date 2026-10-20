@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<!-- رهیار — تنظیمات (پروفایل/زبان/پوسته + پشتیبان + حالت متصل اختیاری) -->
+<html lang="fa" dir="rtl" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body data-page="settings">
+  <header class="top">
+    <h1 data-i18n="settings">تنظیمات</h1>
+    <span id="netbadge" class="badge off">…</span>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2 data-i18n="yourName">نام شما</h2>
+      <input type="text" id="pName" maxlength="60">
+      <label class="f" for="pLang" data-i18n="language">زبان</label>
+      <select id="pLang">
+        <option value="fa">فارسی</option>
+        <option value="en">English</option>
+      </select>
+      <label class="f" for="pTheme" data-i18n="theme">پوسته</label>
+      <select id="pTheme">
+        <option value="auto" data-i18n="auto">خودکار</option>
+        <option value="light" data-i18n="light">روشن</option>
+        <option value="dark" data-i18n="dark">تیره</option>
+      </select>
+      <div class="row" style="margin-top:12px">
+        <button class="primary" id="pSave" data-i18n="save">ذخیره</button>
+      </div>
+      <div id="pMsg" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="backup">پشتیبان‌گیری و بازگردانی</h2>
+      <button id="bExport" data-i18n="exportBtn">اشتراک پشتیبان (متن JSON)</button>
+      <label class="f" for="bImport" data-i18n="importTitle">بازگردانی از پشتیبان</label>
+      <p class="hint" data-i18n="importHint">متن JSON پشتیبان را بچسبانید…</p>
+      <textarea id="bImport" placeholder='{"format":"rahyar-local-backup", ...}'></textarea>
+      <div class="row" style="margin-top:10px">
+        <button id="bRestore" data-i18n="importBtn">بازگردانی</button>
+      </div>
+      <div id="bMsg" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="serverMode">اتصال به سرور (اختیاری)</h2>
+      <p class="sub" data-i18n="serverDesc">نسخهٔ مستقل بدون سرور کامل است…</p>
+      <button id="srvLogin" data-i18n="serverLogin">ورود به سرور…</button>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="about">درباره و قابلیت‌ها</h2>
+      <p class="sub" data-i18n="aboutDesc">نسخهٔ مستقل اندروید — اجرای کامل بدون هاست و بدون اینترنت.</p>
+      <p class="sub"><b data-i18n="featuresLocal">کاملاً محلی:</b> <span data-i18n="featuresLocalVal">…</span></p>
+      <p class="sub"><b data-i18n="featuresPerm">محلی با مجوز (نسخهٔ بعد):</b> <span data-i18n="featuresPermVal">…</span></p>
+      <p class="sub"><b data-i18n="featuresNet">نیازمند اینترنت:</b> <span data-i18n="featuresNetVal">…</span></p>
+      <p class="hint" id="verLine">…</p>
+    </div>
+  </main>
+
+  <nav class="bottom" id="nav"></nav>
+  <script src="js/app.js"></script>
+  <script>
+    window.PAGE_INIT = function () {
+      RH.buildNav('settings.html');
+      var p = RH.profile();
+      document.getElementById('pName').value = p.name || '';
+      document.getElementById('pLang').value = RH.lang();
+      document.getElementById('pTheme').value = p.theme || 'auto';
+
+      document.getElementById('pSave').addEventListener('click', function () {
+        var r = RH.saveProfile({
+          name: document.getElementById('pName').value.trim(),
+          lang: document.getElementById('pLang').value,
+          theme: document.getElementById('pTheme').value
+        });
+        if (r && r.ok) {
+          RH.msg('pMsg', true, RH.t('saved'));
+          // اعمال فوری زبان/پوسته با بارگذاری دوبارهٔ صفحهٔ محلی
+          setTimeout(function () { window.location.reload(); }, 500);
+        } else RH.msg('pMsg', false, 'save failed');
+      });
+
+      document.getElementById('bExport').addEventListener('click', function () {
+        if (RH.native && typeof RH.native.exportAll === 'function') {
+          var data = RH.native.exportAll();
+          RH.native.shareBackup(data || '{}');
+        } else RH.msg('bMsg', false, 'no bridge');
+      });
+
+      document.getElementById('bRestore').addEventListener('click', function () {
+        var txt = document.getElementById('bImport').value.trim();
+        if (!txt || !RH.native) { RH.msg('bMsg', false, RH.t('importErr')); return; }
+        var res;
+        try { res = JSON.parse(RH.native.importAll(txt)); }
+        catch (e) { res = { ok: false }; }
+        if (res && res.ok) {
+          RH.msg('bMsg', true, RH.t('importedN') + res.imported);
+          document.getElementById('bImport').value = '';
+        } else RH.msg('bMsg', false, RH.t('importErr'));
+      });
+
+      document.getElementById('srvLogin').addEventListener('click', function () {
+        if (RH.native && typeof RH.native.openServerLogin === 'function') RH.native.openServerLogin();
+      });
+
+      var m = RH.meta();
+      document.getElementById('verLine').textContent =
+        RH.t('version') + ': ' + (m.versionName || '') + ' — ' + (m.packageId || '') + ' — ' + RH.t('localMode');
+    };
+  </script>
+</body>
+</html>

@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">رهیار</string>
+    <string name="local_version_label">نسخهٔ مستقل %1$s — محلی</string>
+    <string name="share_backup">اشتراک‌گذاری پشتیبان رهیار</string>
     <string name="login_title">ورود به رهیار</string>
     <string name="endpoint_label">آدرس سرور (https)</string>
     <string name="endpoint_hint">https://rahyar.example.com</string>
