@@ -181,6 +181,22 @@ export default function LoginPage() {
               </>
             )}
 
+            {mode === 'login' && (
+              <div className="space-y-1.5">
+                <label htmlFor="username" className="text-xs font-medium text-muted-foreground">{t('نام کاربری')}</label>
+                {/* GRAND-F9: فرم ورود فقط رمز می‌فرستاد و username همیشه مقدار اولیه
+                    (owner) بود — کاربران استاندارد از UI امکان ورود نداشتند. */}
+                <input
+                  id="username"
+                  dir="ltr"
+                  autoComplete="username"
+                  className={inputCls}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.trim())}
+                />
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <label htmlFor="password" className="text-xs font-medium text-muted-foreground">{t('رمز')}</label>
               <input

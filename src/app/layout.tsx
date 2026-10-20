@@ -70,11 +70,11 @@ export default async function RootLayout({
           type="font/woff2"
           crossOrigin="anonymous"
         />
-        {/* bootstrap ظاهر — اسکریپت خارجی استاتیک (بدون نیاز به nonce،
-            بدون تداخل hydration) پیش از اولین رنگ‌آمیزی اجرا می‌شود.
-            آگاهانه sync است: باید قبل از paint اجرا شود. */}
+        {/* bootstrap ظاهر — پیش از اولین رنگ‌آمیزی اجرا می‌شود (آگاهانه sync).
+            GRAND-F10: با CSP strict-dynamic، مقدار 'self' نادیده گرفته می‌شود؛
+            بدون nonce این اسکریپت بلاک می‌شد (فلش تم — کشف با کنسول‌گارد E2E). */}
         {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-        <script src="/appearance-boot.js" />
+        <script src="/appearance-boot.js" nonce={nonce} />
       </head>
       <body className="antialiased bg-background text-foreground font-sans">
         <ThemeProvider nonce={nonce}>
