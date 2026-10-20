@@ -15,7 +15,7 @@
 // این کامپوننت فقط وضعیت معنایی را به شکل تبدیل می‌کند.
 
 import { cn } from '@/lib/utils'
-import { tStatic } from '@/i18n/store'
+import { tStatic, useI18n } from '@/i18n/store'
 import type { AmbientOrbState } from '@/lib/ambient/types'
 
 export type OrbState = AmbientOrbState
@@ -51,8 +51,9 @@ export function AiOrb({
   state?: OrbState
   className?: string
 }) {
-  // زبان از data-lang روی html — بدون رندر مجدد زنجیره‌ای
-  const lang = typeof document !== 'undefined' && document.documentElement.dataset.lang === 'en' ? 'en' : 'fa'
+  // GRAND-F3: زبان از استور i18n — واکنش‌گرا (قبلاً خواندن data-lang در رندر بود
+  // و پس از تغییر زبان تا رندر بعدی کهنه می‌ماند)
+  const lang = useI18n((s) => s.lang)
   const label = lang === 'en' ? ORB_LABEL_EN[state] : ORB_LABEL[state]
   return (
     <span
@@ -110,11 +111,13 @@ export function VoiceWave({
   bars?: number
   className?: string
 }) {
+  // GRAND-F3: واکنش‌گرا به تغییر زبان (به‌جای خواندن data-lang در رندر)
+  const lang = useI18n((s) => s.lang)
   return (
     <span
       className={cn('inline-flex h-4 items-center gap-[3px]', className)}
       role="img"
-      aria-label={active ? tStatic('دستیار در حال پاسخ', typeof document !== 'undefined' && document.documentElement.dataset.lang === 'en' ? 'en' : 'fa') : ''}
+      aria-label={active ? tStatic('دستیار در حال پاسخ', lang) : ''}
       aria-hidden={!active}
     >
       {[...Array(bars)].map((_, i) => (
