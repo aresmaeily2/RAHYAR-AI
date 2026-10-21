@@ -38,6 +38,10 @@ public class LoginActivity extends Activity {
 
         String savedEndpoint = SecureStore.get(this, "endpoint");
         endpointEt.setText(AppConfig.initialEndpoint(savedEndpoint));
+        // پیش‌فرض نمایشی ویراست (user: خالی — owner: «owner») — رمز هرگز پیش‌فرض ندارد
+        if (userEt.getText().length() == 0 && EditionConfig.PREFILL_USERNAME != null) {
+            userEt.setText(EditionConfig.PREFILL_USERNAME);
+        }
 
         loginBtn.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { doLogin(); }

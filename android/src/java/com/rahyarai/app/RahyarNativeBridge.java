@@ -182,23 +182,31 @@ public final class RahyarNativeBridge {
         return out;
     }
 
-    /** ISO-8601 ساده (با/بدون میلی‌ثانیه و منطقه) → epoch ms؛ خطا = ۰ */
+    /** ISO-8601 (با/بدون میلی‌ثانیه و منطقه) → epoch ms؛ بدون منطقه = UTC؛ خطا = ۰ */
     static long parseIso(String iso) {
         try {
+            String s = iso == null ? "" : iso.trim();
+            if (s.isEmpty()) return 0;
             if (android.os.Build.VERSION.SDK_INT >= 26) {
-                return java.time.Instant.parse(iso).toEpochMilli();
+                try {
+                    return java.time.Instant.parse(s).toEpochMilli();
+                } catch (Exception zoneless) {
+                    // بدون منطقه — قرارداد سرور UTC است (Prisma ISO)
+                    return java.time.Instant.parse(s + "Z").toEpochMilli();
+                }
             }
-            // fallback جاوا ۷ — ساده: java.text.SimpleDateFormat با UTC
-            String s = iso.replace("Z", "+00:00");
+            // مسیر قدیمی (API 24/25) — ساده و UTC
+            String t = s.replace("Z", "+00:00");
             java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US);
             f.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
-            java.util.Date d = f.parse(s);
+            f.setLenient(true);
+            java.util.Date d = f.parse(t);
             if (d == null) return 0;
             long base = d.getTime();
-            int plus = s.indexOf('.');
-            if (plus > 0) {
+            int dot = t.indexOf('.');
+            if (dot > 0) {
                 StringBuilder frac = new StringBuilder();
-                for (int i = plus + 1; i < s.length() && Character.isDigit(s.charAt(i)); i++) frac.append(s.charAt(i));
+                for (int i = dot + 1; i < t.length() && Character.isDigit(t.charAt(i)); i++) frac.append(t.charAt(i));
                 if (frac.length() > 0) {
                     int millis = Integer.parseInt(frac.substring(0, Math.min(3, frac.length())));
                     base += millis;

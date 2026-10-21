@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Rahyar</string>
+    <!-- app_name comes from build.gradle flavors (Rahyar / Rahyar Owner) -->
     <string name="local_version_label">Standalone %1$s — local</string>
     <string name="share_backup">Share Rahyar backup</string>
     <string name="login_title">Sign in to Rahyar</string>
@@ -9,6 +9,19 @@
     <string name="username">Username</string>
     <string name="password">Password</string>
     <string name="login_btn">Sign in</string>
+    <string name="local_mode_link">Local offline mode (no server)</string>
+    <string name="reminder_channel">Rahyar reminders</string>
+    <string name="reminder_channel_desc">Notifications for your scheduled reminders</string>
+    <string name="reminder_notif_title">Rahyar — reminder</string>
+    <string name="reminder_notif_fallback">Scheduled Rahyar reminder</string>
+    <string name="notif_consent_title">Reminder notifications</string>
+    <string name="notif_consent_msg">So your reminders reach you as system notifications even when Rahyar is closed, the app needs the notification permission. Reminder sound and content stay on this device and nothing is sent without your consent. If you choose “No”, reminders only appear inside the app.</string>
+    <string name="notif_consent_yes">Allow</string>
+    <string name="notif_consent_no">No, in-app only</string>
+    <string name="exact_consent_title">Reminder timing precision</string>
+    <string name="exact_consent_msg">Android controls the “exact alarm” permission for second-precise notifications. If you allow it, reminders arrive exactly on time; otherwise they may arrive a few minutes late.</string>
+    <string name="exact_consent_yes">Open settings</string>
+    <string name="exact_consent_no">Later</string>
     <string name="err_endpoint">Invalid server address — https only, no localhost</string>
     <string name="err_empty">Enter username and password</string>
     <string name="err_network">Cannot reach the server — check your connection or server address</string>

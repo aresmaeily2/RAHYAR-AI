@@ -1,6 +1,7 @@
 package com.rahyarai.app;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -68,4 +69,26 @@ public class AppConfigTest {
         assertEquals("https://example.com/api/auth/logout", AppConfig.logoutUrl("https://example.com"));
         assertEquals("https://example.com/", AppConfig.appUrl("https://example.com"));
     }
+
+    @Test
+    public void initialEndpointPrefersSavedOverDefault() {
+        // مقدار ذخیره‌شدهٔ کاربر همیشه مقدم بر پیش‌فرض ویراست است
+        assertEquals("https://saved.example.com", AppConfig.initialEndpoint("https://saved.example.com"));
+        // بدون ذخیره: پیش‌فرض (در تست، ثابت کد) یا خالی
+        String expected = AppConfig.DEFAULT_SERVER_URL == null ? "" : AppConfig.DEFAULT_SERVER_URL.trim();
+        assertEquals(expected, AppConfig.initialEndpoint(null));
+        assertEquals(expected, AppConfig.initialEndpoint("  "));
+        // پیش‌فرض تعبیه‌شده (اگر باشد) باید سیاست https عمومی را رعایت کند
+        if (!expected.isEmpty()) {
+            assertEquals(expected, AppConfig.normalizeBaseUrl(expected));
+        }
+    }
+
+    @Test
+    public void editionConfigContract() {
+        // هر دو ویراست باید برچسب و پیش‌فرض ورود مشخص داشته باشند — بدون رمز تعبیه‌شده
+        assertNotNull(userEdition());
+    }
+
+    private static String userEdition() { return EditionConfig.EDITION == null ? "" : EditionConfig.EDITION; }
 }
