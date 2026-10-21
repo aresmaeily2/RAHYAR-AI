@@ -23,6 +23,7 @@ const SESSION_COOKIE = 'rahyar_session'
 const PUBLIC_PREFIXES = [
   '/api/auth/',        // ورود/راه‌اندازی/نشست/خروج
   '/api/health',       // مانیتورینگ
+  '/api/download/',    // دانلود مستقیم APK انتشار — سفید‌لیست دقیق نام‌فایل در خود route
   '/login',
   '/manifest.webmanifest',
   '/sw.js',

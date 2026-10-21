@@ -100,3 +100,7 @@ scripts/gh-*.sh
 
 # GRAND-F7: lockfile فقط ابزار ممیزی npm است — مخزن از bun.lock استفاده می‌کند
 package-lock.json
+
+# ─── امضای release — هرگز وارد مخزن نمی‌شود ───
+/android/keystore/
+/android/keystore.properties

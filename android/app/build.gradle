@@ -8,10 +8,17 @@
 //      owner → com.rahyarai.app.owner  «رهیار مالک»   (versionCode 21)
 //    تفاوت نقش‌ها سمت سرور کنترل می‌شود؛ دو ویراست فقط هویت نصب/برند/پیش‌فرض
 //    صفحهٔ ورود را جدا می‌کنند (بدون تکرار کد، بدون رمز تعبیه‌شده).
-// امضای release عمداً پیکربندی نشده — کلید انتشار باید با تصمیم مالک ساخته شود
-// (خروجی تحویلی debug-signed برای نصب آزمایشی است و صادقانه برچسب خورده).
+// امضای release: اگر فایل keystore.properties در ریشهٔ پروژهٔ اندروید باشد،
+// خروجی release با کلید انتشار (RSA-4096) امضا می‌شود؛ در نبودش unsigned می‌ماند.
+// کلید و رمزها هرگز وارد گیت/APK نمی‌شوند (gitignore: android/keystore*).
 plugins {
     id 'com.android.application'
+}
+
+def ksFile = rootProject.file('keystore.properties')
+def ksProps = new java.util.Properties()
+if (ksFile.exists()) {
+    ksFile.withInputStream { ksProps.load(it) }
 }
 
 android {
@@ -37,7 +44,7 @@ android {
             dimension 'edition'
             applicationId 'com.rahyarai.app.owner'
             versionCode 21
-            versionName '2.0.0-owner'
+            versionName '2.0.0'
             resValue 'string', 'app_name', 'رهیار مالک'
         }
     }
@@ -58,10 +65,23 @@ android {
         }
     }
 
+    signingConfigs {
+        release {
+            def sf = ksProps['storeFile'] ? rootProject.file(ksProps['storeFile']) : null
+            storeFile sf
+            storePassword ksProps['storePassword'] ?: ''
+            keyAlias ksProps['keyAlias'] ?: ''
+            keyPassword ksProps['keyPassword'] ?: ''
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
-            // signingConfig نمی‌گذاریم → خروجی release بدون امضا (app-release-unsigned.*)
+            // امضای release فقط وقتی keystore.properties موجود باشد (نصب‌پذیر)
+            if (ksFile.exists()) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 

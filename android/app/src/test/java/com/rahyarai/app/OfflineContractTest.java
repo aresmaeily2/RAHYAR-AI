@@ -136,7 +136,10 @@ public class OfflineContractTest {
         assertTrue("user flavor must be versionCode 20", g.contains("versionCode 20"));
         assertTrue("user flavor must be versionName 2.0.0", g.contains("versionName '2.0.0'"));
         assertTrue("owner flavor must be versionCode 21", g.contains("versionCode 21"));
-        assertTrue("owner flavor must be versionName 2.0.0-owner", g.contains("versionName '2.0.0-owner'"));
+        // همگام با دستور تحویل: هر دو ویراست versionName «2.0.0» دارند؛
+        // تمایز ویراست‌ها در applicationId (com.rahyarai.app[.owner]) و versionCode است.
+        assertTrue("owner flavor must also be versionName 2.0.0", g.contains("versionName '2.0.0'"));
+        assertTrue("owner flavor package must be com.rahyarai.app.owner", g.contains("com.rahyarai.app.owner"));
         assertEquals("AppVersion.NAME", "2.0.0", AppVersion.NAME);
         assertEquals("AppVersion.CODE", 20, AppVersion.CODE);
         assertEquals("AppVersion.PACKAGE_ID", "com.rahyarai.app", AppVersion.PACKAGE_ID);
