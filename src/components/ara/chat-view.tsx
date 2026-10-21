@@ -37,6 +37,7 @@ import { ActionChips } from './chat-action-chips'
 import { MemorySheet } from './chat-memory-sheet'
 import { AiOrb, VoiceWave } from './ai-orb'
 import { listen, speechInputSupported } from '@/lib/voice/speech'
+import { nativeTtsSupported as nativeTtsAvailable, nativeBridge as nativeB, nativeVoiceSupported } from '@/lib/voice/native'
 import { useI18n } from '@/i18n/store'
 import { formatNum, langBcp47 } from '@/i18n/core'
 import { ambient } from '@/lib/ambient/engine'
@@ -228,9 +229,27 @@ export function ChatView() {
     }
   }, [])
 
-  /** خروجی صوتی فارسی — Web Speech Synthesis */
+  // پایان خواندن بومی اندروید — پاک‌کردن نشانگر «در حال خواندن»
+  useEffect(() => {
+    const onTtsDone = () => setSpeakingId(null)
+    window.addEventListener('rahyar-tts-done', onTtsDone)
+    return () => window.removeEventListener('rahyar-tts-done', onTtsDone)
+  }, [])
+
+  /** خروجی صوتی — در اپ اندروید با TTS بومی، در مرورگر با Web Speech Synthesis */
   function speak(text: string, id: string) {
     try {
+      if (nativeTtsAvailable()) {
+        if (speakingId === id) {
+          nativeB()?.stopSpeaking()
+          setSpeakingId(null)
+          return
+        }
+        window.speechSynthesis?.cancel()
+        nativeB()?.speak(speechText(text), langBcp47(langRef.current))
+        setSpeakingId(id)
+        return
+      }
       const synth = window.speechSynthesis
       if (!synth) {
         toast.error(t('مرورگر تو از خروجی صوتی پشتیبانی نمی‌کند'))
@@ -455,10 +474,14 @@ export function ChatView() {
   }
 
   function toggleVoice() {
-    // ورودی صوتی محلی مرورگر (Web Speech API) — صدا هرگز جایی ارسال نمی‌شود.
-    // زبان شنود از زبان رابط می‌آید (fa-IR / en-US).
+    // ورودی صوتی — در اپ اندروید با تشخیص گفتار بومی، در مرورگر با Web Speech API.
+    // صدا هرگز روی سرور ارسال یا ذخیره نمی‌شود (هر دو مسیر روی دستگاه).
     if (!speechInputSupported()) {
-      toast.error('مرورگر تو از ورودی صوتی پشتیبانی نمی‌کند')
+      toast.error(
+        nativeVoiceSupported()
+          ? t('سرویس تشخیص گفتار دستگاه در دسترس نیست')
+          : t('مرورگر تو از ورودی صوتی پشتیبانی نمی‌کند'),
+      )
       return
     }
     if (listening) {
@@ -481,7 +504,11 @@ export function ChatView() {
       },
     })
     if (!session) {
-      toast.error('مرورگر تو از ورودی صوتی پشتیبانی نمی‌کند')
+      toast.error(
+        nativeVoiceSupported()
+          ? t('سرویس تشخیص گفتار دستگاه در دسترس نیست')
+          : t('مرورگر تو از ورودی صوتی پشتیبانی نمی‌کند'),
+      )
       return
     }
     recRef.current = session

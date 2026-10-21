@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireUser, unauthorizedResponse, AuthRequiredError } from '@/lib/auth'
 import { rateLimit, tooManyRequests, sameOriginOk, forbiddenOrigin, readJsonSafe } from '@/lib/security'
 import { testEndpoint } from '@/lib/ai/providers/openai-compatible'
+import { testHostedModel } from '@/lib/ai/providers/zai'
 import { validateEndpointUrl, endpointHostAllowed } from '@/lib/ai/providers/types'
 import { getUserSetting, SETTING_KEYS } from '@/lib/server-settings'
 import { lookup } from 'node:dns/promises'
@@ -17,11 +18,18 @@ export async function POST(req: NextRequest) {
   try {
     const user = await requireUser(req)
     const body = (await readJsonSafe(req)) as {
+      engine?: unknown
       endpointUrl?: unknown
       endpointModel?: unknown
       endpointKey?: unknown
       useSavedKey?: unknown
     } | null
+
+    // تست موتور میزبان (zai) — نیازمند Endpoint کاربر نیست
+    if (body?.engine === 'zai') {
+      const result = await testHostedModel()
+      return NextResponse.json(result)
+    }
 
     // اولویت: مقدار فرم → مقدار ذخیره‌شده
     const formUrl = typeof body?.endpointUrl === 'string' ? body.endpointUrl.trim() : ''

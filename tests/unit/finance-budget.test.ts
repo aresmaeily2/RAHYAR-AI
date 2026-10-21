@@ -120,10 +120,11 @@ describe('موتور قواعد محلی (AIProvider)', () => {
     expect(localRulesReply('tell me a story')).toContain('Local Rules')
   })
 
-  test('شناسه‌های موتور — فقط دو Provider فعال', () => {
-    expect(AI_ENGINE_IDS).toEqual(['local_rules', 'openai_compatible'])
+  test('شناسه‌های موتور — سه Provider فعال (v2.0: مدل میزبان افزوده شد)', () => {
+    expect(AI_ENGINE_IDS).toEqual(['local_rules', 'openai_compatible', 'zai'])
     expect(isAiEngineId('local_rules')).toBe(true)
     expect(isAiEngineId('openai_compatible')).toBe(true)
+    expect(isAiEngineId('zai')).toBe(true)
     expect(isAiEngineId('builtin')).toBe(false)
   })
 })

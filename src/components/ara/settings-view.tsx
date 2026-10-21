@@ -369,6 +369,7 @@ interface AiStatus {
   hasKey: boolean
   keyMasked: string
   killSwitch: boolean
+  hostedAvailable?: boolean
 }
 
 function AiEngineCard() {
@@ -443,7 +444,8 @@ function AiEngineCard() {
     }
   }
 
-  const engines: Array<{ id: string; label: string; desc: string }> = [
+  const engines: Array<{ id: string; label: string; desc: string; disabled?: boolean }> = [
+    { id: 'zai', label: t('مدل میزبان رهیار'), desc: st?.hostedAvailable ? t('مدل زبانی ابریِ سرور — بدون کلید، آماده گفتگو') : t('روی این سرور پیکربندی نشده است'), disabled: !st?.hostedAvailable },
     { id: 'local_rules', label: t('موتور قواعد محلی'), desc: t('بدون مدل، بدون هزینه، بدون اینترنت') },
     { id: 'openai_compatible', label: t('Endpoint سازگار با OpenAI'), desc: 'Ollama · LM Studio · DeepSeek · OpenRouter · …' },
   ]
@@ -454,11 +456,13 @@ function AiEngineCard() {
         {engines.map((e) => (
           <button
             key={e.id}
-            onClick={() => save(e.id)}
+            onClick={() => { if (!e.disabled) save(e.id) }}
+            disabled={e.disabled}
             aria-pressed={st?.engine === e.id}
             className={cn(
               'rounded-xl border px-3 py-2.5 text-start transition-all',
               st?.engine === e.id ? 'border-primary/60 bg-primary/10' : 'border-border/50 bg-secondary/40 hover:bg-secondary/60',
+              e.disabled && 'cursor-not-allowed opacity-50',
             )}
           >
             <p className="text-[11px] font-bold">{e.label}</p>
@@ -466,6 +470,48 @@ function AiEngineCard() {
           </button>
         ))}
       </div>
+
+      {st?.engine === 'zai' && (
+        <div className="space-y-2 rounded-xl bg-secondary/40 p-3">
+          <p className="text-[10px] leading-4 text-muted-foreground">
+            {st.hostedAvailable
+              ? t('مدل زبانی ابریِ سرور — بدون کلید، آماده گفتگو')
+              : t('روی این سرور پیکربندی نشده است')}
+          </p>
+          <button
+            onClick={async () => {
+              setBusy(true)
+              setTest(null)
+              try {
+                const r = await fetch('/api/settings/ai/test', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ engine: 'zai' }),
+                })
+                const d = await r.json()
+                if (d.ok) {
+                  setTest({ ok: true, message: `OK · ${d.model} · ${d.latencyMs}ms · ${d.sample}` })
+                } else {
+                  setTest({ ok: false, message: d.error ?? 'test failed' })
+                }
+              } catch {
+                setTest({ ok: false, message: 'network error' })
+              } finally {
+                setBusy(false)
+              }
+            }}
+            disabled={busy}
+            className="rounded-lg border px-3 py-2 text-[11px] font-medium disabled:opacity-50"
+          >
+            {t('تست اتصال')}
+          </button>
+          {test && (
+            <p className={cn('text-[10px]', test.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')} dir="ltr">
+              {test.message}
+            </p>
+          )}
+        </div>
+      )}
 
       {st?.engine === 'openai_compatible' && (
         <div className="space-y-2 rounded-xl bg-secondary/40 p-3">

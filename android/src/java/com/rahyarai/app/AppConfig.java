@@ -1,15 +1,29 @@
 package com.rahyarai.app;
 
 /**
- * پیکربندی endpoint اپلیکیشن — هیچ آدرس ثابت توسعه‌ای (localhost:3000) در APK نیست.
- * مقصد پیش‌فرض خالی است و کاربر/مالک در صفحهٔ ورود آدرس سرور production را وارد می‌کند.
+ * پیکربندی endpoint اپلیکیشن.
  * سیاست: فقط https (شبکهٔ cleartext در manifest و network_security_config بسته است).
+ * آدرس پیش‌فرض می‌تواند در زمان ساخت تعیین شود (RAHYAR_DEFAULT_SERVER)؛
+ * کاربر همیشه می‌تواند در صفحهٔ ورود آن را تغییر دهد (SecureStore مقدم است).
  */
 public final class AppConfig {
     /** حداکثر طول مجاز آدرس (محافظت ورودی) */
     public static final int MAX_URL_LEN = 300;
 
+    /**
+     * آدرس پیش‌فرض سرور محصول — فقط https عمومی.
+     * خالی یعنی کاربر در صفحهٔ ورود آدرس را وارد می‌کند (یک‌بار؛ به‌خاطر سپرده می‌شود).
+     */
+    public static final String DEFAULT_SERVER_URL = "";
+
     private AppConfig() {}
+
+    /** آدرسی که در صفحهٔ ورود به‌عنوان مقدار اولیهٔ فیلد نمایش داده می‌شود */
+    public static String initialEndpoint(String saved) {
+        if (saved != null && !saved.trim().isEmpty()) return saved;
+        String d = DEFAULT_SERVER_URL == null ? "" : DEFAULT_SERVER_URL.trim();
+        return d;
+    }
 
     /** نرمال‌سازی و اعتبارسنجی آدرس سرور؛ در خطا null برمی‌گرداند. */
     public static String normalizeBaseUrl(String raw) {

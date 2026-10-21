@@ -29,6 +29,7 @@ import { viewFade } from './motion'
 import { AraRippleLayer } from './ripple'
 import { AmbientStage } from '@/components/ambient/ambient-stage'
 import { ambient } from '@/lib/ambient/engine'
+import { syncNativeReminders } from '@/lib/voice/native'
 import { useTheme } from 'next-themes'
 import { CommandPalette } from './command-palette'
 import { ProfileChip } from './profile-dialog'
@@ -101,6 +102,9 @@ function useReminderCenter() {
         const res = await fetch('/api/reminders')
         const d = await res.json()
         if (!d.reminders) return
+        // همگام‌سازی با زمان‌بند بومی اندروید (اگر داخل اپ) — اعلان سیستمی حتی با اپ بسته.
+        // مجوز اعلان فقط با رضایت کاربر در سمت اندروید گرفته می‌شود.
+        syncNativeReminders(d.reminders as Array<{ id: string; message: string; remindAt: string }>)
         const now = Date.now()
         for (const r of d.reminders as Array<{ id: string; message: string; remindAt: string }>) {
           const at = new Date(r.remindAt).getTime()
