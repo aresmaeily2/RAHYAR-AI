@@ -7,6 +7,22 @@ APK_EX=$T/apk_extracted
 ZIPBASE=$T/src_zip_extracted/home/z/my-project/android
 FAIL=0
 
+echo "=== -1. Restore inputs if missing (post-env-reset resilience) ==="
+if [ ! -f release-delivery/v1.2.0/Rahyar-Android-v1.2.0-debug-test.apk ]; then
+  mkdir -p release-delivery/v1.2.0
+  curl -4 -sS --max-time 120 -o release-delivery/v1.2.0/Rahyar-Android-v1.2.0-debug-test.apk "https://x0.at/hQxW.zip"
+  echo "  APK restored from x0.at mirror"
+fi
+if [ ! -f release-delivery/v1.2.0/Rahyar-Android-Source-v1.2.0.zip ]; then
+  curl -4 -sS --max-time 120 -o release-delivery/v1.2.0/Rahyar-Android-Source-v1.2.0.zip "https://x0.at/KIqv.zip"
+  echo "  Source zip restored from x0.at mirror"
+fi
+
+echo "=== 0a. Extract APK + source zip ==="
+rm -rf "$T" && mkdir -p "$T"
+unzip -o -q release-delivery/v1.2.0/Rahyar-Android-v1.2.0-debug-test.apk -d "$APK_EX"
+unzip -o -q release-delivery/v1.2.0/Rahyar-Android-Source-v1.2.0.zip -d "$T/src_zip_extracted"
+
 echo "=== 0. Export ed9ec2d android/ once via git archive ==="
 rm -rf $T/ed9src && mkdir -p $T/ed9src
 git archive ed9ec2d android | tar -x -C $T/ed9src
