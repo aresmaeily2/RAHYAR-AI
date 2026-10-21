@@ -11,7 +11,7 @@
 | ۴ | گزارش نهایی DOCX (فارسی RTL) | `rahyar-v2.0.0-delivery-report.docx` — تولیدشده با `scripts/gen-apk-delivery-report.js` |
 | ۵ | اثر انگشت رسمی فایل‌ها | `rahyar-v2.0.0-sha256.txt` (همان مسیر دانلود) |
 | ۶ | کیت امضا | `rahyar-release-signing-kit.zip.enc` — فقط رمزنگاری‌شده (AES-256-CBC/PBKDF2)؛ رمز گشایش فقط در پیام خصوصی مالک؛ نسخهٔ باز فقط در `artifacts/signing/` خارج از گیت |
-| ۷ | سورس متناظر | مخزن خصوصی `aresmaeily2/HAMYAR-AI` — شاخهٔ main = `fc8a64a` (push و راستی‌آزمایی‌شده با ls-remote)؛ کد اندروید بایت‌به‌بایت برابر کامیت انتشار `6a18922` |
+| ۷ | سورس متناظر | مخزن خصوصی `aresmaeily2/HAMYAR-AI` — شاخهٔ main (push و راستی‌آزمایی‌شده با ls-remote)؛ کد اندروید بایت‌به‌بایت برابر کامیت انتشار `6a18922` و `git diff 6a18922..HEAD -- android/` خالی |
 | ۸ | گزارش ممیزی تطبیقی | `docs/DELIVERY_V2/FEATURES_MATRIX_V2.md` |
 | ۹ | ماتریس قابلیت‌ها + وضعیت آزمون | همان سند (ستون وضعیت با واژگان قراردادی) |
 | ۱۰ | گزارش امنیت و نقش‌ها | `docs/DELIVERY_V2/SECURITY_REPORT_V2.md` |
