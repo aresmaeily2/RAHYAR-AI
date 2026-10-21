@@ -11,11 +11,13 @@ import {
 } from './types'
 import { localRulesProvider } from './local-rules'
 import { openAiCompatibleProvider } from './openai-compatible'
+import { zaiProvider } from './zai'
 import { getUserSetting, SETTING_KEYS } from '@/lib/server-settings'
 
 const REGISTRY: Record<AiEngineId, AIProvider> = {
   local_rules: localRulesProvider,
   openai_compatible: openAiCompatibleProvider,
+  zai: zaiProvider,
 }
 
 /** فهرست Providerها برای UI تنظیمات */
@@ -39,13 +41,20 @@ export interface ResolvedEngine {
 
 /**
  * موتور فعال کاربر را از تنظیمات می‌خواند.
- * قاعده ایمنی: اگر openai_compatible انتخاب شده ولی URL ندارد →
- * به‌جای شکست، به موتور محلی (رایگان) برمی‌گردیم و علت را برمی‌گردانیم.
- * پیش‌فرض نسخه ۱٫۰ همیشه «local_rules» است (بدون هزینه، بدون کلید).
+ * قاعدهٔ پیش‌فرض v2.0: «مدل میزبان» (zai) اگر سرورِ استقرار پیکربندی مدل داشته باشد؛
+ * در غیر این صورت «قواعد محلی» (بدون هزینه، بدون اینترنت).
+ * قاعدهٔ ایمنی: اگر openai_compatible انتخاب شده ولی URL ندارد، یا zai انتخاب شده
+ * ولی سرور پیکربندی مدل میزبان ندارد → به‌جای شکست، به موتور محلی (رایگان)
+ * برمی‌گردیم و علت را برمی‌گردانیم.
  */
 export async function resolveEngine(userId: string): Promise<ResolvedEngine> {
   const saved = await getUserSetting(userId, SETTING_KEYS.aiEngine)
-  const engine: AiEngineId = isAiEngineId(saved) ? saved : 'local_rules'
+  const zaiConfigured = await zaiProvider.isConfigured({ userId })
+  const engine: AiEngineId = isAiEngineId(saved)
+    ? saved
+    : zaiConfigured
+      ? 'zai'
+      : 'local_rules'
 
   if (engine === 'openai_compatible') {
     const endpointUrl = (await getUserSetting(userId, SETTING_KEYS.aiEndpointUrl)) ?? ''
@@ -65,6 +74,19 @@ export async function resolveEngine(userId: string): Promise<ResolvedEngine> {
     } as ResolvedEngine & { fallbackReason?: string }
   }
 
+  if (engine === 'zai') {
+    if (zaiConfigured) {
+      return { engine, provider: REGISTRY.zai, ctx: { userId } }
+    }
+    // سرور پیکربندی مدل میزبان ندارد — جایگزین شفاف با موتور محلی رایگان
+    return {
+      engine: 'local_rules',
+      provider: REGISTRY.local_rules,
+      ctx: { userId },
+      ...{ fallbackReason: 'hosted_model_not_configured' },
+    } as ResolvedEngine & { fallbackReason?: string }
+  }
+
   return { engine: 'local_rules', provider: REGISTRY.local_rules, ctx: { userId } }
 }
 
@@ -75,9 +97,11 @@ export async function getEngineStatus(userId: string): Promise<{
   endpointModel: string
   hasKey: boolean
   keyMasked: string
+  hostedAvailable: boolean
 }> {
   const saved = await getUserSetting(userId, SETTING_KEYS.aiEngine)
-  const engine: AiEngineId = isAiEngineId(saved) ? saved : 'local_rules'
+  const zaiConfigured = await zaiProvider.isConfigured({ userId })
+  const engine: AiEngineId = isAiEngineId(saved) ? saved : zaiConfigured ? 'zai' : 'local_rules'
   const endpointUrl = (await getUserSetting(userId, SETTING_KEYS.aiEndpointUrl)) ?? ''
   const endpointModel = (await getUserSetting(userId, SETTING_KEYS.aiEndpointModel)) ?? ''
   const key = (await getUserSetting(userId, SETTING_KEYS.aiEndpointKey)) ?? ''
@@ -88,5 +112,6 @@ export async function getEngineStatus(userId: string): Promise<{
     endpointModel,
     hasKey: key.length > 0,
     keyMasked: key ? `••••${tail}` : '',
+    hostedAvailable: zaiConfigured,
   }
 }

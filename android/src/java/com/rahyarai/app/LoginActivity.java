@@ -37,10 +37,17 @@ public class LoginActivity extends Activity {
         endpointTx = findViewById(R.id.endpoint_label);
 
         String savedEndpoint = SecureStore.get(this, "endpoint");
-        if (savedEndpoint != null) endpointEt.setText(savedEndpoint);
+        endpointEt.setText(AppConfig.initialEndpoint(savedEndpoint));
 
         loginBtn.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { doLogin(); }
+        });
+
+        // حالت دوم (جایگزین): رابط محلی آفلاین — بدون سرور، بدون حساب
+        findViewById(R.id.local_mode_link).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                startActivity(new Intent(LoginActivity.this, HomeActivity.class));
+            }
         });
     }
 

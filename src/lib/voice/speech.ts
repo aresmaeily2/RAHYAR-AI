@@ -5,6 +5,7 @@
 'use client'
 
 import { langBcp47, type Lang } from '@/i18n/core'
+import { nativeBridge, nativeVoiceSupported, nativeTtsSupported } from './native'
 
 // ── تایپ‌های Web Speech (بدون @types بیرونی) ──────────────────
 interface SpeechRecognitionAlternativeLike {
@@ -48,8 +49,9 @@ function getRecognitionCtor(): SpeechRecognitionCtor | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null
 }
 
-/** آیا مرورگر ورودی صوتی دارد؟ */
+/** آیا ورودی صوتی در دسترس است؟ (اپ اندروید: تشخیص بومی؛ مرورگر: Web Speech) */
 export function speechInputSupported(): boolean {
+  if (nativeVoiceSupported()) return true
   return getRecognitionCtor() !== null
 }
 
@@ -66,6 +68,9 @@ export interface VoiceSession {
 /**
  * شنود گفتار — یک جمله نهایی کافی است (voice command mode).
  * onPartial برای نمایش زنده متن موقت؛ onFinal برای نتیجه قطعی.
+ *
+ * در اپ اندروید (پل RahyarNative): تشخیص گفتار بومی اندروید (fa-IR/en-US)
+ * مسیر وب را جایگزین می‌کند — همان قرارداد callbacks، بدون تغییر UI.
  */
 export function listen(opts: {
   lang: Lang
@@ -74,6 +79,56 @@ export function listen(opts: {
   onEnd?: () => void
   onError?: (message: string) => void
 }): VoiceSession | null {
+  // ── مسیر بومی اندروید ──
+  if (nativeVoiceSupported()) {
+    const b = nativeBridge()!
+    let ended = false
+    const onPartial = (e: Event) => {
+      const t = (e as CustomEvent<{ text?: string }>).detail?.text ?? ''
+      if (t) opts.onPartial(t)
+    }
+    const onFinal = (e: Event) => {
+      const t = (e as CustomEvent<{ text?: string }>).detail?.text ?? ''
+      if (t.trim()) {
+        opts.onFinal(t.trim())
+      }
+    }
+    const onError = (e: Event) => {
+      const code = (e as CustomEvent<{ code?: string }>).detail?.code ?? 'error'
+      if (code === 'no-speech') {
+        opts.onError?.('')
+      } else if (code === 'denied' || code === 'no_match' || code === 'busy') {
+        opts.onError?.(code)
+      } else {
+        opts.onError?.(code)
+      }
+    }
+    const onEnd = () => {
+      if (ended) return
+      ended = true
+      removeNativeVoiceListeners(onPartial, onFinal, onError, onEnd)
+      opts.onEnd?.()
+    }
+    addNativeVoiceListeners(onPartial, onFinal, onError, onEnd)
+    try {
+      b.startVoiceRecognition(langBcp47(opts.lang))
+    } catch {
+      removeNativeVoiceListeners(onPartial, onFinal, onError, onEnd)
+      opts.onError?.('start-failed')
+      return null
+    }
+    return {
+      stop: () => {
+        try {
+          b.stopVoiceRecognition()
+        } catch {
+          /* بی‌خطر */
+        }
+      },
+    }
+  }
+
+  // ── مسیر وب (مرورگر) ──
   const Ctor = getRecognitionCtor()
   if (!Ctor) return null
   const rec = new Ctor()
@@ -121,13 +176,77 @@ export function listen(opts: {
   }
 }
 
+// ── پل رخدادهای صوتی بومی ────────────────────────────────────
+type VoiceHandler = {
+  partial: (e: Event) => void
+  final: (e: Event) => void
+  error: (e: Event) => void
+  end: (e: Event) => void
+}
+
+let activeVoiceHandler: VoiceHandler | null = null
+
+function addNativeVoiceListeners(
+  partial: (e: Event) => void,
+  final: (e: Event) => void,
+  error: (e: Event) => void,
+  end: (e: Event) => void,
+): void {
+  removeNativeVoiceListeners(partial, final, error, end)
+  activeVoiceHandler = { partial, final, error, end }
+  window.addEventListener('rahyar-voice-partial', partial)
+  window.addEventListener('rahyar-voice-final', final)
+  window.addEventListener('rahyar-voice-error', error)
+  window.addEventListener('rahyar-voice-end', end)
+}
+
+function removeNativeVoiceListeners(
+  partial: (e: Event) => void,
+  final: (e: Event) => void,
+  error: (e: Event) => void,
+  end: (e: Event) => void,
+): void {
+  window.removeEventListener('rahyar-voice-partial', partial)
+  window.removeEventListener('rahyar-voice-final', final)
+  window.removeEventListener('rahyar-voice-error', error)
+  window.removeEventListener('rahyar-voice-end', end)
+  if (activeVoiceHandler && activeVoiceHandler.partial === partial) activeVoiceHandler = null
+}
+
 /** ذخیره صداها برای لغو خواندن */
 let speakingUtterances: SpeechSynthesisUtterance[] = []
 
-/** خواندن متن با صدا — زبان را از تنظیمات می‌گیرد */
+/** خواندن متن با صدا — در اندروید با TTS بومی، در مرورگر با Web Speech Synthesis */
 export function speak(text: string, lang: Lang): Promise<void> {
   return new Promise((resolve) => {
-    if (!speechOutputSupported() || !text.trim()) {
+    if (!text.trim()) {
+      resolve()
+      return
+    }
+    // ── مسیر بومی اندروید (TTS بومی — صدای فارسی سیستم) ──
+    if (nativeTtsSupported()) {
+      const b = nativeBridge()!
+      const onDone = () => {
+        window.removeEventListener('rahyar-tts-done', onDone)
+        resolve()
+      }
+      window.addEventListener('rahyar-tts-done', onDone)
+      try {
+        b.speak(text.slice(0, 600), langBcp47(lang))
+      } catch {
+        window.removeEventListener('rahyar-tts-done', onDone)
+        resolve()
+        return
+      }
+      // ایمنی: اگر پس از ۲۵ ثانیه رویداد پایان نیامد، رد شو
+      window.setTimeout(() => {
+        window.removeEventListener('rahyar-tts-done', onDone)
+        resolve()
+      }, 25_000)
+      return
+    }
+    // ── مسیر وب ──
+    if (!speechOutputSupported()) {
       resolve()
       return
     }
@@ -157,6 +276,14 @@ export function speak(text: string, lang: Lang): Promise<void> {
 
 /** توقف خواندن */
 export function stopSpeaking(): void {
+  // مسیر بومی
+  if (nativeTtsSupported()) {
+    try {
+      nativeBridge()?.stopSpeaking()
+    } catch {
+      /* بی‌خطر */
+    }
+  }
   if (!speechOutputSupported()) return
   speakingUtterances = []
   try {

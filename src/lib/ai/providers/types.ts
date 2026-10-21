@@ -7,18 +7,20 @@
 //   OpenAI | Claude | Gemini | DeepSeek | Ollama | LM Studio |
 //   OpenRouter | هر Endpoint سازگار با OpenAI
 //
-// فعال در همین نسخه (تنها این دو — طبق مأموریت نسخه ۱٫۰):
+// فعال در همین نسخه:
 //   1) local_rules        — موتور قواعد محلی (بدون مدل، بدون هزینه، بدون اینترنت)
 //   2) openai_compatible  — هر Endpoint سازگار با OpenAI (Ollama، LM Studio،
 //                           DeepSeek، OpenRouter، …) — کاربر URL/کلید می‌دهد
-// هیچ Provider دیگری فعال نیست و هیچ کلیدی در کد Hardcode نشده است.
+//   3) zai                — موتور مدلِ میزبان استقرار (سرویس‌محور؛ بدون کلید کاربر)
+//                           فقط وقتی سرورِ استقرار پیکربندی مدلِ میزبان داشته باشد.
+// هیچ کلیدی در کد Hardcode نشده است.
 
 import type { LlmMessage } from '@/lib/ai'
 
 /** شناسه موتور فعال — ذخیره در تنظیمات کاربر (Setting: ai_engine) */
-export type AiEngineId = 'local_rules' | 'openai_compatible'
+export type AiEngineId = 'local_rules' | 'openai_compatible' | 'zai'
 
-export const AI_ENGINE_IDS: AiEngineId[] = ['local_rules', 'openai_compatible']
+export const AI_ENGINE_IDS: AiEngineId[] = ['local_rules', 'openai_compatible', 'zai']
 
 export function isAiEngineId(v: unknown): v is AiEngineId {
   return typeof v === 'string' && (AI_ENGINE_IDS as string[]).includes(v)
@@ -46,6 +48,8 @@ export interface AIProvider {
   readonly label: string
   /** آیا فراخوانی این Provider به سهمیه مدل (gateway quota) شمارش می‌شود؟ */
   readonly consumesQuota: boolean
+  /** مدل پیش‌فرض برای نمایش مصرف — Providerهای مدل */
+  readonly defaultModelLabel?: string
   /** آیا Provider آماده استفاده است؟ */
   isConfigured(ctx: ProviderCallContext): boolean | Promise<boolean>
   /** فراخوانی عادی — خروجی متن */
