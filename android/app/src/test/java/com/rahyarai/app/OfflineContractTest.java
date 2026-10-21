@@ -127,16 +127,18 @@ public class OfflineContractTest {
 
     @Test
     public void appVersionMatchesGradleContract() throws Exception {
-        // همگامی AppVersion با build.gradle — منبع واحد حقیقت
+        // همگامی AppVersion با build.gradle — منبع واحد حقیقت (v2.0.0 دو ویراست)
         // build.gradle در android/app — از rahyar.www.dir بازگشت می‌کنیم به ریشهٔ مخزن اندروید
         Path dir = wwwDir(); // .../android/src/www
         Path gradle = dir.getParent().getParent().resolve("app/build.gradle");
         assertTrue("build.gradle must exist at " + gradle, Files.exists(gradle));
         String g = read(gradle);
-        assertTrue("versionCode must be 12", g.contains("versionCode 12"));
-        assertTrue("versionName must be 1.2.0", g.contains("versionName '1.2.0'"));
-        assertEquals("AppVersion.NAME", "1.2.0", AppVersion.NAME);
-        assertEquals("AppVersion.CODE", 12, AppVersion.CODE);
+        assertTrue("user flavor must be versionCode 20", g.contains("versionCode 20"));
+        assertTrue("user flavor must be versionName 2.0.0", g.contains("versionName '2.0.0'"));
+        assertTrue("owner flavor must be versionCode 21", g.contains("versionCode 21"));
+        assertTrue("owner flavor must be versionName 2.0.0-owner", g.contains("versionName '2.0.0-owner'"));
+        assertEquals("AppVersion.NAME", "2.0.0", AppVersion.NAME);
+        assertEquals("AppVersion.CODE", 20, AppVersion.CODE);
         assertEquals("AppVersion.PACKAGE_ID", "com.rahyarai.app", AppVersion.PACKAGE_ID);
     }
 

@@ -1,10 +1,15 @@
-// ماژول اپ — نسخهٔ مستقل v1.2.0 (versionCode 12)
-// تغییر نسبت به v1.1.0:
-//  - HomeActivity (خانهٔ محلی ۱۰۰٪ آفلاین) نقطهٔ ورود شده است
-//  - androidx.webkit برای WebViewAssetLoader (مبدأ امن دارایی‌های محلی)
-//  - دارایی‌های UI محلی از ../src/www بارگذاری می‌شوند
-//  - حالت متصل (MainActivity/LoginActivity) بدون تغییر حفظ شده است
-// امضای release عمداً پیکربندی نشده — کلید انتشار قبلی از دست رفته و ساخت کلید جدید نیازمند تأیید مالک است.
+// ماژول اپ — نسخهٔ کامل v2.0.0 (دو ویراست: user + owner)
+// v2.0.0 تغییر نسبت به v1.2.0:
+//  - ورودی اصلی: LoginActivity → MainActivity (محصول کامل وب روی سرور ثبت‌شده)
+//  - پل بومی v2 (RahyarNative): تشخیص گفتار بومی + TTS + یادآور سیستمی (AlarmManager)
+//  - حالت محلی آفلاین (HomeActivity) به‌عنوان جایگزین دوم حفظ شده است
+//  - دو ویراست محصول از یک سورس واحد:
+//      user  → com.rahyarai.app        «رهیار»        (versionCode 20)
+//      owner → com.rahyarai.app.owner  «رهیار مالک»   (versionCode 21)
+//    تفاوت نقش‌ها سمت سرور کنترل می‌شود؛ دو ویراست فقط هویت نصب/برند/پیش‌فرض
+//    صفحهٔ ورود را جدا می‌کنند (بدون تکرار کد، بدون رمز تعبیه‌شده).
+// امضای release عمداً پیکربندی نشده — کلید انتشار باید با تصمیم مالک ساخته شود
+// (خروجی تحویلی debug-signed برای نصب آزمایشی است و صادقانه برچسب خورده).
 plugins {
     id 'com.android.application'
 }
@@ -17,8 +22,24 @@ android {
         applicationId 'com.rahyarai.app'
         minSdk 24
         targetSdk 34
-        versionCode 12          // نسخهٔ مستقل v1.2.0
-        versionName '1.2.0'
+    }
+
+    flavorDimensions 'edition'
+    productFlavors {
+        user {
+            dimension 'edition'
+            applicationId 'com.rahyarai.app'
+            versionCode 20
+            versionName '2.0.0'
+            resValue 'string', 'app_name', 'رهیار'
+        }
+        owner {
+            dimension 'edition'
+            applicationId 'com.rahyarai.app.owner'
+            versionCode 21
+            versionName '2.0.0-owner'
+            resValue 'string', 'app_name', 'رهیار مالک'
+        }
     }
 
     sourceSets {
@@ -26,7 +47,14 @@ android {
             manifest.srcFile 'gradle/AndroidManifest.xml'   // بدون صفت package (الزام AGP 8) — همگام با src/
             java.srcDirs = ['../src/java']
             res.srcDirs = ['../src/res']
-            assets.srcDirs = ['../src/www']                 // UI محلی داخل APK — بدون هیچ منبع شبکه
+            assets.srcDirs = ['../src/www']                 // UI محلی جایگزین — بدون هیچ منبع شبکه
+        }
+        // سورس مخصوص هر ویراست (EditionConfig) — ساختار مشترک با main
+        user {
+            java.srcDirs = ['../src/user/java']
+        }
+        owner {
+            java.srcDirs = ['../src/owner/java']
         }
     }
 

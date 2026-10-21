@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">رهیار</string>
+    <!-- app_name از flavorهای build.gradle تأمین می‌شود (رهیار / رهیار مالک) -->
     <string name="local_version_label">نسخهٔ مستقل %1$s — محلی</string>
     <string name="share_backup">اشتراک‌گذاری پشتیبان رهیار</string>
     <string name="login_title">ورود به رهیار</string>
@@ -9,6 +9,19 @@
     <string name="username">نام کاربری</string>
     <string name="password">رمز عبور</string>
     <string name="login_btn">ورود</string>
+    <string name="local_mode_link">حالت محلی آفلاین (بدون سرور)</string>
+    <string name="reminder_channel">یادآورهای رهیار</string>
+    <string name="reminder_channel_desc">اعلان یادآوری‌های زمان‌بندی‌شدهٔ شما</string>
+    <string name="reminder_notif_title">رهیار — یادآوری</string>
+    <string name="reminder_notif_fallback">یادآوری زمان‌بندی‌شدهٔ رهیار</string>
+    <string name="notif_consent_title">اعلان یادآورها</string>
+    <string name="notif_consent_msg">برای آنکه یادآوری‌ها حتی وقتی رهیار باز نیست با اعلان سیستم به تو برسد، رهیار به مجوز اعلان نیاز دارد. صدا و محتوای یادآور روی همین دستگاه می‌ماند و هیچ اعلانی بدون اجازهٔ تو ارسال نمی‌شود. اگر «خیر» بزنی، یادآوری‌ها فقط داخل برنامه نمایش داده می‌شوند.</string>
+    <string name="notif_consent_yes">اجازه می‌دهم</string>
+    <string name="notif_consent_no">خیر، فقط داخل برنامه</string>
+    <string name="exact_consent_title">دقت زمان یادآورها</string>
+    <string name="exact_consent_msg">اندروید برای اعلان در ثانیهٔ دقیق، مجوز «زنگ دقیق» را کنترل می‌کند. اگر اجازه دهی، یادآوری‌ها سر وقت دقیق می‌رسند؛ در غیر این صورت ممکن است چند دقیقه دیرتر باشند.</string>
+    <string name="exact_consent_yes">تنظیمات</string>
+    <string name="exact_consent_no">بعداً</string>
     <string name="err_endpoint">آدرس سرور نامعتبر است — فقط https و بدون localhost</string>
     <string name="err_empty">نام کاربری و رمز را وارد کنید</string>
     <string name="err_network">اتصال به سرور برقرار نشد — اینترنت یا آدرس سرور را بررسی کنید</string>
