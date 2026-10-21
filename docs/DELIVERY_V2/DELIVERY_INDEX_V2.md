@@ -1,45 +1,37 @@
-# فهرست نهایی اقلام تحویل — RahyAr v2.0.0 (بند ۱۰ دستور)
+# فهرست نهایی اقلام تحویل — RahyAr v2.0.0 (به‌روزشده: بازسازی Release ۲۰۲۶–۱۰–۲۱)
+
+> این سند پس از Reset محیط و بازسازی هر دو APK امضاشدهٔ Release به‌روزرسانی شده است.
+> مرجع رسمی مشخصات و هش‌ها: `docs/DELIVERY_V2/APK_BUILD_REPORT_V2.md` و فایل `rahyar-v2.0.0-sha256.txt`.
 
 | # | قلم | محل / وضعیت |
 |---|---|---|
-| ۱ | APK نسخهٔ Owner | `download/rahyar-v2-delivery/RahyAr-Owner-v2.0.0-owner-debug.apk` — SHA-256 `aacf02a5…d3bde2d99` |
-| ۲ | APK نسخهٔ User | `download/rahyar-v2-delivery/RahyAr-User-v2.0.0-debug.apk` — SHA-256 `a78e3767…21e2a9621` |
-| ۳ | لینک دانلود | tmpfiles.org تأییدشدهٔ ۶۰دقیقه‌ای در پیام تحویل + لینک دائمی gofile پس از رفع rate-limit؛ در فضای کاری `download/rahyar-v2-delivery/` همیشه موجود است |
-| ۴ | سورس متناظر | کامیت‌های v2.0.0 در مخزن محلی + `RahyAr-Source-v2.0.0.zip` (دستور push دقیق در §گیت‌هاب پایین) |
-| ۵ | گزارش ممیزی تطبیقی | `docs/DELIVERY_V2/FEATURES_MATRIX_V2.md` |
-| ۶ | ماتریس قابلیت‌ها + وضعیت آزمون | همان سند (ستون وضعیت با واژگان قراردادی) |
-| ۷ | گزارش امنیت و نقش‌ها | `docs/DELIVERY_V2/SECURITY_REPORT_V2.md` |
-| ۸ | راهنمای نصب و ورود | `docs/DELIVERY_V2/INSTALL_GUIDE_V2_FA.md` |
-| ۹ | راهنمای استقرار سرور | `docs/DELIVERY_V2/DEPLOYMENT_V2_FA.md` |
-| ۱۰ | راهنمای Providerها و کلیدها | `docs/DELIVERY_V2/DEPLOYMENT_V2_FA.md` §مدل میزبان + `docs/AI_PROVIDERS.md` (معماری) |
-| ۱۱ | وابستگی‌ها و هزینه‌ها | `docs/DELIVERY_V2/DEPLOYMENT_V2_FA.md` §هزینه‌ها |
-| ۱۲ | بستهٔ اسکرین‌شات (۲۴ تصویر + مانیفست) | `download/screenshots-v2/` (zip: `RahyAr-Screenshots-v2.0.0.zip`) |
-| ۱۳ | گزارش آزمون‌ها (نتایج واقعی) | `docs/DELIVERY_V2/TEST_REPORT_V2.md` |
-| ۱۴ | محدودیت‌های باقی‌مانده | `docs/DELIVERY_V2/LIMITATIONS_V2_FA.md` |
+| ۱ | APK نسخهٔ User (Release امضاشده) | `rahyar-user-v2.0.0.apk` — `com.rahyarai.app` vc20 — SHA-256 `87f0b93c…70acc3ffb` |
+| ۲ | APK نسخهٔ Owner (Release امضاشده) | `rahyar-owner-v2.0.0.apk` — `com.rahyarai.app.owner` vc21 — SHA-256 `9cf533e8…603efbc7d0` |
+| ۳ | مسیر دانلود کامل HTTPS | `https://preview-7317dfe8-c881-45b0-977a-9099236e9ff7.space-z.ai/api/download/<نام‌فایل>` — بدون نشست، فقط سفید‌لیست ۵ نام مشخص؛ هر مسیر دیگر 404 |
+| ۴ | گزارش نهایی DOCX (فارسی RTL) | `rahyar-v2.0.0-delivery-report.docx` — تولیدشده با `scripts/gen-apk-delivery-report.js` |
+| ۵ | اثر انگشت رسمی فایل‌ها | `rahyar-v2.0.0-sha256.txt` (همان مسیر دانلود) |
+| ۶ | کیت امضا | `rahyar-release-signing-kit.zip.enc` — فقط رمزنگاری‌شده (AES-256-CBC/PBKDF2)؛ رمز گشایش فقط در پیام خصوصی مالک؛ نسخهٔ باز فقط در `artifacts/signing/` خارج از گیت |
+| ۷ | سورس متناظر | مخزن خصوصی `aresmaeily2/HAMYAR-AI` — شاخهٔ main = `fc8a64a` (push و راستی‌آزمایی‌شده با ls-remote)؛ کد اندروید بایت‌به‌بایت برابر کامیت انتشار `6a18922` |
+| ۸ | گزارش ممیزی تطبیقی | `docs/DELIVERY_V2/FEATURES_MATRIX_V2.md` |
+| ۹ | ماتریس قابلیت‌ها + وضعیت آزمون | همان سند (ستون وضعیت با واژگان قراردادی) |
+| ۱۰ | گزارش امنیت و نقش‌ها | `docs/DELIVERY_V2/SECURITY_REPORT_V2.md` |
+| ۱۱ | راهنمای نصب و ورود | `docs/DELIVERY_V2/INSTALL_GUIDE_V2_FA.md` |
+| ۱۲ | راهنمای استقرار سرور | `docs/DELIVERY_V2/DEPLOYMENT_V2_FA.md` |
+| ۱۳ | گزارش آزمون‌ها | `docs/DELIVERY_V2/TEST_REPORT_V2.md` + ۴۹/۴۹ JVM و ۱۸۱/۱۸۱ وب (اجرای مجدد ۲۰۲۶–۱۰–۲۱) |
+| ۱۴ | محدودیت‌های باقی‌مانده | `docs/DELIVERY_V2/LIMITATIONS_V2_FA.md` + «آزموده‌نشده روی دستگاه» برای نصب واقعی |
 
-## وضعیت گیت‌هاب — محدودیت شفاف (بند ۹ دستور)
+## وضعیت گیت‌هاب — به‌روزرسانی ۲۰۲۶–۱۰–۲۱
 
-**Push به `aresmaeily2/RahyAr` در این جلسه انجام نشد** — مدرک:
+**Push انجام شد** — توکن fine-grained مالک در این جلسه با api.github.com تأیید شد (`login: aresmaeily2`) و push واقعی روی مخزن خصوصی `aresmaeily2/HAMYAR-AI` انجام شد:
+
 ```
-git ls-remote https://github.com/aresmaeily2/RahyAr.git
-→ fatal: could not read Username for 'https://github.com': No such device or address
+git push → ed9ec2d..fc8a64a  main -> main
+git ls-remote refs/heads/main → fc8a64a9c883 (تأیید سمت سرور)
 ```
-نشانهٔ نبودِ هرگونه اعتبارنامه (PAT/SSH) در محیط پس از ریست — هیچ کلیدی در env، `~/.git-credentials`، `~/.ssh` یا git config موجود نیست. طبق دستور، «ادعای push موفق بدون نتیجهٔ واقعی ممنوع» رعایت شد: **ادعا نمی‌شود**.
 
-برای push (پس از تامین PAT با دسترسی repo):
-```bash
-cd RahyAr-Source-v2.0.0/ && unzip ..zip  # یا از مخزن محلی
-git init && git add -A && git commit -m "RahyAr v2.0.0 — full product (AI+voice+reminders+finance+dual editions)"
-git branch -M main
-git remote add origin https://<PAT>@github.com/aresmaeily2/RahyAr.git
-git push -u origin main
-```
-تاریخچهٔ محلی این جلسه از پروژهٔ بورسی کاملاً جدا است (rootRepo متفاوت).
+- مخزن خصوصی است و فقط با حساب مالک دیده می‌شود؛ در صورت تمایل از Settings مخزن به `RahyAr` تغییر نام دهید.
+- هیچ کلید/توکنی در تاریخچهٔ گیت نیست (بررسی شد: هیچ فایلی از `upload/` یا keystore در هیچ کامیتِ track نشده است).
 
-## یادداشت لینک دانلود
+## وضعیت لینک دانلود
 
-هاست‌های عمومی آزمایش‌شده در این جلسه:
-- tmpfiles.org: موفق + تأیید SHA-256 پس از دانلود ✅ (انقضای ۶۰ دقیقه)
-- gofile.io: rate-limit پایدار در این جلسه (HTTP 000/`error-rateLimit`) — در جلسهٔ قبل همین میزبان موفق بود؛ تلاش مجدد توصیه می‌شود
-- x0.at: پسوند .apk را رد می‌کند (۴۰۳) — محدودیت مستند جلسهٔ قبل
-- filebin/litterbox/catbox/transfer.sh/0x0.st: ناموفق/مسدود از این IP
+دانلود از سرور زندهٔ خود محصول انجام می‌شود (بدون میزبان واسطهٔ شخص ثالث): مسیر `/api/download/<نام‌فایل>` با سفید‌لیست دقیق در `src/app/api/download/[file]/route.ts`؛ آدرس کامل در پیام تحویل آمده است. کیت امضا طبق دستور مالک فقط رمزنگاری‌شده روی این مسیر قرار دارد.

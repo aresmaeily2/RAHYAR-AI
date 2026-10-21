@@ -12,7 +12,10 @@ const WHITELIST: Record<string, string> = {
   'rahyar-user-v2.0.0.apk': 'application/vnd.android.package-archive',
   'rahyar-owner-v2.0.0.apk': 'application/vnd.android.package-archive',
   'rahyar-v2.0.0-sha256.txt': 'text/plain; charset=utf-8',
-  'rahyar-release-signing-kit.zip': 'application/zip',
+  'rahyar-v2.0.0-delivery-report.docx':
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  // کیت امضا فقط به‌صورت رمزنگاری‌شده (AES-256-CBC/PBKDF2) توزیع می‌شود — رمز گشایش فقط در پیام خصوصی به مالک
+  'rahyar-release-signing-kit.zip.enc': 'application/octet-stream',
 }
 
 const DOWNLOAD_DIR = path.resolve(process.cwd(), 'download')
