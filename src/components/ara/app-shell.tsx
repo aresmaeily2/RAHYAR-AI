@@ -28,6 +28,7 @@ import { DEFAULT_REMINDER_SETTINGS, normalizeReminderSettings, type ReminderSett
 import { viewFade } from './motion'
 import { AraRippleLayer } from './ripple'
 import { AmbientStage } from '@/components/ambient/ambient-stage'
+import { Splash } from './splash'
 import { ambient } from '@/lib/ambient/engine'
 import { syncNativeReminders } from '@/lib/voice/native'
 import { useTheme } from 'next-themes'
@@ -262,6 +263,7 @@ export function AppShell() {
   return (
     <MotionConfig reducedMotion="user">
     <div className="relative min-h-dvh">
+      <Splash />
       <AmbientStage />
 
       {/* GRAND-F3: skip-link — دسترسی مستقیم کیبورد به محتوای اصلی */}

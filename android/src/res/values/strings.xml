@@ -3,13 +3,15 @@
     <!-- app_name از flavorهای build.gradle تأمین می‌شود (رهیار / رهیار مالک) -->
     <string name="local_version_label">نسخهٔ مستقل %1$s — محلی</string>
     <string name="share_backup">اشتراک‌گذاری پشتیبان رهیار</string>
-    <string name="login_title">ورود به رهیار</string>
+    <!-- v2.1: اتصال به سرور یک ماژول اختیاری است — اپ بدون آن کامل است -->
+    <string name="login_title">اتصال اختیاری به سرور</string>
+    <string name="login_subtitle">اپ رهیار بدون سرور کامل است. این صفحه فقط برای بازکردن نسخهٔ وب روی سرور خودتان است.</string>
     <string name="endpoint_label">آدرس سرور (https)</string>
     <string name="endpoint_hint">https://rahyar.example.com</string>
     <string name="username">نام کاربری</string>
     <string name="password">رمز عبور</string>
     <string name="login_btn">ورود</string>
-    <string name="local_mode_link">حالت محلی آفلاین (بدون سرور)</string>
+    <string name="local_mode_link">بازگشت به حالت محلی (بدون سرور)</string>
     <string name="reminder_channel">یادآورهای رهیار</string>
     <string name="reminder_channel_desc">اعلان یادآوری‌های زمان‌بندی‌شدهٔ شما</string>
     <string name="reminder_notif_title">رهیار — یادآوری</string>
@@ -22,7 +24,7 @@
     <string name="exact_consent_msg">اندروید برای اعلان در ثانیهٔ دقیق، مجوز «زنگ دقیق» را کنترل می‌کند. اگر اجازه دهی، یادآوری‌ها سر وقت دقیق می‌رسند؛ در غیر این صورت ممکن است چند دقیقه دیرتر باشند.</string>
     <string name="exact_consent_yes">تنظیمات</string>
     <string name="exact_consent_no">بعداً</string>
-    <string name="err_endpoint">آدرس سرور نامعتبر است — فقط https و بدون localhost</string>
+    <string name="err_endpoint">آدرس سرور نامعتبر است — فقط https عمومی (بدون localhost)</string>
     <string name="err_empty">نام کاربری و رمز را وارد کنید</string>
     <string name="err_network">اتصال به سرور برقرار نشد — اینترنت یا آدرس سرور را بررسی کنید</string>
     <string name="err_rate">تلاش‌های زیاد — کمی بعد دوباره امتحان کنید</string>

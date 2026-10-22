@@ -1,0 +1,149 @@
+/* رهیار — لایهٔ هویت بصری «محلی-اول» (۱۰۰٪ داخل APK — بدون منبع شبکه)
+ * هم‌خوان با هویت محصول وب: توکن‌های برند + شیشه‌مات + پس‌زمینهٔ زنده + حرکت آرام
+ * قواعد:
+ *  - فقط transform/opacity برای انیمیشن‌ها (GPU، بدون رفرش چیدمان)
+ *  - prefers-reduced-motion → همهٔ حرکت‌ها خاموش، نمایش فوری و ثابت
+ *  - خوانایی اول: متن‌ها همیشه روی سطح با کنتراست کافی
+ */
+
+/* ── توکن‌های برند رهیار ── */
+:root {
+  --ra-violet: #7c5cff;
+  --ra-pink: #f062a4;
+  --ra-teal: #2fd8c8;
+  --ra-deep: #0b1020;
+  --ra-grad: linear-gradient(135deg, #7c5cff 0%, #f062a4 55%, #2fd8c8 100%);
+  --ra-grad-soft: linear-gradient(135deg, rgba(124,92,255,.14), rgba(47,216,200,.10));
+  /* حرکت — سیستم واحد */
+  --ra-m-fast: 150ms;
+  --ra-m-med: 300ms;
+  --ra-m-slow: 550ms;
+  --ra-ease: cubic-bezier(.22,.61,.36,1);
+  /* سطح شیشه */
+  --glass-alpha: 0.72;
+  --glass-blur: 14px;
+}
+:root[data-theme="dark"] { --glass-alpha: 0.55; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --glass-alpha: 0.55; }
+}
+
+/* ── پس‌زمینهٔ زندهٔ محیطی — دو لایهٔ هالهٔ نرم، حرکت بسیار کند ── */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(42% 34% at 18% 12%, rgba(124,92,255,.16), transparent 70%),
+    radial-gradient(46% 40% at 84% 22%, rgba(240,98,164,.10), transparent 72%),
+    radial-gradient(50% 42% at 50% 96%, rgba(47,216,200,.10), transparent 74%);
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: -25%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(36% 30% at 76% 68%, rgba(124,92,255,.08), transparent 70%),
+    radial-gradient(30% 26% at 12% 52%, rgba(47,216,200,.07), transparent 72%);
+  animation: ra-drift 48s var(--ra-ease) infinite alternate;
+  will-change: transform;
+}
+@keyframes ra-drift {
+  from { transform: translate3d(-1.6%, -1.2%, 0) scale(1); }
+  to   { transform: translate3d(1.8%, 1.4%, 0) scale(1.04); }
+}
+
+/* ── شیشه‌مات — ارتقای سطح کارت‌ها (بدون شکستن چیدمان موجود) ──
+ * قاعدهٔ تم: auto → از prefers-color-scheme پیروی می‌کند؛
+ * فقط data-theme="dark" صریح، سطح تاریک می‌گیرد. */
+.card, .stat .box {
+  background: rgba(255,255,255, var(--glass-alpha));
+  position: relative;
+}
+:root[data-theme="dark"] .card, :root[data-theme="dark"] .stat .box {
+  background: rgba(20,28,48, var(--glass-alpha));
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .card, :root:not([data-theme="light"]) .stat .box {
+    background: rgba(20,28,48, var(--glass-alpha));
+  }
+}
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .card, .stat .box {
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
+    border-color: rgba(124,92,255,.14);
+  }
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    border-radius: var(--radius) var(--radius) 0 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+    opacity: .6;
+  }
+}
+
+/* ── ورود آرام صفحات — یک‌بار، بدون تکرار ── */
+main > * { animation: ra-rise var(--ra-m-slow) var(--ra-ease) both; }
+main > *:nth-child(2) { animation-delay: 60ms; }
+main > *:nth-child(3) { animation-delay: 120ms; }
+main > *:nth-child(4) { animation-delay: 180ms; }
+main > *:nth-child(5) { animation-delay: 240ms; }
+@keyframes ra-rise {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+/* ── بازخورد فشردن — سبک و هدفمند ── */
+button, .btn, nav.bottom a {
+  transition: transform var(--ra-m-fast) var(--ra-ease),
+              box-shadow var(--ra-m-fast) var(--ra-ease),
+              background var(--ra-m-fast) var(--ra-ease);
+}
+button:active, .btn:active, nav.bottom a:active { transform: scale(.97); }
+
+/* ── نشان برند در سربرگ ── */
+.brandmark {
+  width: 34px; height: 34px;
+  border-radius: 9px;
+  background: var(--ra-grad);
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  box-shadow: 0 4px 14px rgba(124,92,255,.30);
+  flex: none;
+}
+.brandmark svg { width: 22px; height: 22px; display: block; }
+
+/* ── چیپ تاریخ دو‌تقویمی ── */
+.datechip {
+  display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap;
+  font-size: 13px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: var(--ra-grad-soft);
+  border: 1px solid rgba(124,92,255,.18);
+  margin: 10px 0;
+}
+.datechip .jdate { font-weight: 700; color: var(--ink); }
+.datechip .gdate { color: var(--muted); font-size: 12px; }
+
+/* ── سربرگ با نام گرادیانی ── */
+header.top h1 {
+  background: var(--ra-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ── کاهش حرکت — نمایش ثابت و فوری (الزام دسترس‌پذیری) ── */
+@media (prefers-reduced-motion: reduce) {
+  body::after { animation: none; }
+  main > * { animation: none; }
+  button, .btn, nav.bottom a { transition: none; }
+}

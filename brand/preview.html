@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<!-- RahyAr AI — پیش‌نمایش لوگو و انیمیشن اسپلش
+     مرجع طراحی برای واریانت‌های نشان R و خط‌زمانی اسپلش.
+     همین هویت به‌صورت واقعی در محصول پیاده شده است:
+       - وب: src/components/ara/splash.tsx (همان هندسه و زمان‌بندی)
+       - اندروید: SplashView.java (Canvas + ValueAnimator — بومی)
+     این فایل پیش‌نمایش طراحی است؛ جایگزین پیاده‌سازی واقعی نیست. -->
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RahyAr AI — پیش‌نمایش لوگو و اسپلش</title>
+<style>
+  :root {
+    --violet: #7C5CFF; --pink: #F062A4; --teal: #2FD8C8; --deep: #0B1020;
+    --grad: linear-gradient(135deg, #7C5CFF 0%, #F062A4 55%, #2FD8C8 100%);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font-family: system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
+    background: #f6f7fb; color: #1c2333; padding: 28px; line-height: 1.7;
+  }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  h2 { font-size: 16px; margin: 26px 0 12px; color: #475069; }
+  .note { color: #64748b; font-size: 13px; }
+  .grid { display: flex; flex-wrap: wrap; gap: 18px; }
+  .tile {
+    background: #fff; border: 1px solid #e6e8f0; border-radius: 18px;
+    padding: 18px; width: 240px; text-align: center;
+    box-shadow: 0 2px 10px rgba(28,35,51,.05);
+  }
+  .tile img { width: 128px; height: 128px; object-fit: contain; }
+  .tile.small img { width: 48px; height: 48px; }
+  .tile .bg-dark { background: var(--deep); border-radius: 12px; padding: 12px; }
+  .tile .bg-light { background: #f2f4f8; border-radius: 12px; padding: 12px; }
+  .tile .bg-brand { background: var(--grad); border-radius: 12px; padding: 12px; }
+  .cap { font-size: 12px; color: #64748b; margin-top: 8px; }
+
+  /* ── دموی اسپلش — همان خط‌زمانی محصول ── */
+  .splash-demo {
+    position: relative; overflow: hidden;
+    width: 340px; height: 560px; border-radius: 24px;
+    background: var(--deep);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 18px; box-shadow: 0 12px 40px rgba(11,16,32,.4);
+  }
+  .halo {
+    position: absolute; width: 290px; height: 290px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(124,92,255,.40) 0%, rgba(240,98,164,.16) 55%, transparent 72%);
+    animation: halo 0.4s ease-out both;
+  }
+  @keyframes halo { from { opacity: 0; transform: scale(.9);} to { opacity: 1; transform: scale(1.05);} }
+  .badge-demo {
+    position: relative; width: 116px; height: 116px; border-radius: 26px;
+    background: var(--grad); display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 18px 60px rgba(124,92,255,.35);
+    animation: badge .4s ease-out both;
+  }
+  @keyframes badge { from { opacity: 0; transform: scale(.86);} to { opacity: 1; transform: scale(1);} }
+  .badge-demo svg { width: 74px; height: 74px; }
+  .r-main { stroke-dasharray: 200; stroke-dashoffset: 200; animation: drawMain .6s linear .35s forwards; }
+  .r-leg  { stroke-dasharray: 60;  stroke-dashoffset: 60;  animation: drawLeg .3s linear .95s forwards; }
+  @keyframes drawMain { to { stroke-dashoffset: 0; } }
+  @keyframes drawLeg  { to { stroke-dashoffset: 0; } }
+  .spark {
+    position: absolute; top: -4px; right: -4px; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--teal); box-shadow: 0 0 12px rgba(47,216,200,.9);
+    animation: spark .25s cubic-bezier(.34,1.56,.64,1) 1.25s both;
+  }
+  @keyframes spark { from { opacity: 0; transform: scale(0);} to { opacity: 1; transform: scale(1);} }
+  .name { color: #fff; font-size: 22px; font-weight: 600; letter-spacing: -.2px; animation: fadeUp .25s ease-out 1.5s both; }
+  .name span { font-weight: 300; opacity: .8; }
+  .tag { color: rgba(255,255,255,.6); font-size: 12px; animation: fadeUp .25s ease-out 1.8s both; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: none;} }
+  .timeline { font-size: 12.5px; color: #475069; margin-top: 14px; }
+  .timeline code { background: #eef0f7; padding: 1px 6px; border-radius: 6px; direction: ltr; display: inline-block; }
+  @media (prefers-reduced-motion: reduce) {
+    .halo, .badge-demo, .r-main, .r-leg, .spark, .name, .tag { animation: none !important; }
+    .r-main, .r-leg { stroke-dashoffset: 0 !important; }
+  }
+</style>
+</head>
+<body>
+  <h1>RahyAr AI — لوگو و اسپلش</h1>
+  <p class="note">پیش‌نمایش طراحی نشان R — همان هندسه در اسپلش بومی اندروید و اسپلش وب محصول پیاده‌سازی شده است.</p>
+
+  <h2>واریانت B — Solid Mark (پیشنهادی آیکون اپ / اسپلش)</h2>
+  <div class="grid">
+    <div class="tile"><img src="png/rahyar-mark-solid-1024.png" alt="Solid Mark"><div class="cap">شفاف ۱۰۲۴×۱۰۲۴</div></div>
+    <div class="tile"><div class="bg-dark"><img src="png/rahyar-mark-solid-1024.png" alt=""></div><div class="cap">روی زمینهٔ تاریک</div></div>
+    <div class="tile"><div class="bg-light"><img src="png/rahyar-mark-solid-1024.png" alt=""></div><div class="cap">روی زمینهٔ روشن</div></div>
+    <div class="tile small"><div class="bg-light"><img src="png/rahyar-mark-solid-48.png" alt=""></div><div class="cap">آزمون خوانایی ۴۸px</div></div>
+    <div class="tile small"><div class="bg-light"><img src="png/rahyar-mark-solid-24.png" alt=""></div><div class="cap">آزمون خوانایی ۲۴px</div></div>
+  </div>
+
+  <h2>واریانت A — Badge Ring (هدر / کنار نام برند)</h2>
+  <div class="grid">
+    <div class="tile"><img src="png/rahyar-badge-ring-1024.png" alt="Badge Ring"><div class="cap">شفاف ۱۰۲۴×۱۰۲۴</div></div>
+    <div class="tile"><div class="bg-dark"><img src="png/rahyar-badge-ring-1024.png" alt=""></div><div class="cap">روی زمینهٔ تاریک</div></div>
+    <div class="tile"><div class="bg-light"><img src="png/rahyar-badge-ring-1024.png" alt=""></div><div class="cap">روی زمینهٔ روشن</div></div>
+  </div>
+
+  <h2>تک‌رنگ‌ها — بدون گرادیان</h2>
+  <div class="grid">
+    <div class="tile"><div class="bg-light"><img src="png/rahyar-mark-mono-1024.png" alt=""></div><div class="cap">تک‌رنگ (زمینهٔ روشن)</div></div>
+    <div class="tile"><div class="bg-dark"><img src="png/rahyar-mark-mono-inverse-1024.png" alt=""></div><div class="cap">تک‌رنگ معکوس (زمینهٔ تاریک)</div></div>
+  </div>
+
+  <h2>دموی انیمیشن اسپلش — خط‌زمانی واقعی محصول</h2>
+  <div class="grid">
+    <div class="splash-demo" id="replay">
+      <div class="halo"></div>
+      <div class="badge-demo">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <path class="r-main" d="M30,24 H47 A15.5,15.5 0 0 1 47,55 H30 V80"
+                fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+          <path class="r-leg" d="M47,55 L66,80"
+                fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="spark"></span>
+      </div>
+      <div class="name">rahyar <span>AI</span></div>
+      <div class="tag">دستیار هوشمند شخصی</div>
+    </div>
+    <div>
+      <div class="timeline">
+        خط‌زمانی (راهنمای طراحی — بدون تأخیر اجباری در ورود به اپ):<br>
+        <code>0.00s</code> هالهٔ نور + ورود نشان<br>
+        <code>0.35s</code> رسم بخش اصلی R<br>
+        <code>0.95s</code> رسم پای R<br>
+        <code>1.25s</code> جرقه<br>
+        <code>1.50s</code> نام «rahyar AI»<br>
+        <code>1.80s</code> شعار فارسی<br>
+        <code>~2.4s</code> محو نرم و ورود به اپ (اندروید؛ لمس = ردشدن)<br>
+        <code>~1.85s</code> پایان در وب (کلیک = ردشدن؛ فقط شروع سرد)<br><br>
+        کاهش حرکت سیستم → نشان و نام بلافاصله و ثابت نمایش داده می‌شوند.
+      </div>
+      <p class="note" style="margin-top:10px">برای تکرار دمو، صفحه را رفرش کنید (ویدیوی اجرای واقعی محصول در بستهٔ تحویل موجود است).</p>
+    </div>
+  </div>
+</body>
+</html>

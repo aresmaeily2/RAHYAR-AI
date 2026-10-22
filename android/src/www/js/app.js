@@ -32,7 +32,7 @@
       aboutDesc: 'رهیار نسخهٔ مستقل اندروید — اجرای کامل بدون هاست و بدون اینترنت.',
       featuresLocal: 'کاملاً محلی (بدون اینترنت):', featuresLocalVal: 'خانه، وظایف، یادآورها (درون‌برنامه‌ای)، تنظیمات، پشتیبان/بازگردانی',
       featuresPerm: 'محلی با مجوز اندروید (در نسخهٔ بعد):', featuresPermVal: 'اعلان یادآورها (نیازمند رضایت کاربر)',
-      featuresNet: 'نیازمند اینترنت یا سرویس بیرونی:', featuresNetVal: 'اتصال به سرور شما، گفتگوی هوش مصنوعی ابری، آب‌وهوا — در این نسخه در اپ موجود نیستند',
+      featuresNet: 'نیازمند اینترنت یا سرویس بیرونی:', featuresNetVal: 'اتصال اختیاری به سرور شما (نسخهٔ وب کامل)، گفتگوی هوش مصنوعی ابری، آب‌وهوا — همهٔ این‌ها اختیاری‌اند؛ هستهٔ اپ بدون آن‌ها کامل است',
       saved: 'ذخیره شد', confirmDelete: 'حذف شود؟', importedN: 'بازگردانی شد: ', importErr: 'پشتیبان نامعتبر است',
       version: 'نسخه', localMode: 'حالت محلی', storageLocal: 'داده‌ها فقط در حافظهٔ خصوصی اپ روی دستگاه ذخیره می‌شوند.'
     },
@@ -58,7 +58,7 @@
       aboutDesc: 'Rahyar standalone Android — runs fully without a host or internet.',
       featuresLocal: 'Fully local (no internet):', featuresLocalVal: 'Home, tasks, in-app reminders, settings, backup/restore',
       featuresPerm: 'Local with Android permission (next release):', featuresPermVal: 'Reminder notifications (requires user consent)',
-      featuresNet: 'Needs internet or external service:', featuresNetVal: 'Your server, cloud AI chat, weather — not present in this version',
+      featuresNet: 'Needs internet or external service:', featuresNetVal: 'Optional connection to your server (full web edition), cloud AI chat, weather — all optional; the core app is complete without them',
       saved: 'Saved', confirmDelete: 'Delete?', importedN: 'Restored: ', importErr: 'Invalid backup',
       version: 'Version', localMode: 'Local mode', storageLocal: 'Data is stored only in the app-private storage on this device.'
     }
@@ -100,6 +100,29 @@
     root.setAttribute('lang', lang);
     root.setAttribute('dir', lang === 'fa' ? 'rtl' : 'ltr');
     root.setAttribute('data-theme', profile.theme === 'dark' || profile.theme === 'light' ? profile.theme : 'auto');
+    // نشان برند — SVG درون‌خطی (درون APK؛ هیچ منبع شبکه‌ای)
+    var hdr = document.querySelector('header.top');
+    if (hdr && !document.getElementById('brandmark')) {
+      var mark = document.createElement('span');
+      mark.className = 'brandmark';
+      mark.id = 'brandmark';
+      mark.setAttribute('aria-hidden', 'true');
+      mark.innerHTML = '<svg viewBox="0 0 100 100" role="img" aria-label="RahyAr">'
+        + '<g stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none">'
+        + '<path d="M30,24 H47 A15.5,15.5 0 0 1 47,55 H30 V80"/>'
+        + '<path d="M47,55 L66,80"/></g></svg>';
+      hdr.insertBefore(mark, hdr.firstChild);
+    }
+    // چیپ تاریخ دو‌تقویمی — تقویم و تاریخ کاملاً محلی است (بدون شبکه)
+    if (document.body.getAttribute('data-page') === 'home' && !document.getElementById('datechip')) {
+      var chip = document.createElement('div');
+      chip.className = 'datechip';
+      chip.id = 'datechip';
+      chip.innerHTML = '<span class="jdate" id="dJalali"></span><span class="gdate" id="dGreg"></span>';
+      var main = document.querySelector('main');
+      if (main) main.insertBefore(chip, main.firstChild);
+      paintDates();
+    }
     // نشانگر وضعیت شبکه — فقط اطلاع‌رسانی؛ هیچ قابلیتی به آن وابسته نیست
     function paint() {
       var b = document.getElementById('netbadge');
@@ -131,6 +154,23 @@
       }
       return d.toLocaleString('en-GB');
     } catch (e) { return iso; }
+  }
+
+  /* تاریخ دو‌تقویمی — کاملاً محلی (Intl تقویم هجری شمسی در WebView موجود است) */
+  function paintDates() {
+    var jEl = document.getElementById('dJalali'), gEl = document.getElementById('dGreg');
+    if (!jEl || !gEl) return;
+    var now = new Date();
+    try {
+      jEl.textContent = new Intl.DateTimeFormat(
+        lang === 'fa' ? 'fa-IR-u-ca-persian' : 'en-u-ca-persian',
+        { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(now);
+    } catch (e) { jEl.textContent = ''; }
+    try {
+      gEl.textContent = new Intl.DateTimeFormat(
+        lang === 'fa' ? 'fa-IR' : 'en-GB',
+        { day: 'numeric', month: 'long', year: 'numeric' }).format(now);
+    } catch (e) { gEl.textContent = ''; }
   }
 
   function uid() { return 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }

@@ -1,11 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- صفحهٔ خانهٔ محلی — فقط WebView امن روی دارایی‌های داخل APK -->
+<!-- خانهٔ محلی — WebView امن روی دارایی‌های داخل APK + اسپلش بومی واقعی -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
     <WebView
         android:id="@+id/web"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- اسپلش بومی (Canvas + ValueAnimator) — فقط شروع سرد؛ لمس = ردشدن -->
+    <com.rahyarai.app.SplashView
+        android:id="@+id/splash"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 

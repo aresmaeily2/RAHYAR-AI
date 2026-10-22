@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- RahyAr AI — Variant A «Badge Ring»
+     نشان R داخل حلقهٔ خطی گرادیانی — برای هدر سایت، کنار نام برند و
+     کاربردهای سبک روی پس‌زمینهٔ روشن/تاریک (شفاف). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1024" height="1024">
+  <defs>
+    <linearGradient id="rahyarRing" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7C5CFF"/>
+      <stop offset="0.55" stop-color="#F062A4"/>
+      <stop offset="1" stop-color="#2FD8C8"/>
+    </linearGradient>
+  </defs>
+  <circle cx="50" cy="50" r="45" fill="none" stroke="url(#rahyarRing)" stroke-width="4"/>
+  <g stroke="url(#rahyarRing)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M35,29 H49 A13,13 0 0 1 49,55 H35 V73"/>
+    <path d="M49,55 L64,73"/>
+  </g>
+</svg>

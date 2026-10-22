@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- رهیار v2.0.0 — محصول کامل آنلاین (حالت اصلی) + رابط محلی آفلاین (جایگزین) -->
+<!-- رهیار v2.1.0 — معماری «محلی-اول»:
+     ورود اصلی اپ همیشه رابط محلی آفلاین است (۱۰۰٪ بدون سرور، بدون شبکه).
+     اتصال به سرور مالک یک «ماژول اختیاری» است که فقط از تنظیمات در دسترس است.
+     این تغییر ریشهٔ پیام خطای «سرور اشتباه است» را برمی‌دارد: اپ دیگر در
+     شروع، ورود یا استفادهٔ محلی هیچ اجباری به آدرس سرور ندارد. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
 >
 
-    <!-- اینترنت: حالت اصلی محصول (کلاینت سرور رهیار) -->
+    <!-- اینترنت: فقط برای ماژول اختیاری «اتصال به سرور» استفاده می‌شود -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- اعلان یادآور سیستمی (اندروید ۱۳+؛ فقط با رضایت صریح کاربر درون اپ) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -17,15 +21,15 @@
     <application
         android:label="@string/app_name"
         android:icon="@drawable/ic_launcher"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar"
+        android:theme="@style/Theme.Rahyar"
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
         android:networkSecurityConfig="@xml/network_security_config"
         android:supportsRtl="true">
 
-        <!-- ورودی اصلی: محصول کامل (ورود بومی → WebView سرور ثبت‌شده) -->
+        <!-- ورودی اصلی: حالت محلی — بدون سرور، بدون حساب، بدون شبکه -->
         <activity
-            android:name=".MainActivity"
+            android:name=".HomeActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|keyboardHidden|locale|layoutDirection"
             android:windowSoftInputMode="adjustResize">
@@ -35,17 +39,18 @@
             </intent-filter>
         </activity>
 
-        <!-- ورود بومی (نشست امن + endpoint قابل‌تنظیم + لینک حالت محلی) -->
+        <!-- ماژول اختیاری: اتصال به سرور مالک (فقط از تنظیمات حالت محلی باز می‌شود) -->
         <activity
             android:name=".LoginActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
-        <!-- حالت دوم (جایگزین): رابط محلی آفلاین — ۱۰۰٪ بدون سرور -->
+        <!-- نمای متصل: WebView محصول کامل وب روی سرورِ ثبت‌شدهٔ کاربر -->
         <activity
-            android:name=".HomeActivity"
+            android:name=".MainActivity"
             android:exported="false"
-            android:configChanges="orientation|screenSize|keyboardHidden|locale|layoutDirection" />
+            android:configChanges="orientation|screenSize|keyboardHidden|locale|layoutDirection"
+            android:windowSoftInputMode="adjustResize" />
 
         <!-- گیرندهٔ هشدار یادآور در زمان مقرر (اعلان سیستمی) -->
         <receiver

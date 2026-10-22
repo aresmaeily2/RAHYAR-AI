@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- تم رهیار — پس‌زمینهٔ برند در شروع سرد (بدون فلش سفید) -->
+<resources>
+    <style name="Theme.Rahyar" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/rahyar_bg</item>
+        <item name="android:statusBarColor">@color/rahyar_bg</item>
+        <item name="android:navigationBarColor">@color/rahyar_bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>
