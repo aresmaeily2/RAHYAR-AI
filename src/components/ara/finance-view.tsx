@@ -19,6 +19,7 @@ import {
   Trash2,
   Wallet,
 } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/i18n/store'
@@ -26,6 +27,28 @@ import { formatNum } from '@/i18n/core'
 import { CATEGORY_LABELS, EXPENSE_CATEGORIES, categoriesForType, type FinanceType } from '@/lib/finance/core'
 import { monthlyTotals } from '@/lib/finance/client'
 import type { BudgetStatus } from '@/lib/finance/budget'
+import { ambient } from '@/lib/ambient/engine'
+import { listItem, popIn, EASE_STANDARD, useMotionSafe } from './motion'
+import { Collapse } from './collapse'
+
+/* ─── اجزای حرکت مشترک نمای مالی ───
+   قرارداد موتور: هر انیمیشن فقط transform/opacity. رشد نوارها با
+   scaleX (نه width) تا هیچ Layout Shift و repaint رخ ندهد. */
+
+/** نوار مصرف — رشد تدریجی و کنترل‌شده با scaleX (بدون Layout Shift) */
+function GrowBar({ pct, className, delay = 0 }: { pct: number; className?: string; delay?: number }) {
+  const safe = useMotionSafe()
+  return (
+    <motion.div
+      className={cn('h-full rounded-full', className)}
+      style={{ width: `${pct}%` }}
+      initial={safe ? { scaleX: 0 } : false}
+      animate={{ scaleX: 1 }}
+      transition={{ duration: 0.7, ease: EASE_STANDARD, delay }}
+      role="presentation"
+    />
+  )
+}
 
 interface AccountT {
   id: string
@@ -145,32 +168,32 @@ export function FinanceView() {
 
   return (
     <div className="space-y-4 pb-4">
-      {/* خلاصه بالا */}
+      {/* خلاصه بالا — ورود پله‌ای نرم */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="glass-card rounded-2xl p-4">
+        <motion.div variants={listItem(0)} initial="initial" animate="animate" className="glass-card rounded-2xl p-4">
           <p className="text-[10px] text-muted-foreground">{t('موجودی کل')}</p>
           <p className="mt-1 font-heading text-base font-extrabold text-primary-text">{money(totalBalance, lang, currency)}</p>
-        </div>
-        <div className="glass-card rounded-2xl p-4">
+        </motion.div>
+        <motion.div variants={listItem(1)} initial="initial" animate="animate" className="glass-card rounded-2xl p-4">
           <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
             <ArrowDownLeft className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-            {t('درآمد')} ({t('همین حالا') ? '' : ''})
+            {t('درآمد')}
           </p>
           <p className="mt-1 text-sm font-bold text-emerald-700 dark:text-emerald-300">{money(totals.income, lang, currency)}</p>
-        </div>
-        <div className="glass-card rounded-2xl p-4">
+        </motion.div>
+        <motion.div variants={listItem(2)} initial="initial" animate="animate" className="glass-card rounded-2xl p-4">
           <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
             <ArrowUpRight className="h-3 w-3 text-rose-600 dark:text-rose-400" />
             {t('هزینه')}
           </p>
           <p className="mt-1 text-sm font-bold text-rose-700 dark:text-rose-300">{money(totals.expense, lang, currency)}</p>
-        </div>
-        <div className="glass-card rounded-2xl p-4">
+        </motion.div>
+        <motion.div variants={listItem(3)} initial="initial" animate="animate" className="glass-card rounded-2xl p-4">
           <p className="text-[10px] text-muted-foreground">{t('خلاصه وضعیت')}</p>
           <p className={cn('mt-1 text-sm font-bold', totals.net >= 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300')}>
             {money(totals.net, lang, currency)}
           </p>
-        </div>
+        </motion.div>
       </div>
 
       {/* حساب‌ها */}
@@ -185,21 +208,30 @@ export function FinanceView() {
             {t('حساب جدید')}
           </button>
         </div>
-        {showAddAcc && <AddAccount onDone={() => { setShowAddAcc(false); void reload() }} />}
+        <Collapse open={showAddAcc}>
+          <AddAccount onDone={() => { ambient.setOrb('glow'); setShowAddAcc(false); void reload() }} />
+        </Collapse>
         <div className="flex flex-wrap gap-2">
           {accounts.length === 0 && (
             <p className="px-1 text-xs text-muted-foreground">{t('حساب جدید')} — {t('افزودن اولین کار')}</p>
           )}
-          {accounts.map((a) => {
+          {accounts.map((a, i) => {
             const Icon = kindIcon(a.kind)
             return (
-              <div key={a.id} className="glass-chip flex items-center gap-2 rounded-xl px-3 py-2">
+              <motion.div
+                key={a.id}
+                variants={popIn}
+                initial="initial"
+                animate="animate"
+                transition={{ type: 'spring', stiffness: 420, damping: 32, delay: Math.min(i, 5) * 0.04 }}
+                className="glass-chip flex items-center gap-2 rounded-xl px-3 py-2"
+              >
                 <Icon className="h-3.5 w-3.5 text-primary" />
                 <div>
                   <p className="text-[11px] font-bold leading-4">{a.name}</p>
                   <p className="text-[10px] text-muted-foreground">{money(a.balance, lang, currency)}</p>
                 </div>
-              </div>
+              </motion.div>
             )
           })}
         </div>
@@ -230,23 +262,25 @@ export function FinanceView() {
           </div>
         </div>
 
-        {showSms && <SmsImport accounts={accounts} onDone={() => { setShowSms(false); void reload() }} />}
-        {showAddTx && (
+        <Collapse open={showSms}>
+          <SmsImport accounts={accounts} onDone={() => { ambient.setOrb('glow'); setShowSms(false); void reload() }} />
+        </Collapse>
+        <Collapse open={showAddTx}>
           <AddTransaction
             accounts={accounts}
             onClose={() => setShowAddTx(false)}
-            onDone={() => { setShowAddTx(false); void reload() }}
+            onDone={() => { ambient.setOrb('glow'); setShowAddTx(false); void reload() }}
           />
-        )}
+        </Collapse>
 
-        {/* نمودار دسته‌ها */}
+        {/* نمودار دسته‌ها — رشد تدریجی و کنترل‌شده */}
         {byCategory.length > 0 && (
           <div className="mb-4 space-y-1.5" aria-label={t('نمودار')}>
-            {byCategory.map((c) => (
+            {byCategory.map((c, i) => (
               <div key={c.category} className="flex items-center gap-2">
                 <span className="w-16 shrink-0 text-[10px] text-muted-foreground">{t(CATEGORY_LABELS[c.category] ?? 'متفرقه')}</span>
                 <div className="h-2 flex-1 overflow-hidden rounded-full bg-secondary" style={{ direction: 'ltr' }}>
-                  <div className="h-full rounded-full bg-primary/70" style={{ width: `${c.pct}%` }} />
+                  <GrowBar pct={c.pct} className="bg-primary/70" delay={0.15 + Math.min(i, 6) * 0.05} />
                 </div>
                 <span className="w-24 shrink-0 text-end text-[10px] tabular-nums text-muted-foreground">{money(c.total, lang, currency)}</span>
               </div>
@@ -258,8 +292,14 @@ export function FinanceView() {
           {txs.length === 0 && (
             <li className="py-6 text-center text-xs text-muted-foreground">{t('هنوز کاری ثبت نکردی')}</li>
           )}
-          {txs.slice(0, 30).map((x) => (
-            <li key={x.id} className="flex items-center gap-2.5 py-2.5">
+          {txs.slice(0, 30).map((x, i) => (
+            <motion.li
+              key={x.id}
+              variants={listItem(i)}
+              initial="initial"
+              animate="animate"
+              className="flex items-center gap-2.5 py-2.5"
+            >
               <span
                 className={cn(
                   'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
@@ -302,7 +342,7 @@ export function FinanceView() {
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
-            </li>
+            </motion.li>
           ))}
         </ul>
       </section>
@@ -439,18 +479,16 @@ function BudgetSection({
               </span>
             </div>
           )}
-          {statuses.map((s) => {
+          {statuses.map((s, i) => {
             const pct = Math.min(100, Math.round(s.ratio * 100))
             return (
               <div key={s.category} className="group flex items-center gap-2">
                 <span className="w-16 shrink-0 text-[10px] text-muted-foreground">{t(CATEGORY_LABELS[s.category] ?? s.category)}</span>
                 <div className="h-2 flex-1 overflow-hidden rounded-full bg-secondary" style={{ direction: 'ltr' }}>
-                  <div
-                    className={cn(
-                      'h-full rounded-full transition-all',
-                      s.over ? 'bg-rose-500/80' : s.warn ? 'bg-amber-500/80' : 'bg-emerald-500/70',
-                    )}
-                    style={{ width: `${pct}%` }}
+                  <GrowBar
+                    pct={pct}
+                    delay={0.1 + Math.min(i, 6) * 0.05}
+                    className={s.over ? 'bg-rose-500/80' : s.warn ? 'bg-amber-500/80' : 'bg-emerald-500/70'}
                   />
                 </div>
                 <span className={cn(
