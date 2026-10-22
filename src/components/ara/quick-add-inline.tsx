@@ -4,10 +4,12 @@
 
 import { useState } from 'react'
 import { CornerDownLeft, Loader2 } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { useI18n } from '@/i18n/store'
 import { cn } from '@/lib/utils'
 import { useAra } from '@/lib/store'
+import { EASE_STANDARD } from './motion'
 import type { TaskT } from '@/lib/types'
 
 export function QuickAddInline({ presetDate }: { presetDate: string }) {
@@ -39,7 +41,12 @@ export function QuickAddInline({ presetDate }: { presetDate: string }) {
   }
 
   return (
-    <div className="mt-2.5 flex items-center gap-1.5 rounded-xl bg-secondary/60 px-3 py-1.5 transition-colors focus-within:bg-secondary">
+    <motion.div
+      className="mt-2.5 flex items-center gap-1.5 rounded-xl bg-secondary/60 px-3 py-1.5 transition-colors focus-within:bg-secondary"
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.24, ease: EASE_STANDARD }}
+    >
       <input
         value={value}
         onChange={(e) => setValue(e.target.value)}
@@ -59,6 +66,6 @@ export function QuickAddInline({ presetDate }: { presetDate: string }) {
       >
         {creating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CornerDownLeft className="h-3.5 w-3.5" />}
       </button>
-    </div>
+    </motion.div>
   )
 }
