@@ -105,14 +105,14 @@ module.exports = function (body, T) {
 
   // ── ۱۲ ──
   body.push(h1("۱۲. وضعیت سورس کامل و قابلیت build مجدد"));
-  body.push(para("بستهٔ RahyAr-Complete-Source.zip از git archive کامیت e06e2bd ساخته شده و شامل کل سورس وب، اندروید، تست‌ها، دارایی‌ها و مستندات با فایل SOURCE-MANIFEST.txt است (۴۸۳ مدخل). اسکن secret پیش از بسته‌سازی پاک بود: هیچ توکن، کلید، keystore، فایل .env یا پایگاه داده‌ای در بسته نیست. آزمون بازتولید واقعاً انجام شد — همین بیلدهای وب و هر دو APK در همین جلسه و از همین سورس و از محیط کاملاً بازسازی‌شدهٔ صفر ساخته شدند؛ gradle.properties دیگر هیچ مسیر ماشین‌محوری ندارد و دستورهای build در SOURCE-MANIFEST آمده است. کلید امضای انتشار عمداً در ZIP عمومی نیست و طبق سیاست اسرار، از مسیر خصوصی به مالک تحویل می‌شود."));
+  body.push(para("بستهٔ RahyAr-Complete-Source.zip از git archive کامیت f6542a6 ساخته شده و شامل کل سورس وب، اندروید، تست‌ها، دارایی‌ها و مستندات با فایل SOURCE-MANIFEST.txt است (۴۸۳ مدخل). اسکن secret پیش از بسته‌سازی پاک بود: هیچ توکن، کلید، keystore، فایل .env یا پایگاه داده‌ای در بسته نیست. آزمون بازتولید واقعاً انجام شد — همین بیلدهای وب و هر دو APK در همین جلسه و از همین سورس و از محیط کاملاً بازسازی‌شدهٔ صفر ساخته شدند؛ gradle.properties دیگر هیچ مسیر ماشین‌محوری ندارد و دستورهای build در SOURCE-MANIFEST آمده است. کلید امضای انتشار عمداً در ZIP عمومی نیست و طبق سیاست اسرار، از مسیر خصوصی به مالک تحویل می‌شود."));
 
   // ── ۱۳ ──
   body.push(h1("۱۳. لینک commit نهایی GitHub"));
   body.push(tbl(["مورد", "مقدار"], [
     ["مخزن", "https://github.com/aresmaeily2/HAMYAR-AI (خصوصی — نام طبق دستور تغییر نکرد)"],
     ["شاخه", "main"],
-    ["کامیت نهایی", "e06e2bd46bc1b1c8fc1f95c7297a7d3657219c22"],
+    ["کامیت نهایی", "f6542a6b07a87d68a3aa349cf95d05b112d06f29"],
     ["تأیید سمت سرور", "GitHub API: remote SHA == local SHA (push واقعی و راستی‌آزمایی‌شده)"],
     ["اسرار در مخزن", "هیچ — اسکن الگوهای توکن/کلید و مسیرهای ممنوع در بسته‌سازی پاک بود"],
   ], [30, 70]));
@@ -121,7 +121,7 @@ module.exports = function (body, T) {
   body.push(h1("۱۴. فهرست فایل‌های Workspace"));
   body.push(tbl(["مسیر واقعی (download/)", "محتوا"], [
     ["RahyAr-User.apk — RahyAr-Owner.apk", "دو APK امضاشدهٔ release (vc22/vc23)"],
-    ["final-v21/pkgs/RahyAr-Complete-Source.zip", "سورس کامل e06e2bd + SOURCE-MANIFEST"],
+    ["final-v21/pkgs/RahyAr-Complete-Source.zip", "سورس کامل f6542a6 + SOURCE-MANIFEST"],
     ["final-v21/pkgs/RahyAr-Logo-Kit.zip", "کیت لوگو + آیکن اندروید"],
     ["final-v21/pkgs/RahyAr-Screenshots.zip", "همهٔ اسکرین‌شات‌ها + manifest.json"],
     ["final-v21/pkgs/RahyAr-Interaction-Video.mp4 — RahyAr-Splash-Video.mp4", "ویدیوهای واقعی"],
