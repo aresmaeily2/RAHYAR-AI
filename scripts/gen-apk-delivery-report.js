@@ -298,12 +298,19 @@ function buildCoverR1RTL(config) {
 }
 
 // ═══════════════ محتوا ═══════════════
-const SHA_USER = "2a58210f1cd0fcfaa9bffde05986f3f35455ada63d21ec6068ae73d765f101db";
-const SHA_OWNER = "fa18b1fdfbf3b996b1d5a335dd05d3e8cab6c4b714615cfcbab149a9f4222de6";
+const crypto = require("crypto");
+function sha256f(p){ return crypto.createHash("sha256").update(fs.readFileSync(p)).digest("hex"); }
+function md5f(p){ return crypto.createHash("md5").update(fs.readFileSync(p)).digest("hex"); }
+const DL = "/home/z/my-project/download/";
+const fExists = (p) => { try { fs.accessSync(p); return true; } catch { return false; } };
+const SHA_USER = fExists(DL+"rahyar-user-v2.0.0.apk") ? sha256f(DL+"rahyar-user-v2.0.0.apk") : "FILE_MISSING";
+const SHA_OWNER = fExists(DL+"rahyar-owner-v2.0.0.apk") ? sha256f(DL+"rahyar-owner-v2.0.0.apk") : "FILE_MISSING";
+const MD5_USER = fExists(DL+"rahyar-user-v2.0.0.apk") ? md5f(DL+"rahyar-user-v2.0.0.apk") : "FILE_MISSING";
+const MD5_OWNER = fExists(DL+"rahyar-owner-v2.0.0.apk") ? md5f(DL+"rahyar-owner-v2.0.0.apk") : "FILE_MISSING";
 const SHA_CERT = "26eadb2d95f7c59e4bac14077852b7b9d40c2c108888d9a660a443d158c31843";
 const SHA_CERT_SHA1 = "76feaf49e2b57a8dd1e166d6bac9548575abdfc0";
-const SHA_KIT_ENC = "__SHA_KIT_ENC__"; // پس از رمزنگاری کیت جای‌گذاری می‌شود
-const SHA_SOURCE = "__SHA_SOURCE__"; // پس از بسته‌بندی سورس جای‌گذاری می‌شود
+const SHA_KIT_ENC = fExists(DL+"rahyar-release-signing-kit.zip.enc") ? sha256f(DL+"rahyar-release-signing-kit.zip.enc") : "KIT_PENDING";
+const SHA_SOURCE = fExists(DL+"rahyar-source-v2.0.0.zip") ? sha256f(DL+"rahyar-source-v2.0.0.zip") : "SOURCE_PENDING";
 
 const bodyChildren = [];
 
@@ -337,7 +344,7 @@ bodyChildren.push(makeTable(
     [{ t: "versionName", b: true }, { t: "2.0.0", ltr: true }, { t: "2.0.0", ltr: true }],
     [{ t: "برچسب نمایشی", b: true }, { t: "رهیار" }, { t: "رهیار مالک" }],
     [{ t: "حجم", b: true }, { t: "406,345 بایت" }, { t: "406,349 بایت" }],
-    [{ t: "MD5 فایل (تأیید آپلود)", b: true }, { t: "__MD5_USER__", ltr: true, size: 16 }, { t: "__MD5_OWNER__", ltr: true, size: 16 }],
+    [{ t: "MD5 فایل (تأیید آپلود)", b: true }, { t: MD5_USER, ltr: true, size: 16 }, { t: MD5_OWNER, ltr: true, size: 16 }],
     [{ t: "minSdk / targetSdk", b: true }, { t: "24 / 34", ltr: true }, { t: "24 / 34", ltr: true }],
     [{ t: "اکتیویتی آغازین", b: true }, { t: "com.rahyarai.app.MainActivity", ltr: true, size: 18 }, { t: "com.rahyarai.app.MainActivity", ltr: true, size: 18 }],
     [{ t: "SHA-256 فایل", b: true }, { t: SHA_USER, ltr: true, size: 16 }, { t: SHA_OWNER, ltr: true, size: 16 }],
@@ -419,29 +426,31 @@ bodyChildren.push(body("کنترل نقش‌ها الزام‌آور در سمت
 // ۷ — سورس و GitHub
 bodyChildren.push(heading("۷) سورس متناظر و وضعیت انتشار در GitHub", 1));
 bodyChildren.push(body([
-  { t: "سورس متناظر با همین نسخه با موفقیت به GitHub منتشر شد: مخزن " },
+  { t: "سورس متناظر با همین نسخه در این جلسه با موفقیت به GitHub منتشر شد: مخزن " },
   { t: "aresmaeily2/HAMYAR-AI", mono: true },
-  { t: " (خصوصی)، شاخهٔ main — ابتدا تا commit " },
-  { t: "fc8a64a", mono: true },
-  { t: " push شد و ls-remote سمت GitHub آن را تأیید کرد؛ سپس commitهای تحویلِ مستندات و سفیدلیست دانلود نیز به main اضافه شدند. کد اندروید در همهٔ این commitها بدون تغییر است: خروجی git diff بر مسیر android/ از کامیت انتشار " },
+  { t: " (خصوصی)، شاخهٔ main — push واقعی با نتیجهٔ " },
+  { t: "bcea033..daf7eb3 → main", mono: true },
+  { t: " انجام و با ls-remote سمت GitHub راستی‌آزمایی شد (refs/heads/main = daf7eb38dfb63b07bec1ff4ea5f40f140ac498bc). کد اندروید در همهٔ این commitها بدون تغییر است: خروجی git diff بر مسیر android/ از کامیت انتشار " },
   { t: "6a18922", mono: true },
-  { t: " تا HEAD خالی است. انتشار سورس پیش‌تر به دلیل نبود اعتبارنامهٔ معتبر انجام نشده بود؛ در این جلسه توکن fine-grained مالک در دسترس بود، هویت آن با api.github.com تأیید شد (login: aresmaeily2) و push واقعی انجام و با ls-remote راستی‌آزمایی شد. اگر نام مخزن باید RahyAr باشد، مالک می‌تواند از Settings مخزن آن را تغییر نام دهد؛ لینک‌های گیت پس از تغییر نام به‌صورت خودکار به مسیر جدید هدایت می‌شوند." },
+  { t: " تا HEAD خالی است. علاوه بر مخزن، آرشیو کامل سورس با نام rahyar-source-v2.0.0.zip (شامل مانیفست commit و اسکن امنیتی) در GOFILE قرار دارد تا حتی بدون دسترسی به مخزن خصوصی، ساخت مجدد ممکن باشد. اگر نام مخزن باید RahyAr باشد، مالک می‌تواند از Settings مخزن آن را تغییر نام دهد؛ لینک‌های گیت پس از تغییر نام به‌صورت خودکار به مسیر جدید هدایت می‌شوند. وضعیت فعلی مخزن: خصوصی (بدون تغییر بدون تأیید مالک)." },
 ]));
-bodyChildren.push(body("برای راستی‌آزمایی سمت خودتان: در مخزن، انتهای شاخهٔ main باید کامیت تحویل با پیام «delivery(v2.0.0): rebuilt signed release APKs after env reset …» باشد، فایل docs/DELIVERY_V2/APK_BUILD_REPORT_V2.md همان مشخصات جدول ۱ این گزارش را نشان دهد و خروجی git diff 6a18922..HEAD -- android/ خالی باشد. مخزن در حالت خصوصی است و فقط با حساب مالک یا دسترسی‌های داده‌شده قابل مشاهده است.", { after: 160 }));
+bodyChildren.push(body("برای راستی‌آزمایی سمت خودتان: در مخزن، انتهای شاخهٔ main باید کامیت تحویل daf7eb3 (پیام: delivery(v2.0.0): rebuild #3 …) باشد، فایل docs/DELIVERY_V2/APK_BUILD_REPORT_V2.md همان مشخصات جدول ۱ این گزارش را نشان دهد و خروجی git diff 6a18922..HEAD -- android/ خالی باشد. مخزن در حالت خصوصی است و فقط با حساب مالک یا دسترسی‌های داده‌شده قابل مشاهده است.", { after: 160 }));
 bodyChildren.push(body("کلید امضا و رمزهای آن عمداً خارج از مخزن گیت قرار دارند (در .gitignore ثبت شده‌اند) و در بستهٔ سورس نیز وجود ندارند؛ این تصمیم آگاهانه برای جلوگیری از نشت اعتبارنامه است و با سیاست امنیتی دستور تحویل هم‌راستاست."));
 
 // ۸ — تحویلی‌ها
 bodyChildren.push(heading("۸) فایل‌های تحویلی و روش دانلود", 1));
-bodyChildren.push(body("پنج فایل تحویل شده است که فهرست و کاربرد هر یک در جدول ۵ آمده است. فایل‌های APK به‌صورت باینری واقعی با پسوند .apk تحویل شده‌اند — نه ZIP و نه فایل تغییرنام‌یافته. دانلود از سرور زندهٔ محصول با آدرس کامل HTTPS انجام می‌شود؛ الگوی آدرس‌ها https://preview-7317dfe8-c881-45b0-977a-9099236e9ff7.space-z.ai/api/download/<نام‌فایل> است و آدرس کامل هر پنج فایل در پیام تحویل نیز آمده است. این مسیر بدون نشست پاسخ می‌دهد اما فقط نام‌های سفید‌لیست‌شده را سرو می‌کند و هر مسیر دیگری پاسخ 404 می‌دهد. کیت امضا نیز طبق دستور مالک فقط رمزنگاری‌شده روی همین مسیر قرار دارد (پسوند .enc؛ AES-256-CBC/PBKDF2) و رمز گشایش فقط در پیام خصوصی مالک ارسال می‌شود."));
+bodyChildren.push(body("هفت فایل تحویل شده است که فهرست و کاربرد هر یک در جدول ۵ آمده است. تحویل از طریق سرویس GOFILE انجام شده و لینک صفحهٔ دانلود واقعی و تست‌شدهٔ هر فایل، همراه اثر انگشت SHA-256 و حجم آن، در پیام تحویل ارائه شده است (الگوی لینک‌ها: gofile.io/d/…). هنگام آپلود، MD5 و حجم هر فایل سمت سرور با مقدار محلی تطبیق داده شده و بازگشایی صفحهٔ دانلود هر فایل نیز بررسی شده است. دو فایل rahyar-v2.0.0-sha256.txt (معادل SHA256SUMS.txt) و GOFILE-LINKS.txt نیز برای کنترل نهایی دانلود در همین بسته قرار دارند: پس از دانلود، خروجی را با محتوای فایل هش‌ها مقایسه کنید. کیت امضا طبق دستور مالک فقط رمزنگاری‌شده (AES-256-CBC/PBKDF2، پسوند .enc) روی همین سرویس است و رمز گشایش آن جدا از لینک‌ها، در پیام خصوصی مالک ارسال می‌شود. توجه: فایل‌های حساب مهمان GOFILE در صورت عدم دانلود به‌مرور حذف می‌شوند؛ توصیه می‌شود فایل‌ها به‌محض دریافت، روی دستگاه خودتان ذخیره شوند."));
 bodyChildren.push(tableTitle("جدول ۵ — فایل‌های تحویلی و اثر انگشت SHA-256"));
 bodyChildren.push(makeTable(
   ["فایل", "کاربرد", "SHA-256"],
   [
     [{ t: "rahyar-user-v2.0.0.apk", ltr: true, size: 18 }, { t: "نصب نسخهٔ کاربر" }, { t: SHA_USER, ltr: true, size: 14 }],
     [{ t: "rahyar-owner-v2.0.0.apk", ltr: true, size: 18 }, { t: "نصب نسخهٔ مالک" }, { t: SHA_OWNER, ltr: true, size: 14 }],
-    [{ t: "rahyar-v2.0.0-sha256.txt", ltr: true, size: 18 }, { t: "اثر انگشت رسمی همهٔ فایل‌ها" }, { t: "همراه بسته نهایی محاسبه می‌شود (خودش را شامل نمی‌شود)", size: 14 }],
+    [{ t: "rahyar-source-v2.0.0.zip", ltr: true, size: 18 }, { t: "سورس کامل HEAD با مانیفست و اسکن امنیتی" }, { t: SHA_SOURCE, ltr: true, size: 14 }],
+    [{ t: "rahyar-v2.0.0-sha256.txt", ltr: true, size: 18 }, { t: "اثر انگشت رسمی همهٔ فایل‌ها (SHA256SUMS)" }, { t: "خودش را شامل نمی‌شود — پس از دانلود با sha256sum -c کنترل شود", size: 14 }],
     [{ t: "rahyar-v2.0.0-delivery-report.docx", ltr: true, size: 18 }, { t: "همین گزارش (DOCX فارسی RTL)" }, { t: "فایل جاری", size: 14 }],
     [{ t: "rahyar-release-signing-kit.zip.enc", ltr: true, size: 18 }, { t: "کیت امضا — فقط رمزنگاری‌شده (محرمانه)" }, { t: SHA_KIT_ENC, ltr: true, size: 14 }],
+    [{ t: "RahyAr-v2.0.0-bundle.zip", ltr: true, size: 18 }, { t: "همهٔ فایل‌های بالا به‌علاوهٔ فایل هش‌ها در یک فایل (دانلود یکجا)" }, { t: "هش باندل در پیام تحویل اعلام می‌شود", size: 14 }],
   ],
   [30, 28, 42]
 ));
@@ -451,9 +460,9 @@ bodyChildren.push(heading("۹) نتیجه‌گیری و گام‌های بعدی
 bodyChildren.push(body([
   { t: "معیار پذیرش مالک — «دو فایل مستقل با پسوند واقعی .apk، قابل دانلود و قابل نصب، با شناسه‌های بستهٔ مشخص‌شده و گزارش صحت‌سنجی کامل» — " },
   { t: "محقق شده است", b: true },
-  { t: "؛ با یک ثبت صادقانه: آزمایش روی دستگاه فیزیکی هنوز انجام نشده و تا پیش از آزمون مالک، وضعیت «آزموده‌نشده روی دستگاه» می‌ماند؛ در مقابل، انتشار سورس در GitHub در همین جلسه انجام و راستی‌آزمایی شد. نسخهٔ حاضر Release واقعی و امضاشده است؛ اما برچسب «آمادهٔ انتشار در فروشگاه» تنها پس از تست دستگاهی مالک و در صورت تمایل، فعال‌سازی R8 و پیکربندی فروشگاه صادر خواهد شد. هر دو فایل اکنون برای توزیع مستقیم به کاربران و نصب آزمایشی مالک قابل استفاده‌اند." },
+  { t: "؛ با دو ثبت صادقانه: نخست، آزمایش روی دستگاه فیزیکی هنوز انجام نشده و تا پیش از آزمون مالک، وضعیت «آزموده‌نشده روی دستگاه» می‌ماند؛ دوم، چون پوشهٔ GOFILE در حساب مهمان ساخته شده، فایل‌ها باید به‌محض دانلود روی دستگاه مالک ذخیره شوند. در مقابل، انتشار سورس در GitHub در همین جلسه با موفقیت انجام و راستی‌آزمایی شد و آرشیو سورس نیز در بستهٔ تحویل است. نسخهٔ حاضر Release واقعی و امضاشده است؛ اما برچسب «آمادهٔ انتشار در فروشگاه» تنها پس از تست دستگاهی مالک و در صورت تمایل، فعال‌سازی R8 و پیکربندی فروشگاه صادر خواهد شد. هر دو فایل اکنون برای توزیع مستقیم به کاربران و نصب آزمایشی مالک قابل استفاده‌اند." },
 ]));
-bodyChildren.push(body("گام‌های پیشنهادی به ترتیب اجرا عبارت‌اند از: نخست، نصب هر دو APK روی یک دستگاه اندرویدی واقعی (اندروید ۷ به بالا) و ثبت نتیجهٔ نصب و اجرا؛ دوم، باز کردن مخزن خصوصی aresmaeily2/HAMYAR-AI و تطبیق سورس (خروجی git diff 6a18922..HEAD -- android/ باید خالی باشد) و در صورت تمایل تغییر نام مخزن به RahyAr؛ سوم، نگهداری امن کیت امضا در محل مطمئن با نسخهٔ پشتیبان رمزنگاری‌شده (رمز گشایش فایل .enc با openssl enc -d -aes-256-cbc -pbkdf2 انجام می‌شود)؛ و چهارم، در صورت تمایل به انتشار در فروشگاه، اعلام نیاز تا minify و پیکربندی فروشگاه در همان زنجیرهٔ ساخت فعال شود. مسئولیت همهٔ این گام‌ها با مالک است و زمان اجرای آن‌ها بلافاصله پس از دریافت فایل‌هاست.", { after: 0 }));
+bodyChildren.push(body("گام‌های پیشنهادی به ترتیب اجرا عبارت‌اند از: نخست، دانلود بسته از لینک‌های GOFILE (به‌ویژه RahyAr-v2.0.0-bundle.zip برای دریافت یکجا) و کنترل هش‌ها با فایل SHA256SUMS؛ دوم، نصب هر دو APK روی یک دستگاه اندرویدی واقعی (اندروید ۷ به بالا) و ثبت نتیجهٔ نصب و اجرا؛ سوم، باز کردن مخزن خصوصی aresmaeily2/HAMYAR-AI و تطبیق سورس (خروجی git diff 6a18922..HEAD -- android/ باید خالی باشد) و در صورت تمایل تغییر نام مخزن به RahyAr؛ چهارم، نگهداری امن کیت امضا در محل مطمئن با نسخهٔ پشتیبان رمزنگاری‌شده (رمز گشایش فایل .enc با openssl enc -d -aes-256-cbc -pbkdf2 انجام می‌شود)؛ و پنجم، در صورت تمایل به انتشار در فروشگاه، اعلام نیاز تا minify و پیکربندی فروشگاه در همان زنجیرهٔ ساخت فعال شود. مسئولیت همهٔ این گام‌ها با مالک است و زمان اجرای آن‌ها بلافاصله پس از دریافت فایل‌هاست.", { after: 0 }));
 
 // ═══════════════ سرصفحه/پاصفحه ═══════════════
 function pageNumFooter() {
