@@ -1,12 +1,16 @@
 #!/bin/bash
 # بسته‌بندی نهایی تحویل RahyAr v2.0.0 — برای GOFILE + Workspace
-# خروجی در download/: دو APK + سورس + SHA256SUMS + کیت امضای رمزنگاری‌شده + باندل یکجا
+# استفاده: package-delivery-v2.sh stage1  (سورس + کیت امضا)
+#          package-delivery-v2.sh stage2  (باندل + SHA256SUMS — بعد از DOCX نهایی)
 set -euo pipefail
 ROOT=/home/z/my-project
 OUT=$ROOT/download
 BK=$ROOT/backups/android-release-keystore
 SIGN=$ROOT/artifacts/signing
+STAGE=${1:-stage2}
 mkdir -p "$OUT" "$SIGN"
+
+if [ "$STAGE" = "stage1" ]; then
 
 echo "== 1) source zip (from HEAD, secret-scanned) =="
 cd "$ROOT"
@@ -60,19 +64,26 @@ chmod 600 "$ROOT/backups/signing-kit-password.txt"
 rm -f "$KIT.zip"
 echo "signing kit encrypted (password only in backups/signing-kit-password.txt — sent privately to owner)"
 
-echo "== 3) SHA256SUMS =="
+echo "PACKAGE_STAGE1_OK (source zip + signing kit)"
+exit 0
+fi
+
+# ─────────────── stage2 ───────────────
+echo "== stage2: SHA256SUMS + bundle =="
 cd "$OUT"
-rm -f rahyar-v2.0.0-sha256.txt SHA256SUMS.txt
+
+rm -f rahyar-v2.0.0-sha256.txt SHA256SUMS.txt GOFILE-LINKS.txt RahyAr-v2.0.0-bundle.zip
+# SHA256SUMS فقط ۵ فایل اصلی (بدون باندل و خودش — جلوگیری از وابستگی حلقوی)
 sha256sum rahyar-user-v2.0.0.apk rahyar-owner-v2.0.0.apk rahyar-source-v2.0.0.zip rahyar-v2.0.0-delivery-report.docx rahyar-release-signing-kit.zip.enc > SHA256SUMS.txt
 cp SHA256SUMS.txt rahyar-v2.0.0-sha256.txt
 cat SHA256SUMS.txt
 
-echo "== 4) one-click bundle =="
-rm -f RahyAr-v2.0.0-bundle.zip
+echo "== bundle =="
 mkdir -p /tmp/bundle/RahyAr-v2.0.0
-cp rahyar-user-v2.0.0.apk rahyar-owner-v2.0.0.apk rahyar-source-v2.0.0.zip rahyar-v2.0.0-sha256.txt rahyar-v2.0.0-delivery-report.docx rahyar-release-signing-kit.zip.enc /tmp/bundle/RahyAr-v2.0.0/
+cp rahyar-user-v2.0.0.apk rahyar-owner-v2.0.0.apk rahyar-source-v2.0.0.zip rahyar-v2.0.0-delivery-report.docx rahyar-release-signing-kit.zip.enc rahyar-v2.0.0-sha256.txt /tmp/bundle/RahyAr-v2.0.0/
 ( cd /tmp/bundle && zip -qr "$OUT/RahyAr-v2.0.0-bundle.zip" RahyAr-v2.0.0 )
 rm -rf /tmp/bundle
-echo "bundle: $(du -h RahyAr-v2.0.0-bundle.zip | cut -f1)"
-sha256sum rahyar-user-v2.0.0.apk rahyar-owner-v2.0.0.apk rahyar-source-v2.0.0.zip rahyar-v2.0.0-delivery-report.docx rahyar-release-signing-kit.zip.enc RahyAr-v2.0.0-bundle.zip rahyar-v2.0.0-sha256.txt
-echo "PACKAGE_OK"
+echo "bundle sha256: $(sha256sum RahyAr-v2.0.0-bundle.zip | awk '{print $1}')"
+echo "== final listing =="
+stat -c "%s bytes  %n" "$OUT"/* | sort -k2
+echo "PACKAGE_STAGE2_OK"
