@@ -28,12 +28,14 @@ import {
   Wallet,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { useAra } from '@/lib/store'
 import { useClientValue } from '@/lib/client-hooks'
 import { useI18n } from '@/i18n/store'
 import type { CalendarMode } from '@/i18n/store'
 import { formatNum } from '@/i18n/core'
+import { EASE_STANDARD } from './motion'
 import { AppearancePicker } from './appearance-picker'
 import { ReminderSettingsDialog } from './reminder-settings-dialog'
 import { ConnectionsDialog } from './connections-dialog'
@@ -351,13 +353,21 @@ function SettingsSection({
   children: React.ReactNode
 }) {
   return (
-    <section id={`sec-${id}`} className="glass-card scroll-mt-28 space-y-2.5 rounded-3xl p-4" aria-label={title}>
+    <motion.section
+      id={`sec-${id}`}
+      className="glass-card scroll-mt-28 space-y-2.5 rounded-3xl p-4"
+      aria-label={title}
+      initial={{ opacity: 0, y: 14 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-32px' }}
+      transition={{ duration: 0.34, ease: EASE_STANDARD }}
+    >
       <h2 className="flex items-center gap-2 font-heading text-sm font-bold">
         <Icon className="h-4 w-4 text-primary" />
         {title}
       </h2>
       {children}
-    </section>
+    </motion.section>
   )
 }
 

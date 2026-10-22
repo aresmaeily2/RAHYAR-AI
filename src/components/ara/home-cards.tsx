@@ -6,9 +6,11 @@
 //   سرویس یا فعال‌سازی، کاملاً نامرئی است (بدون جای خالی)
 
 import { useEffect, useSyncExternalStore } from 'react'
+import { motion } from 'framer-motion'
 import { useClientValue } from '@/lib/client-hooks'
 import { quoteOfDay, type Quote } from '@/lib/quotes'
 import { useI18n } from '@/i18n/store'
+import { EASE_STANDARD } from './motion'
 import { Cloud, CloudFog, CloudLightning, CloudRain, CloudSnow, Sun } from 'lucide-react'
 
 export const WEATHER_KEY = 'rahyar-weather'
@@ -52,14 +54,17 @@ function ensureSettingLoaded(): void {
   cachedSetting.loaded = true
 }
 
-/** نوار نقل‌قول — شیشه‌ای باریک، زیر آمار خانه */
+/** نوار نقل‌قول — شیشه‌ای باریک، زیر آمار خانه؛ ورود نرم */
 export function QuoteStrip() {
   const { t, lang } = useI18n()
   const q: Quote = useClientValue(() => quoteOfDay(lang), { text: '…', author: '' })
   return (
-    <figure
+    <motion.figure
       className="glass-card flex items-center gap-3 rounded-2xl px-4 py-3"
       aria-label={t('نقل‌قول روز')}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: EASE_STANDARD, delay: 0.1 }}
     >
       <span
         className="h-8 w-1 shrink-0 rounded-full"
@@ -70,7 +75,7 @@ export function QuoteStrip() {
         <p className="truncate text-[12.5px] font-medium leading-6">«{q.text}»</p>
         <figcaption className="mt-0.5 text-[10px] text-muted-foreground">— {q.author}</figcaption>
       </blockquote>
-    </figure>
+    </motion.figure>
   )
 }
 
@@ -150,14 +155,17 @@ export function WeatherChip() {
 
   if (!w) return null
   return (
-    <span
+    <motion.span
       className="glass-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium"
       role="status"
       aria-label={`هوای ${w.city}: ${w.temp} درجه`}
+      initial={{ opacity: 0, scale: 0.94 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.26, ease: EASE_STANDARD }}
     >
       <WeatherIcon code={w.code} isDay={w.isDay} />
       <span className="tnum" data-num>{w.temp}°</span>
       <span className="text-muted-foreground">{w.city}</span>
-    </span>
+    </motion.span>
   )
 }

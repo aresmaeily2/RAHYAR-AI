@@ -7,8 +7,11 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Ban, Copy, Download, KeyRound, Loader2, RefreshCw, Trash2, Upload, UserPlus, Users } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { useI18n } from '@/i18n/store'
+import { EASE_STANDARD } from './motion'
+import { Collapse } from './collapse'
 
 interface UserRow {
   id: string
@@ -179,7 +182,14 @@ export function UsersAdmin() {
   if (!isOwner) return null
 
   return (
-    <section className="glass-card space-y-3 rounded-2xl p-4" aria-labelledby="users-admin-title">
+    <motion.section
+      className="glass-card space-y-3 rounded-2xl p-4"
+      aria-labelledby="users-admin-title"
+      initial={{ opacity: 0, y: 14 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-32px' }}
+      transition={{ duration: 0.34, ease: EASE_STANDARD }}
+    >
       <div className="flex items-center justify-between gap-2">
         <h3 id="users-admin-title" className="flex items-center gap-2 text-sm font-bold">
           <Users className="h-4 w-4 text-primary" /> {t('مدیریت کاربران')}
@@ -221,7 +231,7 @@ export function UsersAdmin() {
         </div>
       </div>
 
-      {addOpen && (
+      <Collapse open={addOpen}>
         <div className="space-y-2 rounded-xl border bg-background/40 p-3">
           <div className="grid grid-cols-2 gap-2">
             <input
@@ -261,7 +271,7 @@ export function UsersAdmin() {
             {t('ایجاد کاربر')}
           </button>
         </div>
-      )}
+      </Collapse>
 
       {/* نمایش یک‌بارمصرف رمز اولیه */}
       {initialPw && (
@@ -397,6 +407,6 @@ export function UsersAdmin() {
       <p className="text-[10px] leading-4 text-muted-foreground">
         {t('همه عملیات حساس در گزارش ممیزی ثبت می‌شود؛ رمزها هرگز در لاگ یا CSV نمی‌آیند.')}
       </p>
-    </section>
+    </motion.section>
   )
 }
