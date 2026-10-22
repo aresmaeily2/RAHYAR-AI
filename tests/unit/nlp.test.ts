@@ -127,3 +127,35 @@ describe('parseQuickTask — انگلیسی (نسخه ۱٫۰ دوزبانه)', (
     expect(p.title.toLowerCase()).not.toContain('monday')
   })
 })
+
+describe('parseQuickTask — عنوان نقل‌قولی و قالب گفتاری (v2.1.0)', () => {
+  test('«با عنوان X» گیومه‌دار → عنوان فقط X است نه جملهٔ کامل', () => {
+    const p = parseQuickTask('یک وظیفه با عنوان «گزارش فروش 1154» برای فردا اضافه کن')
+    expect(p.title).toBe('گزارش فروش 1154')
+    expect(p.dueDate).toBe(addDaysIso(tehranIsoDate(), 1))
+  })
+
+  test('کوتیشن دوتایی انگلیسی هم پذیرفته می‌شود', () => {
+    const p = parseQuickTask('add task "review PR 42" tomorrow at 5pm')
+    expect(p.title).toBe('review PR 42')
+    expect(p.dueTime).toBe('17:00')
+  })
+
+  test('«با عنوان X» بدون گیومه → برش تا قید زمان', () => {
+    const p = parseQuickTask('یه کار با عنوان تماس با insurance برای فردا')
+    expect(p.title).toBe('تماس با insurance')
+    expect(p.dueDate).toBe(addDaysIso(tehranIsoDate(), 1))
+  })
+
+  test('فعل پایانی «اضافه کن» حذف می‌شود (مسیر بدون گیومه)', () => {
+    const p = parseQuickTask('خرید نان را برای امروز اضافه کن')
+    expect(p.title).not.toContain('اضافه کن')
+    expect(p.title).toContain('خرید نان')
+    expect(p.dueDate).toBe(tehranIsoDate())
+  })
+
+  test('عنوان ساده دست‌نخورده می‌ماند (بدون مثبت کاذب)', () => {
+    const p = parseQuickTask('فردا تماس با دکتر')
+    expect(p.title).toContain('تماس با دکتر')
+  })
+})

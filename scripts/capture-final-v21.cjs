@@ -9,7 +9,7 @@
 // روش‌شناسی صادقانه: محیط هر مجموعه در manifest.json ثبت می‌شود.
 const path = require('path')
 const fs = require('fs')
-const { chromium } = require('/home/z/.npm-global/lib/node_modules/playwright')
+const { chromium } = require('playwright')
 
 const BASE = process.env.BASE || 'http://localhost:3000'
 const OUT = '/home/z/my-project/download/final-v21'
@@ -25,7 +25,7 @@ const M = (file, kind, note) => { manifest.captures.push({ file, kind, note: not
 
 async function ownerCtx(browser, opts = {}) {
   // ورود واقعی از مسیر API (همان مسیر اپ اندروید) — رمز از فایل خصوصی artifacts
-  const pw = fs.readFileSync('/home/z/my-project/artifacts/rahyar-audit/OWNER_TEMP_PASSWORD.txt', 'utf-8').trim()
+  const pw = process.env.OWNER_PW || 'Rahyar@1404'
   const r = await fetch(BASE + '/api/auth/login', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username: 'owner', password: pw }),
@@ -49,23 +49,21 @@ async function ownerCtx(browser, opts = {}) {
 
   // ══ ۱ — اسپلش واقعی شروع سرد (وب) ══
   {
-    const ctx = await browser.newContext({ viewport: { width: 393, height: 851 }, deviceScaleFactor: 2, locale: 'fa-IR' })
-    const page = await ctx.newPage()
     // شروع سرد = بدون sessionStorage — اسپلش نمایش داده می‌شود
     const frames = [80, 400, 900, 1200, 1500, 1750, 2100]
     let idx = 1
     for (const t of frames) {
+      // اسپلش فقط یک‌بار در نشست — هر فریم نشست تازهٔ خودش را می‌گیرد
+      const ctx = await browser.newContext({ viewport: { width: 393, height: 851 }, deviceScaleFactor: 2, locale: 'fa-IR' })
+      const page = await ctx.newPage()
       await page.goto(BASE + '/', { waitUntil: 'commit' })
       await page.waitForTimeout(t)
       const f = 'splash-' + String(idx).padStart(2, '0') + '-t' + t + 'ms.png'
       await page.screenshot({ path: OUT + '/splash/' + f })
       M('splash/' + f, 'splash-frame', 'cold start, ' + t + 'ms after commit — real web product splash')
+      await ctx.close()
       idx++
-      if (idx > frames.length) break
-      // اسپلش فقط یک‌بار در نشست — برای فریم بعدی نشست تازه
-      if (idx <= frames.length) { await ctx.close(); break }
     }
-    await ctx.close()
     console.log('splash frames done')
   }
 
@@ -144,7 +142,7 @@ async function ownerCtx(browser, opts = {}) {
         var MEM = {};
         try { MEM = JSON.parse(localStorage.getItem('rahyar-local-mock') || '{}'); } catch (e) { MEM = {}; }
         window.RahyarNative = {
-          meta: function () { return JSON.stringify({ versionName: '2.0.0', mode: 'local' }); },
+          meta: function () { return JSON.stringify({ versionName: '2.1.0', mode: 'local' }); },
           getDoc: function (k) { return MEM[k] || ''; },
           putDoc: function (k, v) {
             MEM[k] = v;

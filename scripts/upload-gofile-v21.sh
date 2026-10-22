@@ -2,7 +2,7 @@
 # آپلود تحویلی‌های RahyAr v2.1.0 در GOFILE + اعتبارسنجی md5/size
 # روش اثبات‌شدهٔ مأموریت قبل: آپلود مستقیم روی store1.gofile.io (api.gofile.io در این محیط مسدود است)
 set -uo pipefail
-OUT=/home/z/my-project/download
+OUT=/home/z/my-project/download/final-v21/pkgs
 LOG=/home/z/my-project/artifacts/gofile-links-v21.txt
 mkdir -p /home/z/my-project/artifacts
 [ $# -eq 0 ] && : > "$LOG"
@@ -35,14 +35,7 @@ if [ $# -ge 1 ]; then
 fi
 
 FILES=(
-  RahyAr-User.apk
-  RahyAr-Owner.apk
-  RahyAr-Source.zip
-  RahyAr-Logo-Kit.zip
-  RahyAr-Screenshots.zip
-  RahyAr-Interaction-Video.mp4
-  RahyAr-Splash-Video.mp4
-  INSTALLATION-AND-LOGIN.md
+  "$@"
 )
 for f in "${FILES[@]}"; do upload_one "$f" || exit 1; done
 echo "=== PASS1 DONE ==="
