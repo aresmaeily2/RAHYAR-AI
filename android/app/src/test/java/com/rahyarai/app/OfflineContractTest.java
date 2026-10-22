@@ -127,21 +127,21 @@ public class OfflineContractTest {
 
     @Test
     public void appVersionMatchesGradleContract() throws Exception {
-        // همگامی AppVersion با build.gradle — منبع واحد حقیقت (v2.0.0 دو ویراست)
+        // همگامی AppVersion با build.gradle — منبع واحد حقیقت (v2.1.0 دو ویراست)
         // build.gradle در android/app — از rahyar.www.dir بازگشت می‌کنیم به ریشهٔ مخزن اندروید
         Path dir = wwwDir(); // .../android/src/www
         Path gradle = dir.getParent().getParent().resolve("app/build.gradle");
         assertTrue("build.gradle must exist at " + gradle, Files.exists(gradle));
         String g = read(gradle);
-        assertTrue("user flavor must be versionCode 20", g.contains("versionCode 20"));
-        assertTrue("user flavor must be versionName 2.0.0", g.contains("versionName '2.0.0'"));
-        assertTrue("owner flavor must be versionCode 21", g.contains("versionCode 21"));
-        // همگام با دستور تحویل: هر دو ویراست versionName «2.0.0» دارند؛
+        assertTrue("user flavor must be versionCode 22", g.contains("versionCode 22"));
+        assertTrue("user flavor must be versionName 2.1.0", g.contains("versionName '2.1.0'"));
+        assertTrue("owner flavor must be versionCode 23", g.contains("versionCode 23"));
+        // همگام با دستور تحویل: هر دو ویراست versionName «2.1.0» دارند؛
         // تمایز ویراست‌ها در applicationId (com.rahyarai.app[.owner]) و versionCode است.
-        assertTrue("owner flavor must also be versionName 2.0.0", g.contains("versionName '2.0.0'"));
+        assertTrue("owner flavor must also be versionName 2.1.0", g.contains("versionName '2.1.0'"));
         assertTrue("owner flavor package must be com.rahyarai.app.owner", g.contains("com.rahyarai.app.owner"));
-        assertEquals("AppVersion.NAME", "2.0.0", AppVersion.NAME);
-        assertEquals("AppVersion.CODE", 20, AppVersion.CODE);
+        assertEquals("AppVersion.NAME", "2.1.0", AppVersion.NAME);
+        assertEquals("AppVersion.CODE", 21, AppVersion.CODE);
         assertEquals("AppVersion.PACKAGE_ID", "com.rahyarai.app", AppVersion.PACKAGE_ID);
     }
 
