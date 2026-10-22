@@ -37,6 +37,7 @@ public class HomeActivity extends Activity {
     private WebView web;
     private LocalStore store;
     private RahyarBridge bridge;
+    private SplashView splash;
 
     @SuppressLint("SetJavaScriptEnabled") // رابط محلی ما به JS نیاز دارد؛ مبدأ بسته است
     @Override
@@ -46,6 +47,15 @@ public class HomeActivity extends Activity {
         web = findViewById(R.id.web);
         TextView verTx = findViewById(R.id.version);
         verTx.setText(getString(R.string.local_version_label, AppVersion.NAME));
+
+        // اسپلش بومی واقعی (Canvas + ValueAnimator) — فقط شروع سرد؛
+        // بازگشت به اپ (onRestart) بدون تکرار اسپلش، لمس = ردشدن فوری
+        splash = findViewById(R.id.splash);
+        splash.setListener(new SplashView.Listener() {
+            @Override public void onSplashFinished() {
+                splash.setVisibility(View.GONE);
+            }
+        });
 
         store = new LocalStore(getFilesDir());
         bridge = new RahyarBridge(

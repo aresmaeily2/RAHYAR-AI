@@ -13,9 +13,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 /**
- * ورود بومی — نام کاربری/رمز → POST /api/auth/login روی سرور قابل‌تنظیم.
+ * اتصال اختیاری به سرور — ماژول جدا از هستهٔ محلی اپ.
+ * v2.1: دیگر «دروازهٔ ورود» اپ نیست؛ رابط محلی (HomeActivity) ورودی اصلی است و
+ * این صفحه فقط از «تنظیمات ← اتصال به سرور (اختیاری)» باز می‌شود.
+ * نام کاربری/رمز → POST /api/auth/login روی سرور قابل‌تنظیم.
  * در موفقیت: کوکی نشست در SecureStore (AndroidKeyStore/AES-GCM) ذخیره و
  * برای WebView ثبت می‌شود؛ هیچ رمزی ذخیره نمی‌شود.
+ * خطاها تفکیک‌شده‌اند: آدرس نامعتبر ≠ نبود اتصال ≠ خطای احراز هویت.
+ * دکمهٔ «بازگشت به حالت محلی» همیشه کاربر را بدون سرور به رابط اصلی برمی‌گرداند.
  */
 public class LoginActivity extends Activity {
     private EditText userEt, passEt, endpointEt;
@@ -47,10 +52,10 @@ public class LoginActivity extends Activity {
             @Override public void onClick(View v) { doLogin(); }
         });
 
-        // حالت دوم (جایگزین): رابط محلی آفلاین — بدون سرور، بدون حساب
+        // بازگشت به حالت محلی — بدون هیچ سروری (خروج از ماژول اختیاری)
         findViewById(R.id.local_mode_link).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
-                startActivity(new Intent(LoginActivity.this, HomeActivity.class));
+                finish(); // بازگشت به رابط محلی (HomeActivity) بدون سرور
             }
         });
     }

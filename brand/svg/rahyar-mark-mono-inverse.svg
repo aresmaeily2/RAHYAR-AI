@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- RahyAr AI — تک‌رنگ معکوس (روی زمینهٔ تاریک) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1024" height="1024">
+  <rect x="2" y="2" width="96" height="96" rx="22" fill="#FFFFFF"/>
+  <g stroke="#111827" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M30,24 H47 A15.5,15.5 0 0 1 47,55 H30 V80"/>
+    <path d="M47,55 L66,80"/>
+  </g>
+</svg>

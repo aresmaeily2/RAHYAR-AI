@@ -3,13 +3,15 @@
     <!-- app_name comes from build.gradle flavors (Rahyar / Rahyar Owner) -->
     <string name="local_version_label">Standalone %1$s — local</string>
     <string name="share_backup">Share Rahyar backup</string>
-    <string name="login_title">Sign in to Rahyar</string>
+    <!-- v2.1: server connection is an optional module — the app is complete without it -->
+    <string name="login_title">Optional server connection</string>
+    <string name="login_subtitle">Rahyar is fully functional without a server. This screen only opens your own web edition on your server.</string>
     <string name="endpoint_label">Server address (https)</string>
     <string name="endpoint_hint">https://rahyar.example.com</string>
     <string name="username">Username</string>
     <string name="password">Password</string>
     <string name="login_btn">Sign in</string>
-    <string name="local_mode_link">Local offline mode (no server)</string>
+    <string name="local_mode_link">Back to local mode (no server)</string>
     <string name="reminder_channel">Rahyar reminders</string>
     <string name="reminder_channel_desc">Notifications for your scheduled reminders</string>
     <string name="reminder_notif_title">Rahyar — reminder</string>

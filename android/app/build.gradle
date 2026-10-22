@@ -1,11 +1,12 @@
-// ماژول اپ — نسخهٔ کامل v2.0.0 (دو ویراست: user + owner)
-// v2.0.0 تغییر نسبت به v1.2.0:
-//  - ورودی اصلی: LoginActivity → MainActivity (محصول کامل وب روی سرور ثبت‌شده)
+// ماژول اپ — نسخهٔ v2.1.0 «محلی-اول» (دو ویراست: user + owner)
+// v2.1.0 تغییر نسبت به v2.0.0:
+//  - ورودی اصلی: HomeActivity (رابط محلی ۱۰۰٪ آفلاین) — اتصال به سرور اختیاری شد
+//  - اسپلش بومی SplashView + هویت بصری رهیار (آیکن adaptive جدید)
 //  - پل بومی v2 (RahyarNative): تشخیص گفتار بومی + TTS + یادآور سیستمی (AlarmManager)
 //  - حالت محلی آفلاین (HomeActivity) به‌عنوان جایگزین دوم حفظ شده است
 //  - دو ویراست محصول از یک سورس واحد:
-//      user  → com.rahyarai.app        «رهیار»        (versionCode 20)
-//      owner → com.rahyarai.app.owner  «رهیار مالک»   (versionCode 21)
+//      user  → com.rahyarai.app        «رهیار»        (versionCode 22)
+//      owner → com.rahyarai.app.owner  «رهیار مالک»   (versionCode 23)
 //    تفاوت نقش‌ها سمت سرور کنترل می‌شود؛ دو ویراست فقط هویت نصب/برند/پیش‌فرض
 //    صفحهٔ ورود را جدا می‌کنند (بدون تکرار کد، بدون رمز تعبیه‌شده).
 // امضای release: اگر فایل keystore.properties در ریشهٔ پروژهٔ اندروید باشد،
@@ -36,15 +37,15 @@ android {
         user {
             dimension 'edition'
             applicationId 'com.rahyarai.app'
-            versionCode 20
-            versionName '2.0.0'
+            versionCode 22
+            versionName '2.1.0'
             resValue 'string', 'app_name', 'رهیار'
         }
         owner {
             dimension 'edition'
             applicationId 'com.rahyarai.app.owner'
-            versionCode 21
-            versionName '2.0.0'
+            versionCode 23
+            versionName '2.1.0'
             resValue 'string', 'app_name', 'رهیار مالک'
         }
     }

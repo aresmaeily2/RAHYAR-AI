@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- RahyAr AI — قفل برند (نشان + نام) برای هدر — متن به‌صورت مسیر نیست؛
+     در وب با فونت واقعی رندر می‌شود، این فایل برای کاربرد گرافیکی است. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 100" width="1024" height="342">
+  <defs>
+    <linearGradient id="rahyarGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7C5CFF"/>
+      <stop offset="0.55" stop-color="#F062A4"/>
+      <stop offset="1" stop-color="#2FD8C8"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="10" width="80" height="80" rx="18" fill="url(#rahyarGrad)"/>
+  <g stroke="#FFFFFF" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M24,30 H39 A13,13 0 0 1 39,56 H24 V70"/>
+    <path d="M39,56 L56,70"/>
+  </g>
+  <text x="100" y="46" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif"
+        font-size="30" font-weight="600" fill="currentColor">rahyar</text>
+  <text x="196" y="46" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif"
+        font-size="30" font-weight="300" fill="currentColor" opacity="0.75">AI</text>
+  <text x="100" y="72" font-family="Tahoma, 'Segoe UI', sans-serif"
+        font-size="15" fill="currentColor" opacity="0.6">دستیار هوشمند شخصی</text>
+</svg>
