@@ -159,3 +159,26 @@ describe('parseQuickTask — عنوان نقل‌قولی و قالب گفتار
     expect(p.title).toContain('تماس با دکتر')
   })
 })
+
+// ─── V23-FIX: nextWeekdayIso — پین رفتار با تاریخ مرجع ثابت ───
+// باگ مشاهده‌شده در تأیید مستقل: امروز جمعهٔ 2026-10-23 بود ولی مدل «پنجشنبه» را
+// 2026-10-24 (شنبه) ثبت کرد. با این اصلاح، تبدیل قطعی است:
+import { nextWeekdayIso } from '../../src/lib/nlp'
+
+describe('nextWeekdayIso (V23-FIX)', () => {
+  const FRI = '2026-10-23' // جمعه
+  test('پنجشنبه از جمعه → ۶ روز بعد (2026-10-29) نه روز بعدِ اشتباه', () => {
+    expect(nextWeekdayIso('پنجشنبه', FRI)).toBe('2026-10-29')
+    expect(nextWeekdayIso('thursday', FRI)).toBe('2026-10-29')
+  })
+  test('جمعه از جمعه → امروز (دلتای ۰)', () => {
+    expect(nextWeekdayIso('جمعه', FRI)).toBe('2026-10-23')
+  })
+  test('شنبه از جمعه → فردا', () => {
+    expect(nextWeekdayIso('شنبه', FRI)).toBe('2026-10-24')
+  })
+  test('نام نامعتبر → undefined', () => {
+    expect(nextWeekdayIso('روزآبی', FRI)).toBeUndefined()
+    expect(nextWeekdayIso('', FRI)).toBeUndefined()
+  })
+})

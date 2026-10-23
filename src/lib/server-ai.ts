@@ -7,7 +7,7 @@ import type { AppLang, ChatAction, DailyPlan, TaskT } from '@/lib/types'
 import {
   findTaskByTitleFragment,
   findTaskById,
-  resolveDueDate,
+  resolveActionDueDate,
   serializeTask,
   sliceForCap,
 } from '@/lib/server-tasks'
@@ -111,7 +111,7 @@ ${activeTasksList(tasks)}
 # دستورالعمل
 - وقتی کاربر کار جدیدی می‌گوید، آن را با add_task ثبت کن؛ عنوان کوتاه و روشن، اولویت منطقی (۱=فوری/مهم، ۲=متوسط، ۳=کم‌اهمیت) و برچسب مناسب (کار، شخصی، خرید، سلامت، مطالعه، خانه، مالی و...).
 - اگر کاربر گفت کار تکرارشونده است («هر روز»، «روزانه»، «هر هفته»، «هفتگی») → repeat را daily یا weekly بگذار.
-- تاریخ‌های نسبی («امروز»، «فردا»، «پس‌فردا»، «شنبه» و...) را نسبت به امروزِ بالا محاسبه کن و در قالب YYYY-MM-DD بفرست؛ یا خود کلمه «امروز/فردا/پس‌فردا» را بفرست.
+- تاریخ‌های نسبی («امروز»، «فردا»، «پس‌فردا») را عیناً همین کلمه‌ها را بفرست؛ برای روزهای هفته («شنبه» تا «جمعه») هم هرگز تاریخ محاسبه نکن — فقط نام روز را عیناً بفرست (مثل «پنجشنبه») تا نزدیک‌ترین رخداد قطعی محاسبه شود؛ فقط اگر کاربر خودش تاریخ عددی گفت، YYYY-MM-DD بفرست.
 - وقتی کاربر گفت کاری را انجام داده → complete_task با taskId دقیق از لیست.
 - حذف کار (delete_task) فقط وقتی مجاز است که پیام فعلی کاربر صراحتاً فعل حذف داشته باشد («حذف کن»، «پاک کن»). در هر پیام حداکثر یک حذف انجام بده و هیچ‌وقت چند کار را یکجا حذف نکن. اگر حذف مبهم بود، اول در reply تأیید بگیر.
 - برای تغییر جزئیات کار → update_task (فقط فیلدهای تغییر یافته).
@@ -133,7 +133,7 @@ ${activeTasksList(tasks)}
 ${replyHint}
 
 # ساختار اکشن‌ها
-{"type":"add_task","title":"...","priority":1,"tag":"...","dueDate":"YYYY-MM-DD یا امروز/فردا/پس‌فردا","dueTime":"HH:mm","notes":"...","repeat":"daily|weekly|null"}
+{"type":"add_task","title":"...","priority":1,"tag":"...","dueDate":"YYYY-MM-DD یا امروز/فردا/پس‌فردا یا نام روز هفته مثل «پنجشنبه»","dueTime":"HH:mm","notes":"...","repeat":"daily|weekly|null"}
 {"type":"complete_task","taskId":"..."}
 {"type":"delete_task","taskId":"..."}
 {"type":"update_task","taskId":"...","title":"...","priority":1,"dueDate":"...","dueTime":"...","tag":"...","notes":"..."}
@@ -274,7 +274,7 @@ export async function executeChatActions(
               notes: a.notes?.trim() ? a.notes.trim().slice(0, 2000) : null,
               priority: [1, 2, 3].includes(a.priority as number) ? (a.priority as number) : 2,
               tag: a.tag?.trim() ? a.tag.trim().slice(0, 40) : null,
-              dueDate: resolveDueDate(a.dueDate),
+              dueDate: resolveActionDueDate(a.dueDate, userMessage),
               dueTime: parseTime24(a.dueTime),
               repeat: a.repeat === 'daily' || a.repeat === 'weekly' ? a.repeat : null,
             },
@@ -343,7 +343,7 @@ export async function executeChatActions(
               ...([1, 2, 3].includes(a.priority as number)
                 ? { priority: a.priority as number }
                 : {}),
-              ...(a.dueDate !== undefined ? { dueDate: resolveDueDate(a.dueDate) } : {}),
+              ...(a.dueDate !== undefined ? { dueDate: resolveActionDueDate(a.dueDate, userMessage) } : {}),
               ...(a.dueTime !== undefined ? { dueTime: parseTime24(a.dueTime) } : {}),
             },
             include: { subtasks: true },
