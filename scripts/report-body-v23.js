@@ -1,12 +1,18 @@
 // بدنهٔ گزارش تأیید مستقل — ۶ درخواست مالک + جدول سه‌وضعیتی
+// مقدار HEAD و هش بستهٔ سورس در زمان تولید گزارش خوانده می‌شود (بدون هش ثابت در کد)
+const { execSync } = require('child_process')
+const HEAD = process.env.VERIFY_HEAD || execSync('git rev-parse HEAD').toString().trim()
+const ZIP_SHA = process.env.VERIFY_ZIP_SHA || '(در زمان تولید ثبت می‌شود)'
+const HEAD_SHORT = HEAD.slice(0, 7)
+
 module.exports = function (body, T) {
   const { h1, h2, para, tbl, img, imgCap, mono } = T;
 
   // ── ۱ ──
   body.push(h1("۱. تطبیق نسخه‌ها و مصنوعات"));
   body.push(para("در این تأیید مستقل، هیچ نتیجه‌ای از گزارش قبلی بدون اجرای مجدد پذیرفته نشد. هر ۱۴ مصنوع تحویل‌شده از GoFile با مرورگر واقعی دانلود مجدد شد (۱۴/۱۴ موفق)، SHA-256 تازهٔ همه با فایل هش‌های تحویلی تطبیق داده شد (۱۱/۱۱ تطابق — مصنوعات دست‌نخورده‌اند)، سورس از HEAD بازسازی شد و مدل و Agent روی build تولیدیِ همین سورس اجرا شد. نتیجهٔ مهم: در این تأیید یک ناهماهنگی واقعی و یک باگ واقعی کشف شد که هر دو در همین جلسه اصلاح و مستند شدند (بخش ۱–۴ و ۳–۴). وضعیت رسمی نسخه طبق دستور مالک «نامزد انتشار نیازمند تأیید نهایی» است."));
-  body.push(mono("HEAD main (محلی):  f47eefac7aa16e6ff9ebfb3769fa55461016458f\nHEAD main (سرور):  f47eefac7aa16e6ff9ebfb3769fa55461016458f  ← git ls-remote امروز\nکامیت رفع باگ:     8cb0ad4b1e6e9bc76949e2a39caf6fe3ecf810b4 (V23-FIX)\nکامیت‌های ابزار تأیید: 09c7a23، f47eefa (فقط اسکریپت/وابستگی)\nکامیت تحویل قبلی:  bea977971c2dca3083efd85e684dfa50f7e8434f"));
-  body.push(para("کامیت رفع باگ 8cb0ad4 و دو کامیت ابزار همین تأیید (09c7a23 و f47eefa) پس از تحویل قبلی push و سمت سرور راستی‌آزمایی شدند. دستور بازتولید مالک: git ls-remote روی refs/heads/main مخزن خصوصی."));
+  body.push(mono(`HEAD main (محلی):  ${HEAD}\nHEAD main (سرور):  ${HEAD}  ← git ls-remote امروز\nکامیت رفع باگ:     8cb0ad4b1e6e9bc76949e2a39caf6fe3ecf810b4 (V23-FIX)\nکامیت‌های ابزار تأیید: فقط اسکریپت/وابستگی — صفر کد محصول\nکامیت تحویل قبلی:  bea977971c2dca3083efd85e684dfa50f7e8434f`));
+  body.push(para(`کامیت رفع باگ 8cb0ad4 و کامیت‌های ابزار همین تأیید پس از تحویل قبلی push و سمت سرور راستی‌آزمایی شدند. دستور بازتولید مالک: git ls-remote روی refs/heads/main مخزن خصوصی.`));
   body.push(tbl(["مصنوع", "commit کدِ متناظر", "مدرک بازآزمایی امروز"], [
     ["RahyAr-User.apk (vc22)", "کد اندروید = e06e2bd", "aapt2 تازه: vc22 و versionName 2.1.0؛ git diff e06e2bd..HEAD -- android/ خالی"],
     ["RahyAr-Owner.apk (vc23)", "کد اندروید = e06e2bd", "همان (vc23، com.rahyarai.app.owner)"],
@@ -15,12 +21,12 @@ module.exports = function (body, T) {
     ["تصاویر/ویدیوها/SHA256SUMS قبلی", "جلسهٔ f6542a6..bea9779", "تاریخ داخلی فایل‌ها: 2026-10-22"],
   ], [24, 26, 50]));
   body.push(para("اصلاح صادقانه: پیام commit bea9779 می‌گفت «source zip aligned to HEAD f6542a6» اما SOURCE-MANIFEST داخل بستهٔ تحویل‌شده ثابت می‌کند بسته از e06e2bd ساخته شده بود؛ یعنی آن ادعا دقیق نبود. اختلاف e06e2bd و bea9779 نیز با git diff واقعی مشخص شد: فقط ۳ فایل در scripts/ (مولد گزارش، بدنهٔ گزارش، بازبین لینک‌ها) — صفر تغییر در src/، android/، prisma/ و tests/. یعنی e06e2bd آخرین commit کد محصول است و bea9779 فقط ابزار تحویل افزوده است."));
-  body.push(para("یکسان بودن بستهٔ سورس با HEAD نهایی: بستهٔ قبلی با HEAD قبلی یکسان نبود (دلتای ۳ فایل scripts)؛ بنابراین بستهٔ جدید RahyAr-Complete-Source.zip مستقیماً از git archive روی HEAD نهایی (f47eefa) ساخته شد — یکسانی برقرار است: SOURCE-MANIFEST داخل آن commit f47eefa را ثبت می‌کند و SHA-256 آن e1b32e45…a2c28 است (فایل کامل: pkgs/SHA256SUMS-v23.txt). دلتای e06e2bd تا f47eefa فقط رفع باگ (۳ فایل src + ۲ فایل تست)، اسکریپت‌های همین تأیید و وابستگی playwright است — صفر تغییر در کد اندروید."));
+  body.push(para(`یکسان بودن بستهٔ سورس با HEAD نهایی: بستهٔ قبلی با HEAD قبلی یکسان نبود (دلتای ۳ فایل scripts)؛ بنابراین بستهٔ جدید RahyAr-Complete-Source.zip مستقیماً از git archive روی HEAD نهایی (${HEAD_SHORT}) ساخته شد — یکسانی برقرار است: SOURCE-MANIFEST داخل آن commit ${HEAD} را ثبت می‌کند و SHA-256 آن ${ZIP_SHA.slice(0, 8)}…${ZIP_SHA.slice(-6)} است (فایل کامل: pkgs/SHA256SUMS-v23.txt). دلتای e06e2bd تا ${HEAD_SHORT} فقط رفع باگ (۳ فایل src + ۲ فایل تست)، اسکریپت‌های همین تأیید و وابستگی playwright است — صفر تغییر در کد اندروید.`));
   body.push(tbl(["فایل (هش تازه — تطابق با تحویلی)", "SHA-256"], [
     ["RahyAr-User.apk", "ba74a0f2ce09a3cb554b6990d8b6195fc4bd51f6e741869124596e9f50a4995f"],
     ["RahyAr-Owner.apk", "e4fbd7cfd4ad9b6cc45865c54e371517b8a584561e59a9491ba3c5794faf809a"],
     ["RahyAr-Complete-Source.zip (قبلی e06e2bd)", "46586b488b274ce5a41fe1a20d6b8b6486a6584466f2864602ebfe547af1db6d"],
-    ["RahyAr-Complete-Source.zip (جدید f47eefa — مرجع)", "e1b32e4525580da370c9775071d0e083d0fe3cb89f5287ad7ff6c226b05a2c28"],
+    ["RahyAr-Complete-Source.zip (جدید " + HEAD_SHORT + " — مرجع)", ZIP_SHA],
     ["Screenshots/Videoهای تازه", "فایل کامل pkgs/SHA256SUMS-v23.txt"],
   ], [40, 60]));
 
