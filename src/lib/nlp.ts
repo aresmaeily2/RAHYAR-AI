@@ -25,6 +25,23 @@ const WEEKDAYS: Array<{ names: string[]; index: number }> = [
   { names: ['جمعه', 'friday', 'fri'], index: 6 },
 ]
 
+/**
+ * V23-FIX (تأیید مستقل ۲۰۲۶–۱۰–۲۳): تبدیل «نام روز هفته» به تاریخ ISO نزدیک‌ترین رخداد
+ * (شامل امروز؛ دلتای ۰ تا ۶ روز) نسبت به تاریخ مرجع — بدون هیچ محاسبهٔ تاریخ روی دوش مدل.
+ * علت: مدل زبانی در محاسبهٔ تاریخ خطا می‌کند (پنجشنبه → روز بعد اشتباه ثبت شد)؛
+ * از این پس مدل نام روز را عیناً می‌فرستد و تبدیل قطعی همین‌جا انجام می‌شود.
+ * weekday مرجع با قرارداد محصول (۰ = شنبه) از tehranParts می‌آید.
+ */
+export function nextWeekdayIso(name: string, todayIso: string = tehranIsoDate()): string | undefined {
+  const s = (name || '').trim()
+  if (!s) return undefined
+  const wd = WEEKDAYS.find((w) => w.names.includes(s))
+  if (!wd) return undefined
+  const todayIdx = tehranParts(new Date(todayIso + 'T12:00:00.000Z')).weekdayIndex
+  const delta = (wd.index - todayIdx + 7) % 7
+  return addDaysIso(todayIso, delta)
+}
+
 function matchRelativeDay(text: string, tokens: string[]): string | undefined {
   let m = text.match(/پس\s?فردا|day after tomorrow/)
   if (m) {
@@ -51,9 +68,7 @@ function matchWeekday(text: string, tokens: string[]): string | undefined {
       const re = new RegExp(`(?:^|\\s)${esc}(?=$|\\s)`, 'i')
       if (re.test(text)) {
         tokens.push(name)
-        const today = tehranParts().weekdayIndex
-        const delta = (wd.index - today + 7) % 7
-        return addDaysIso(tehranIsoDate(), delta)
+        return nextWeekdayIso(name)
       }
     }
   }
@@ -195,3 +210,20 @@ export function parseQuickTask(raw: string): ParsedQuickTask {
 
 /** برچسب‌های پیشنهادی استاندارد */
 export const STANDARD_TAGS = ['کار', 'شخصی', 'خرید', 'سلامت', 'مطالعه', 'خانه', 'مالی']
+
+/**
+ * V23-FIX (مرحلهٔ دوم): تشخیص نام روز هفته در متن کاربر → تاریخ ISO نزدیک‌ترین رخداد.
+ * اگر پیام کاربر روز هفته‌ای داشت، این تاریخِ قطعی مرجع است و خروجی عددیِ مدل
+ * (که ممکن است اشتباه محاسبه شده باشد) با آن اعتبارسنجی/اصلاح می‌شود.
+ */
+export function detectWeekdayIsoFromMessage(text: string, todayIso: string = tehranIsoDate()): string | undefined {
+  const s = text || ''
+  for (const wd of WEEKDAYS) {
+    for (const name of wd.names) {
+      const esc = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const re = new RegExp(`(?:^|\\s)${esc}(?=$|\\s)`, 'i')
+      if (re.test(s)) return nextWeekdayIso(name, todayIso)
+    }
+  }
+  return undefined
+}

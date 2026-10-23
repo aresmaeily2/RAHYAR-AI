@@ -2,6 +2,7 @@
 import { db } from '@/lib/db'
 import type { TaskT } from '@/lib/types'
 import { addDaysIso, tehranIsoDate, tehranParts } from './persian-date'
+import { detectWeekdayIsoFromMessage, nextWeekdayIso } from './nlp'
 
 /** پیام خوش‌آمد گفتگو — دوزبانه بر اساس زبان کاربر (منبع واحد: رفع A13) */
 export function chatWelcome(lang: 'fa' | 'en'): string {
@@ -72,7 +73,7 @@ export function sliceForCap<T>(items: T[], existingCount: number, cap = MAX_SUBT
   return items.slice(0, room)
 }
 
-/** رزولو تاریخ ورودی: امروز/فردا/پس‌فردا یا YYYY-MM-DD (ظهر UTC برای پایداری) */
+/** رزولو تاریخ ورودی: امروز/فردا/پس‌فردا، نام روز هفته (پنجشنبه…، نزدیک‌ترین رخداد) یا YYYY-MM-DD (ظهر UTC برای پایداری) */
 export function resolveDueDate(input?: string | null): Date | null {
   if (!input) return null
   const s = input.trim()
@@ -83,9 +84,15 @@ export function resolveDueDate(input?: string | null): Date | null {
   else if (s === 'پس‌فردا' || s === 'پس فردا') iso = addDaysIso(today, 2)
   else if (/^\d{4}-\d{2}-\d{2}$/.test(s)) iso = s
   else {
-    // شاید مدل «YYYY-MM-DDTHH:mm» فرستاده باشد
-    const m = s.match(/^(\d{4}-\d{2}-\d{2})/)
-    if (m) iso = m[1]
+    // V23-FIX: نام روز هفته (فارسی/انگلیسی) — تبدیل قطعی نزدیک‌ترین رخداد؛
+    // مدل دیگر تاریخ محاسبه نمی‌کند (خطای محاسبهٔ روز هفته توسط مدل مشاهده و رفع شد)
+    const wd = nextWeekdayIso(s, today)
+    if (wd) iso = wd
+    else {
+      // شاید مدل «YYYY-MM-DDTHH:mm» فرستاده باشد
+      const m = s.match(/^(\d{4}-\d{2}-\d{2})/)
+      if (m) iso = m[1]
+    }
   }
   if (!iso) return null
   // گارد تاریخ نامعتبر (مثل 9999-99-99 یا 2024-02-31 خارج از ماه) — دفاع در برابر ۵۰۰
@@ -96,6 +103,23 @@ export function resolveDueDate(input?: string | null): Date | null {
   const year = parseInt(iso.slice(0, 4), 10)
   if (year < 1970 || year > 2200) return null
   return d
+}
+
+/**
+ * V23-FIX (مرحلهٔ نهایی): رزولوی تاریخ در مسیر اکشن مدل با «گارد روز هفته».
+ * اگر پیام کاربر نام روز هفته داشت، تاریخِ مدل (عددی) باید همان روز هفته را بدهد؛
+ * وگرنه تاریخ قطعیِ استخراج‌شده از پیام کاربر جایگزین می‌شود — مدل هرگز در حل تاریخ برنده نیست.
+ * اگر پیام روز هفته نداشت، خروجی رزولوی عادی (امروز/فردا/ISO) بدون تغییر برمی‌گردد.
+ */
+export function resolveActionDueDate(modelDueDate: string | null | undefined, userMessage: string): Date | null {
+  const due = resolveDueDate(modelDueDate)
+  const wantIso = detectWeekdayIsoFromMessage(userMessage || '')
+  if (!wantIso) return due
+  const wantDate = new Date(wantIso + 'T12:00:00.000Z')
+  if (!due) return wantDate
+  const dueIdx = tehranParts(due).weekdayIndex
+  const wantIdx = tehranParts(wantDate).weekdayIndex
+  return dueIdx === wantIdx ? due : wantDate
 }
 
 export async function findTaskById(id: string, userId: string) {
