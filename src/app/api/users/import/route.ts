@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
         data: {
           username: row.username,
           displayName: row.displayName,
-          passwordHash: hashPassword(pw),
+          passwordHash: await hashPassword(pw),
           role: 'USER',
           mustChangePassword: true,
         },

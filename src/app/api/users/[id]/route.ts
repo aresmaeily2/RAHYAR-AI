@@ -76,7 +76,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
         }
         np = body!.newPassword as string
       }
-      data.passwordHash = hashPassword(np)
+      data.passwordHash = await hashPassword(np)
       data.mustChangePassword = true
       actions.push('reset_password')
       await db.session.deleteMany({ where: { userId: target.id } })

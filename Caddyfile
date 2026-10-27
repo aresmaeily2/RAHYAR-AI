@@ -1,13 +1,18 @@
+# ─── رهیار AI — پروکسی معکوس Caddy (نسخهٔ سخت‌شده ۱٫۲٫۰) ──────
+# SECURITY (ممیزی ۳۶۰ درجه — یافتهٔ بحرانی SSRF):
+#   بلوک قبلی @transform_port_query با ?XTransformPort=xxxx هر پورتی از
+#   query-string را به localhost:{port} پروکسی می‌کرد → حملهٔ SSRF به
+#   سرویس‌های داخلی (دیتابیس، Ollama محلی، پنل‌های مدیریتی).
+#   بلوک به‌طور کامل حذف شد؛ هیچ پروکسی دینامیکِ کنترل‌شده توسط کلاینت
+#   باقی نمی‌ماند. اگر سرویس کمکی لازم شد، فقط با بلوک ثابتِ سفیدلیست‌شده.
 :81 {
-	@transform_port_query {
-		query XTransformPort=*
+	# سفیدلیست ثابت برای سرویس وب‌سوکت آینده — پورت ثابت، بدون ورودی کلاینت
+	@wsservice {
+		path /ws/*
 	}
-
-	handle @transform_port_query {
-		reverse_proxy localhost:{query.XTransformPort} {
+	handle @wsservice {
+		reverse_proxy localhost:3001 {
 			header_up Host {host}
-			header_up X-Forwarded-For {remote_host}
-			header_up X-Forwarded-Proto {scheme}
 			header_up X-Real-IP {remote_host}
 		}
 	}

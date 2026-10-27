@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 /**
+ * لایه Proxy (قرارداد Next.js 16 — جایگزین middleware.ts):
+ * ممیزی ۳۶۰: src/middleware.ts به src/proxy.ts مهاجرت داده شد؛ کارکرد
+ * عیناً همان است — Next 16 نام این لایه را Proxy گذاشت و فایل قدیمی
+ * deprecated است.
+ *
  * ۱) CSP با nonce (رفع SEC-H3 — حذف unsafe-inline/unsafe-eval از اسکریپت‌ها):
  * الگوی رسمی Next.js — nonce per-request روی درخواست ست می‌شود و Next خودش
  * آن را به اسکریپت‌های سمت سرور تزریق می‌کند؛ 'strict-dynamic' اعتماد را به
@@ -10,7 +15,7 @@ import { NextRequest, NextResponse } from 'next/server'
  *   و shadcn chart تگ <style> پویا تزریق می‌کنند.
  *
  * ۲) گیت احراز هویت (ایمن‌سازی فاز انتشار):
- * middleware روی Edge اجرا می‌شود و به DB دسترسی ندارد؛ پس فقط «حضور» کوکی
+ * proxy روی Edge اجرا می‌شود و به DB دسترسی ندارد؛ پس فقط «حضور» کوکی
  * نشست را می‌سنجد (دفاع اول) و اعتبار واقعی توکن در هر مسیر API با
  * requireUser() (src/lib/auth.ts) سنجیده می‌شود (دفاع دوم، سخت‌گیر).
  *  - صفحه بدون کوکی → ریدایرکت به /login
@@ -38,7 +43,7 @@ function isPublic(pathname: string): boolean {
   return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p))
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
   const isDev = process.env.NODE_ENV !== 'production'
 

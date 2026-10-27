@@ -1,0 +1,22 @@
+# ─── رهیار AI — کمینه‌سازی زمینهٔ بیلد Docker ────────────────
+node_modules
+.next
+.git
+.github
+db
+backups
+*.log
+dev.log
+server.log
+.env
+.env.*
+!.env.example
+download
+upload
+docs
+tests
+android
+brand
+examples
+scripts/*.cjs
+scripts/backup-i18n

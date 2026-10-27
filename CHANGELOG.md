@@ -1,5 +1,70 @@
 # Change Log — رهیار AI (Rahyar AI)
 
+## [1.2.0] — 2026-10-27 (ممیزی ۳۶۰ درجه — ارتقای امنیت، کارایی و DevOps)
+بر پایهٔ ممیزی مستقل ۳۶۰ درجه (کد/امنیت/پایگاه‌داده/عملکرد/هوش مصنوعی/DevOps)؛
+هر یافته پیش از اصلاح روی کد واقعی تأیید شد. وضعیت: نامزد انتشار — نیازمند تأیید نهایی مالک.
+آیتم‌های بدون آزمون میدانی با برچسب «آزمایش‌نشده» مشخص‌اند.
+
+### Security
+- **Caddyfile — رفع SSRF بحرانی**: بلوک `@transform_port_query` که هر پورت query-string
+  (`?XTransformPort=`) را به `localhost:{port}` پروکسی می‌کرد حذف شد؛ به‌جای آن
+  سفیدلیست ثابت `/ws/* → localhost:3001`. حملهٔ SSRF به سرویس‌های داخلی مسدود است.
+- **احراز هویت — حذف انسداد Event Loop**: `hashPassword`/`verifyPassword`/`burnPasswordTiming`
+  از `scryptSync` (N=2^16، ~۹۶MB روی رشتهٔ اصلی) به `crypto.scrypt` ناهمگام مهاجرت
+  کردند؛ ورود هم‌زمان دیگر استریم چت سایر کاربران را قطع نمی‌کند. همهٔ ۵ مسیر API
+  به‌روزرسانی شد و آزمون رگرسیون «زنده‌بودن حلقهٔ رویداد در حین هش» افزوده شد.
+- **اکشن‌های LLM — اعتبارسنجی سختگیرانه پیش از اجرا (OWASP LLM05)**: فایل جدید
+  `src/lib/ai/action-schema.ts` — Discriminated Union با Zod مطابق قرارداد واقعی
+  اکشن‌ها؛ خروجی مخرب/خراب مدل هرگز به دیتابیس نمی‌رسد (۱۷ آزمون واحد جدید).
+- **extractJson مقاوم‌تر شد**: تلاش جایگزین با پیمایش متوازن آکولاد (آگاه از رشته‌ها) —
+  متن اضافهٔ پس از JSON پاسخ مدل پاس‌خور می‌شود.
+
+### Database
+- **SQLite WAL + مهار هم‌زمانی**: `db.ts` اکنون هنگام بوت
+  `journal_mode=WAL`، `synchronous=NORMAL`، `busy_timeout=5000`، `foreign_keys=ON`،
+  `temp_store=MEMORY`، `cache_size=-32MB` اعمال می‌کند. پراگماهای per-connection با
+  پیش‌فرض `connection_limit=1` (قابل بازنویسی با `RAHYAR_DB_CONNECTION_LIMIT`) روی همهٔ
+  کوئری‌ها صادق‌اند — خطای «database is locked» در هم‌زمانی چت و زمان‌بند مهار می‌شود.
+- **رفع بکاپِ نادرست (کشف دودآزمایی)**: سرور standalone مسیر نسبی DATABASE_URL را نسبت به
+  `.next/standalone/` حل می‌کند؛ بکاپ قبلی فقط `db/custom.db` را می‌گرفت و از
+  دیتابیس واقعی پروداکشن (`.next/standalone/db/custom.db`) بی‌خبر بود.
+  `backup-db.sh` اکنون جدیدترین فایل موجود را برمی‌دارد و منبع را اعلام می‌کند.
+
+### Performance
+- **زمان‌بند — حذف الگوی N+1**: ثبت لاگ منقضی‌های یادآوری به یک تراکنش دسته‌ای
+  (`updateMany` + `createMany` در `db.$transaction`) تبدیل شد.
+- **پایداری زمان‌بند**: گارد ورود مجدد (`isRunning`)، تایمر `unref` و خاموشی نجیب روی
+  SIGTERM/SIGINT؛ respawn تکرارشونده‌ها یک تیک پس از بوت (بازیابی پس از ری‌استارت) و سپس
+  ساعتی.
+
+### Dependencies / Frontend
+- انتقال `playwright`، `prisma`، `docx`، `image-size`، `sharp` به `devDependencies` —
+  باندل/نصب پروداکشن سبک‌تر شد (این بسته‌ها فقط در اسکریپت‌های گزارش/تست استفاده می‌شوند).
+- `reactStrictMode: true` (React 19) — نشت افکت/تایمر در توسعه آشکار می‌شود.
+- **رفع typecheck شکسته (کد مرده)**: ۶ مؤلفهٔ shadcn بدون وابستگی و بدون هیچ ارجاعی
+  حذف شدند (calendar/carousel/chart/drawer/input-otp/resizable) + `builtin.ts` مرده
+  (API حذف‌شده را import می‌کرد) + ایمپورت غایب `tailwindcss-animate` از tailwind.config.
+- **رفع تم باران**: صحنهٔ `rain` در `ambient-scene` ثبت نشده بود — `RainScene` SVG ایستا
+  اضافه شد.
+
+### DevOps
+- **GitHub Actions CI** (`.github/workflows/ci.yml`): install با lockfile قفل‌شده،
+  db:generate/db:push آزمایشی، `bun run verify` (typecheck+lint+test) و بیلد تولید.
+- **Dockerfile چندمرحله‌ای**: deps → builder → runner غیر-root (کاربر rahyar)،
+  HEALTHCHECK روی `/api/health`، `.dockerignore` مینیمال.
+- **Retention بکاپ**: چک‌سام SHA-256 + نگهداری ۳۰ نسخهٔ آخر
+  (`BACKUP_RETENTION_COUNT` قابل تنظیم).
+- **مهاجرت Next 16**: `src/middleware.ts` → `src/proxy.ts` (قرارداد Proxy) — کارکرد
+  عیناً همان (CSP با nonce + گیت نشست).
+
+### Verified
+- `bun run verify`: typecheck سبز (برای نخستین بار — خطاهای پیش‌آیند رفع شد)،
+  lint پاک، **۲۱۵ آزمون واحد پاس** (۱۷ آزمون جدید).
+- بیلد تولید standalone موفق؛ دودآزمایی: `/api/health` ok، بوت زمان‌بند،
+  اعمال PRAGMA (journal_mode=wal تأیید روی فایل)، بکاپ انتها-به-انتها آزمایش شد.
+- «آزمایش‌نشده»: Docker image روی ماشین واقعی، CI روی GitHub (مخزن فعلاً ۴۰۴)،
+  رفتار StrictMode در حالت توسعه روی دستگاه واقعی.
+
 ## [1.1.0] — 2026-10-20 (Grand Upgrade & Production Release — مرحلهٔ ممیزی/اصلاح)
 گزارش کامل: `docs/GRAND_UPGRADE_FINAL.md`
 

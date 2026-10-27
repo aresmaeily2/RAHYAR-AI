@@ -26,16 +26,35 @@ const SCRYPT_COST_S2 = 65536 // N نسخهٔ ۲ — 2^16
 // maxmem باید ≥ 128*N*r باشد (پیش‌فرض Node فقط 32MiB) — 64MiB + حاشیه
 const SCRYPT_S2_MAXMEM = 96 * 1024 * 1024
 
-export function hashPassword(password: string): string {
+// ── ممیزی ۳۶۰ درجه (یافتهٔ مهم — انسداد Event Loop) ──────────
+// پیش‌تر scryptSync با N=2^16 (~۱۰۰ms+ و ~۹۶MB) روی رشتهٔ اصلی اجرا می‌شد؛
+// ۱۰ ورود هم‌زمان، حلقهٔ رویداد را ثانیه‌ها قفل و استریم چت دیگر کاربران
+// را قطع می‌کرد. اکنون crypto.scrypt ناهمگام (استخر نخ libuv/Bun) —
+// امضای توابع Promise شد و همهٔ فراخواننده‌ها await می‌کنند.
+
+function scryptAsync(
+  password: string,
+  salt: crypto.BinaryLike,
+  keylen: number,
+  options: crypto.ScryptOptions,
+): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    crypto.scrypt(password, salt, keylen, options, (err, key) =>
+      err ? reject(err) : resolve(key),
+    )
+  })
+}
+
+export async function hashPassword(password: string): Promise<string> {
   const salt = crypto.randomBytes(16)
-  const hash = crypto.scryptSync(password, salt, SCRYPT_KEYLEN, {
+  const hash = await scryptAsync(password, salt, SCRYPT_KEYLEN, {
     N: SCRYPT_COST_S2,
     maxmem: SCRYPT_S2_MAXMEM,
   })
   return `s2:${salt.toString('hex')}:${hash.toString('hex')}`
 }
 
-export function verifyPassword(password: string, stored: string): boolean {
+export async function verifyPassword(password: string, stored: string): Promise<boolean> {
   try {
     // نسخه‌بندی صریح — پیشوند ناشناخته هرگز معتبر نیست
     const m = /^s([12]):([0-9a-f]+):([0-9a-f]+)$/.exec(stored)
@@ -46,8 +65,8 @@ export function verifyPassword(password: string, stored: string): boolean {
     const expected = Buffer.from(m[3], 'hex')
     // دفاع: هش خراب/خالی هرگز معتبر نیست (کشف‌شده با آزمون واحد)
     if (salt.length < 8 || expected.length !== SCRYPT_KEYLEN) return false
-    const actual = crypto.scryptSync(password, salt, expected.length, opts)
-    return crypto.timingSafeEqual(actual, expected)
+    const actual = await scryptAsync(password, salt, expected.length, opts)
+    return actual.length === expected.length && crypto.timingSafeEqual(actual, expected)
   } catch {
     return false
   }
@@ -150,10 +169,11 @@ export async function revokeOtherSessions(
 /** هم‌ترازی زمان پاسخ ورود: وقتی حساب وجود ندارد هم همان هزینه scrypt پرداخت می‌شود
  *  تا وجود/عدم وجود نام کاربری از زمان پاسخ قابل حدس نباشد (دفاع timing-oracle).
  *  salt ثابت 'rahyar-timing-burn-salt' عمداً ثابت است — تغییر آن ممنوع.
- *  GRAND-F4: هزینه با s2 هم‌تراز شد تا با هش واقعی جدید برابری کند. */
-export function burnPasswordTiming(password: string): void {
+ *  GRAND-F4: هزینه با s2 هم‌تراز شد تا با هش واقعی جدید برابری کند.
+ *  ممیزی ۳۶۰: ناهمگام شد تا رشتهٔ اصلی قفل نشود؛ فراخوانی‌کننده await می‌کند. */
+export async function burnPasswordTiming(password: string): Promise<void> {
   try {
-    crypto.scryptSync(password, 'rahyar-timing-burn-salt', SCRYPT_KEYLEN, {
+    await scryptAsync(password, 'rahyar-timing-burn-salt', SCRYPT_KEYLEN, {
       N: SCRYPT_COST_S2,
       maxmem: SCRYPT_S2_MAXMEM,
     })

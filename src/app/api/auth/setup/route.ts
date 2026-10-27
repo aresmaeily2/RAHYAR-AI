@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
       where: { id: owner.id, passwordHash: SETUP_SENTINEL },
       data: {
         username: username === owner.username ? owner.username : username,
-        ...ownerSetupClaimData(displayName, hashPassword(body.password)),
+        ...ownerSetupClaimData(displayName, await hashPassword(body.password)),
       },
     })
     if (claimed.count !== 1) {

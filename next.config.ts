@@ -33,7 +33,10 @@ const nextConfig: NextConfig = {
     // خطاهای نوع نباید بی‌صدا نادیده گرفته شوند (رفع A7) — tsc بخشی از گیت کیفیت است
     ignoreBuildErrors: false,
   },
-  reactStrictMode: false,
+  // ممیزی ۳۶۰: StrictMode فعال شد (React 19) — نشت افکت/تایمر WebAudio/اتصال
+  // SSE در توسعه آشکار می‌شود. فقط حالت توسعه دوبار فراخوانی می‌کند؛ بیلد
+  // تولید بی‌تأثیر است.
+  reactStrictMode: true,
 };
 
 export default nextConfig;

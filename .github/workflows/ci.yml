@@ -1,0 +1,41 @@
+# ─── رهیار AI — گیت کیفیت و امنیت (ممیزی ۳۶۰: فابریک DevOps) ──
+# هر push/PR روی main: typecheck + lint + آزمون واحد + بیلد تولید.
+# تضمین می‌کند «کد در مخزن» همیشه قابل‌بیلد و آزمون‌پذیر است.
+name: Rahyar AI — Quality & Security Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: "file:../db/test.db"
+      NODE_ENV: "test"
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies (Frozen Lockfile)
+        run: bun install --frozen-lockfile
+
+      - name: Generate Prisma Client & Push Test Schema
+        run: |
+          mkdir -p db
+          bun run db:generate
+          bun run db:push
+
+      - name: Typecheck + ESLint + Unit Tests
+        run: bun run verify
+
+      - name: Build Production Standalone
+        run: bun run build

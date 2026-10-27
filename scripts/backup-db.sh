@@ -12,15 +12,34 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DB_PATH="${ROOT}/db/custom.db"
 DEST_DIR="${1:-${ROOT}/backups}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 DEST="${DEST_DIR}/ara-${STAMP}.db"
 
-if [ ! -f "$DB_PATH" ]; then
-  echo "خطا: پایگاه‌داده یافت نشد: ${DB_PATH}" >&2
+# ── ممیزی ۳۶۰ (یافتهٔ دودآزمایی) ─────────────────────────────
+# سرور standalone مسیر نسبی DATABASE_URL را نسبت به پوشهٔ خودش
+# (.next/standalone/) حل می‌کند؛ پس پروداکشن واقعی روی
+# .next/standalone/db/custom.db زندگی می‌کند و حالت dev روی db/custom.db.
+# اسکریپت قبلی فقط db/custom.db را پشتیبان می‌گرفت — بکاپ پروداکشن خالی بود!
+# اکنون: جدیدترین فایل موجود از بین کاندیداها انتخاب و شفاف اعلام می‌شود.
+CANDIDATES=(
+  "${ROOT}/.next/standalone/db/custom.db"
+  "${ROOT}/db/custom.db"
+)
+DB_PATH=""
+for c in "${CANDIDATES[@]}"; do
+  if [ -f "$c" ]; then
+    if [ -z "$DB_PATH" ] || [ "$c" -nt "$DB_PATH" ]; then
+      DB_PATH="$c"
+    fi
+  fi
+done
+
+if [ -z "$DB_PATH" ]; then
+  echo "خطا: هیچ پایگاه‌داده‌ای یافت نشد (کاندیداها: ${CANDIDATES[*]})" >&2
   exit 1
 fi
+echo "منبع پشتیبان: ${DB_PATH}"
 
 mkdir -p "$DEST_DIR"
 
@@ -54,6 +73,21 @@ if command -v bun >/dev/null 2>&1; then
     console.log('صحت پشتیبان: ok | تعداد کارها: ' + tasks.c);
   " "$DEST"
 fi
+
+# ── ممیزی ۳۶۰: چک‌سام و سیاست نگهداری (Retention) ────────────
+# ۱) چک‌سام SHA-256 — اطمینان از دست‌نخوردگی فایل پشتیبان
+if command -v sha256sum >/dev/null 2>&1; then
+  sha256sum "$DEST" > "${DEST}.sha256"
+  echo "چک‌سام: ${DEST}.sha256"
+fi
+
+# ۲) Retention — فقط ۳۰ نسخهٔ آخر (قابل تنظیم با BACKUP_RETENTION_COUNT)
+#    جلوگیری از پر شدن دیسک سرور با cron روزانه
+MAX_BACKUPS="${BACKUP_RETENTION_COUNT:-30}"
+ls -1t "${DEST_DIR}"/ara-*.db 2>/dev/null | tail -n +$((MAX_BACKUPS + 1)) | while read -r oldfile; do
+  rm -f "$oldfile" "${oldfile}.sha256"
+  echo "حذف نسخه قدیمی خارج از سقف نگهداری: ${oldfile}"
+done
 
 echo "پشتیبان ساخته شد: ${DEST}"
 echo "بازیابی: سرویس را متوقف، فایل را به db/custom.db جایگزین، سرویس را اجرا کن"

@@ -26,12 +26,12 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'رمز جدید باید حداقل ۸ نویسه باشد' }, { status: 400 })
     }
     const row = await db.user.findUnique({ where: { id: user.id }, select: { passwordHash: true } })
-    if (!row || !verifyPassword(current, row.passwordHash)) {
+    if (!row || !(await verifyPassword(current, row.passwordHash))) {
       return NextResponse.json({ error: 'رمز فعلی درست نیست' }, { status: 403 })
     }
     await db.user.update({
       where: { id: user.id },
-      data: { passwordHash: hashPassword(body.newPassword), mustChangePassword: false },
+      data: { passwordHash: await hashPassword(body.newPassword), mustChangePassword: false },
     })
     // ابطال واقعی همه نشست‌های دیگر — نشست فعلی حفظ می‌شود (ادعای کامنت خط ۲ حالا عملی است)
     const revoked = await revokeOtherSessions(user.id, req.cookies.get(SESSION_COOKIE)?.value)

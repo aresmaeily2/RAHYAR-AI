@@ -250,6 +250,44 @@ function AutumnScene() {
   )
 }
 
+/** باران آرام — خطوط مورب ایستا + سطح خیس؛ آلفای پایین، صفر هزینه فریم
+ *  (رفع typecheck: تم rain در SCENES ثبت نشده بود) */
+function RainScene() {
+  const drops = [
+    { x: 120, y: 40, len: 46, o: 0.14 },
+    { x: 320, y: -20, len: 60, o: 0.1 },
+    { x: 540, y: 90, len: 40, o: 0.12 },
+    { x: 760, y: -40, len: 56, o: 0.09 },
+    { x: 980, y: 60, len: 44, o: 0.13 },
+    { x: 1200, y: -10, len: 58, o: 0.1 },
+    { x: 1380, y: 110, len: 38, o: 0.12 },
+  ]
+  return (
+    <>
+      <circle cx="240" cy="160" r="200" style={{ fill: 'var(--scene-1)' }} opacity="0.08" filter="url(#scene-soft)" />
+      {drops.map((d, i) => (
+        <line
+          key={i}
+          x1={d.x}
+          y1={d.y}
+          x2={d.x - d.len * 0.28}
+          y2={d.y + d.len}
+          style={{ stroke: 'var(--scene-2)' }}
+          strokeWidth={i % 2 ? 1.5 : 2.5}
+          strokeLinecap="round"
+          opacity={d.o}
+        />
+      ))}
+      <path
+        d="M0 780 C 300 760, 620 800, 940 778 C 1180 762, 1320 792, 1440 780 L1440 900 L0 900 Z"
+        style={{ fill: 'var(--scene-2)' }}
+        opacity="0.09"
+        filter="url(#scene-soft)"
+      />
+    </>
+  )
+}
+
 const SCENES: Record<AraTheme, () => React.ReactNode> = {
   ocean: OceanScene,
   forest: ForestScene,
@@ -259,6 +297,7 @@ const SCENES: Record<AraTheme, () => React.ReactNode> = {
   minimal: MinimalScene,
   sakura: SakuraScene,
   autumn: AutumnScene,
+  rain: RainScene,
 }
 
 /** پنج ذره نور با مسیرهای متفاوت — با transform حرکت می‌کنند (GPU) */

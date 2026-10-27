@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
       data: {
         username: uname,
         displayName,
-        passwordHash: hashPassword(initial),
+        passwordHash: await hashPassword(initial),
         role: 'USER', // مالک فقط از مسیر setup — ایجاد مالک دوم ممنوع
         mustChangePassword: true, // تغییر اجباری رمز در اولین ورود
       },

@@ -14,6 +14,7 @@ import {
 import { addDaysIso, formatJalali, tehranIsoDate, tehranParts } from '@/lib/persian-date'
 import { getUserName } from '@/lib/server-profile'
 import { hasExplicitDeleteVerb, hasExplicitForgetVerb } from '@/lib/security'
+import { validateChatActions } from '@/lib/ai/action-schema'
 
 export { hasExplicitDeleteVerb, hasExplicitForgetVerb }
 
@@ -245,18 +246,39 @@ function parseTime24(s?: string): string | null {
 /** گارد حذف/فراموشی در src/lib/security.ts تعریف شده و از همین‌جا صادر می‌شود */
 
 export async function executeChatActions(
-  rawActions: RawAction[],
+  rawActions: unknown,
   userMessage = '',
   userId = '',
   idempotencyKey: string | null = null,
   lang: AppLang = 'fa',
 ): Promise<ChatAction[]> {
   const results: ChatAction[] = []
-  const list = Array.isArray(rawActions) ? rawActions.slice(0, 8) : []
-  let deletes = 0
-  let forgets = 0
   /** یادداشت کاربرپذیر دوزبانه */
   const note = (fa: string, en: string): string => pick(lang, fa, en)
+
+  // ممیزی ۳۶۰ (OWASP LLM05): گارد اسکیما پیش از اجرا — خروجی مدل هرگز
+  // بدون عبور از Discriminated Union به دیتابیس نمی‌رسد؛ اکشن نامعتبر
+  // اجرا نمی‌شود و به‌عنوان اقدام ناموفق ثبت می‌گردد.
+  const { valid, rejected } = validateChatActions(rawActions)
+  if (rejected > 0) {
+    results.push({
+      type: 'unknown',
+      note: note(
+        `${rejected} اکشن نامعتبر از مدل رد شد`,
+        `${rejected} invalid model action(s) rejected`,
+      ),
+    })
+    await logAction({
+      userId,
+      actionType: 'invalid_action',
+      status: 'failed',
+      detail: `schema validation rejected ${rejected} action(s)`,
+    }).catch(() => {})
+  }
+  const list = valid
+
+  let deletes = 0
+  let forgets = 0
 
   for (const a of list) {
     try {

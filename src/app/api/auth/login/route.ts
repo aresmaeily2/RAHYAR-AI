@@ -40,10 +40,10 @@ export async function POST(req: NextRequest) {
     const user = await db.user.findUnique({ where: { username } })
     if (!user || isSetupPending(user.passwordHash)) {
       // هم‌ترازی زمان: هزینه scrypt حتی وقتی حساب وجود ندارد هم پرداخت می‌شود
-      burnPasswordTiming(password)
+      await burnPasswordTiming(password)
       return NextResponse.json({ error: 'نام کاربری یا رمز اشتباه است' }, { status: 401 })
     }
-    if (!verifyPassword(password, user.passwordHash)) {
+    if (!(await verifyPassword(password, user.passwordHash))) {
       return NextResponse.json({ error: 'نام کاربری یا رمز اشتباه است' }, { status: 401 })
     }
     // حساب غیرفعال توسط مالک → فقط دارندهٔ رمز درست این وضعیت را می‌بیند
