@@ -1,11 +1,31 @@
-# ─── رهیار AI — پروکسی معکوس Caddy (نسخهٔ سخت‌شده ۱٫۲٫۰) ──────
+# ─── رهیار AI — پروکسی معکوس Caddy (نسخهٔ سخت‌شده ۱٫۳٫۰) ──────
 # SECURITY (ممیزی ۳۶۰ درجه — یافتهٔ بحرانی SSRF):
 #   بلوک قبلی @transform_port_query با ?XTransformPort=xxxx هر پورتی از
 #   query-string را به localhost:{port} پروکسی می‌کرد → حملهٔ SSRF به
 #   سرویس‌های داخلی (دیتابیس، Ollama محلی، پنل‌های مدیریتی).
 #   بلوک به‌طور کامل حذف شد؛ هیچ پروکسی دینامیکِ کنترل‌شده توسط کلاینت
 #   باقی نمی‌ماند. اگر سرویس کمکی لازم شد، فقط با بلوک ثابتِ سفیدلیست‌شده.
+#
+# سخت‌سازی لبه (ممیزی ۳۶۰ — یافتهٔ ۱، ادامه):
+#   request_body max_size 1MB → مهار بدنه در لبه، پیش از رسیدن به Node/Bun
+#     (تست‌شده با مسیرهای API: readJsonSafe سمت اپ سقف ۱۰۰KB دارد؛ هیچ مسیر
+#     آپلود چندبخشی در پروژه وجود ندارد → ۱MB حاشیهٔ امن کافی است).
+#   encode zstd gzip → فشرده‌سازی پاسخ برای کلاینت موبایل/PWA؛
+#     رویداد SSE (text/event-stream) صریحاً مستثنا شد تا استریم چت بافر نشود.
+#   flush_interval -1 → جریان SSE بلافاصله flush شود (بدون تأخیر بافر پروکسی).
 :81 {
+	# مهار اندازه بدنه در لبهٔ پروکسی — جلوگیری از DoS پیش از اپلیکیشن
+	request_body {
+		max_size 1MB
+	}
+
+	# فشرده‌سازی پاسخ‌ها — به‌جز استریم رویدادهای سرور (چت)
+	encode zstd gzip {
+		match {
+			not header Content-Type text/event-stream*
+		}
+	}
+
 	# سفیدلیست ثابت برای سرویس وب‌سوکت آینده — پورت ثابت، بدون ورودی کلاینت
 	@wsservice {
 		path /ws/*
@@ -23,6 +43,9 @@
 			header_up X-Forwarded-For {remote_host}
 			header_up X-Forwarded-Proto {scheme}
 			header_up X-Real-IP {remote_host}
+
+			# پایداری استریم SSE (/api/chat/stream) — flush فوری هر رویداد
+			flush_interval -1
 		}
 	}
 }

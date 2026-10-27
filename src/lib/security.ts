@@ -2,7 +2,9 @@
 // مطابق OWASP Top 10 برای اپلیکیشن‌های LLM (۲۰۲۵):
 //   LLM10 مصرف بی‌کران → Rate Limiter
 //   پایه ASVS → Same-Origin گارد برای متدهای تغییردهنده
+import crypto from 'node:crypto'
 import { NextRequest } from 'next/server'
+import { SESSION_COOKIE } from '@/lib/auth'
 
 // ── محدودساز نرخ پنجره‌ای لغزان (درون‌حافظه‌ای، تک‌نمونه‌ای) ───────
 type Bucket = { hits: number[] }
@@ -31,17 +33,34 @@ function sweep(now: number) {
 // RT-1 (اصلاح Red Team): پیش‌فرض قبلی «اعتماد» بود و مهاجم با X-Forwarded-For
 // جعلی کلید نرخ هر IP را آزادانه عوض می‌کرد (تست زنده: ۱۲/۱۲ دور زدن سقف ورود).
 // اکنون fail-closed: فقط با TRUST_PROXY_HEADERS=1 صریح (پشت پروکسی مورد اعتماد
-// مثل Caddy) سرآیندها خوانده می‌شوند؛ وگرنه همه کلاینت‌ها کلید «local» می‌گیرند.
+// مثل Caddy) سرآیندها خوانده می‌شوند.
+//
+// ممیزی ۳۶۰ (یافتهٔ Self-DoS): اگر TRUST_PROXY_HEADERS=1 فراموش شود، قبلاً همه
+// کاربران اینترنت در سطل مشترک «local» ترکیب می‌شدند و ۱۰ تلاش ناموفق مهاجم
+// ورود مالک واقعی را هم قفل می‌کرد. اکنون درخواست‌های دارای کوکی نشست با
+// اثرانگشت هش‌شدهٔ کوکی (۱۲ نویسهٔ اول SHA-256) در سطل جداگانه می‌روند؛
+// کاربر معتبر دیگر قربانی سطل مهاجم ناشناس نمی‌شود.
 const TRUST_PROXY = process.env.TRUST_PROXY_HEADERS === '1'
 
-/** کلید کلاینت: IP از سرآیندهای پروکسی مورد اعتماد + مسیر هدف */
+/** کلید کلاینت: IP از سرآیندهای پروکسی مورد اعتماد + مسیر هدف؛
+ *  در نبود پروکسی مورد اعتماد، اثرانگشت کوکی نشست به‌جای IP مشترک */
 export function clientKey(req: NextRequest): string {
-  const ip = TRUST_PROXY
-    ? req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+  const pathname = new URL(req.url).pathname
+  if (TRUST_PROXY) {
+    const ip =
+      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
       req.headers.get('x-real-ip') ||
-      'local'
-    : 'local'
-  return `${ip}::${new URL(req.url).pathname}`
+      'unknown-ip'
+    return `${ip}::${pathname}`
+  }
+  // Fallback امن بدون اعتماد به سرآیندهای قابل جعل:
+  // کاربران دارای کوکی نشست در سبت «sess:» جدا می‌شوند تا با ترافیک ناشناس ترکیب نشوند.
+  const sessionCookie = req.cookies.get(SESSION_COOKIE)?.value
+  if (sessionCookie) {
+    const tokenFp = crypto.createHash('sha256').update(sessionCookie).digest('hex').slice(0, 12)
+    return `sess:${tokenFp}::${pathname}`
+  }
+  return `local::${pathname}`
 }
 
 /**
@@ -205,9 +224,13 @@ export async function readJsonSafe(req: NextRequest): Promise<unknown> {
 }
 
 // ── گاردهای عاملیت چت (OWASP LLM06) ─────────────────────────────
-/** حذف کار فقط با فعل صریح در پیام کاربر — تزریق غیرمستقیم نمی‌تواند حذف کند */
+/** حذف کار فقط با فعل صریح در پیام کاربر — تزریق غیرمستقیم نمی‌تواند حذف کند.
+ *  ممیزی ۳۶۰ (اصلاح باگ «رسمش کن»): کلمهٔ «رسمش کن» با «رسم کردن نمودار/شکل»
+ *  تداخل داشت و به‌اشتباه مجوز حذف صادر می‌کرد (مثلاً «نمودار را رسمش کن») — حذف شد.
+ *  مرز کلمه‌ای دوطرفه اضافه شد تا «حذف کنترل‌ها» (کن‌ترل) مجوز ندهد؛
+ *  نیم‌فاصله (U+200C) بین اجزای فعل هم پذیرفته می‌شود («حذف‌کن»). */
 export function hasExplicitDeleteVerb(userMessage: string): boolean {
-  return /حذف\s*کن|پاک\s*کن|حذفش\s*کن|بنداز\s*دور|رسمش\s*کن|از\s*لیست\s*درش\s*بیار|delete/i.test(
+  return /(?:^|[\s.,،؛:!؟?])(?:حذف[\s\u200c]*کن|پاک[\s\u200c]*کن|حذفش[\s\u200c]*کن|پاکش[\s\u200c]*کن|بنداز[\s\u200c]*دور|از[\s\u200c]*لیست[\s\u200c]*درش[\s\u200c]*بیار|delete|remove)(?:$|[\s.,،؛:!؟?])/i.test(
     userMessage,
   )
 }

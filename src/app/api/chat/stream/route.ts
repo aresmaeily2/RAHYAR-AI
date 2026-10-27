@@ -146,8 +146,11 @@ export async function POST(req: NextRequest) {
         })
         reply = replyTaskList(lang, rows.map((t) => t.title))
       }
+      // ممیزی ۳۶۰ (یافتهٔ ۵): در مسیر قطعی followups/sources تولید نمی‌شوند (همیشه خالی)،
+      // پس ذخیره فقط به وجود اکشن وابسته است — شرط معادل hasMetadata.
+      const hasMetadata = actions.length > 0
       const assistantMsg = await db.chatMessage.create({
-        data: { userId, role: 'assistant', content: reply, actions: actions.length ? JSON.stringify({ actions, followups: [], sources: [] }) : null },
+        data: { userId, role: 'assistant', content: reply, actions: hasMetadata ? JSON.stringify({ actions, followups: [], sources: [] }) : null },
       })
 
       const encoder0 = new TextEncoder()
@@ -396,12 +399,15 @@ export async function POST(req: NextRequest) {
         }
 
         try {
+          // ممیزی ۳۶۰ (یافتهٔ ۵): قبلاً اگر actions خالی بود، followups و sources هم
+          // (با وجود تولید‌شدن) null ذخیره می‌شدند و پس از رفرش صفحه از بین می‌رفتند.
+          const hasMetadata = actions.length > 0 || followups.length > 0 || sources.length > 0
           const assistantMsg = await db.chatMessage.create({
             data: {
               userId,
               role: 'assistant',
               content: reply,
-              actions: actions.length ? JSON.stringify({ actions, followups, sources }) : null,
+              actions: hasMetadata ? JSON.stringify({ actions, followups, sources }) : null,
             },
           })
           assistantId = assistantMsg.id

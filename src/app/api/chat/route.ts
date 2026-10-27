@@ -145,8 +145,11 @@ export async function POST(req: NextRequest) {
         })
         reply = replyTaskList(lang, rows.map((t) => t.title))
       }
+      // ممیزی ۳۶۰ (یافتهٔ ۵): مسیر قطعی — followups/sources تولید نمی‌شوند؛
+      // ذخیره فقط به وجود اکشن وابسته است (الگوی hasMetadata هماهنگ با مسیر LLM).
+      const hasMetadata = actions.length > 0
       const assistantMsg = await db.chatMessage.create({
-        data: { userId: user.id, role: 'assistant', content: reply, actions: actions.length ? JSON.stringify({ actions, followups: [], sources: [] }) : null },
+        data: { userId: user.id, role: 'assistant', content: reply, actions: hasMetadata ? JSON.stringify({ actions, followups: [], sources: [] }) : null },
       })
       return NextResponse.json({
         userMessage: serializeMessage(userMsg),

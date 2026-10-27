@@ -66,11 +66,17 @@ async function tick(): Promise<void> {
 
     // ۳) respawn تکرارشونده‌ها — یک تیک بعد از بوت (بازیابی پس از ری‌استارت)
     //    و سپس هر ۶۰ تیک (یک‌بار در ساعت)
+    //    ممیزی ۳۶۰ (رفع N+1 جدول User): فقط کاربرانی که واقعاً کار تکرارشونده
+    //    دارند کوئری می‌شوند (distinct روی Task) — نه اسکن کل جدول User.
     respawnCounter = (respawnCounter + 1) % 60
     if (respawnCounter === 1) {
-      const users = await db.user.findMany({ select: { id: true } })
-      for (const u of users) {
-        await respawnRecurringTasks(u.id).catch(() => {})
+      const usersWithRecurring = await db.task.findMany({
+        where: { repeat: { in: ['daily', 'weekly'] } },
+        select: { userId: true },
+        distinct: ['userId'],
+      })
+      for (const { userId } of usersWithRecurring) {
+        await respawnRecurringTasks(userId).catch(() => {})
       }
     }
   } catch (e) {

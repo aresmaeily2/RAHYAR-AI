@@ -55,6 +55,19 @@ describe('گاردهای عاملیت چت (OWASP LLM06)', () => {
     expect(hasExplicitDeleteVerb('سلام، حالت چطوره؟')).toBe(false)
   })
 
+  test('ممیزی ۳۶۰: باگ «رسمش کن» و مرز کلمه‌ای — رگرسیون', () => {
+    // «رسمش کن» با رسم نمودار/شکل تداخل داشت و نباید مجوز حذف بدهد
+    expect(hasExplicitDeleteVerb('نمودار را رسمش کن')).toBe(false)
+    expect(hasExplicitDeleteVerb('یه نمودار برای فروش رسمش کن')).toBe(false)
+    // مرز کلمه‌ای: «حذف» درون «حذف کنترل‌ها» مجوز حذف نیست (کن‌ترل ≠ کن)
+    expect(hasExplicitDeleteVerb('حذف کنترل‌های صوتی')).toBe(false)
+    // نیم‌فاصله (ZWNJ) بین اجزای فعل هم فعل صریح است
+    expect(hasExplicitDeleteVerb('این کار رو حذف\u200cکن')).toBe(true)
+    expect(hasExplicitDeleteVerb('حذفش کن')).toBe(true)
+    expect(hasExplicitDeleteVerb('فایل رو بنداز دور')).toBe(true)
+    expect(hasExplicitDeleteVerb('remove it')).toBe(true)
+  })
+
   test('فراموشی حافظه فقط با فعل صریح پذیرفته شود (رفع M5)', () => {
     expect(hasExplicitForgetVerb('یادم بنداز فردا تماس بگیرم')).toBe(false) // یادم بنداز ≠ فراموشی
     expect(hasExplicitForgetVerb('اینو از حافظه پاک کن')).toBe(true)
