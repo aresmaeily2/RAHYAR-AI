@@ -109,7 +109,12 @@ export function rateLimit(req: NextRequest, limit: number, windowMs: number): Ra
 export function rateLimitKeyed(key: string, limit: number, windowMs: number): RateResult {
   const now = Date.now()
   sweep(now)
-  const bucket = buckets.get(key) ?? { hits: [] }
+  // ممیزی ۳۶۰ (LRU): حذف و درج مجدد، ترتیب Map را بازآرایی می‌کند تا
+  // مسیر eviction پایین، «کم‌استفاده‌ترین» سبد را حذف کند نه قدیمی‌ترینِ ورود را؛
+  // سبد فعال (کاربر واقعی در حال استفاده) هرگز قربانی سیل کلیدهای جعلی نمی‌شود.
+  const existing = buckets.get(key)
+  buckets.delete(key)
+  const bucket = existing ?? { hits: [] }
   bucket.hits = bucket.hits.filter((t) => now - t < windowMs)
   if (bucket.hits.length >= limit) {
     const oldest = bucket.hits[0] ?? now
@@ -119,7 +124,7 @@ export function rateLimitKeyed(key: string, limit: number, windowMs: number): Ra
   bucket.hits.push(now)
   buckets.set(key, bucket)
   // GRAND-F4 (SEC-F3): مهار حافظه در برابر کلیدهای بی‌پایان (مثل XFF جعلی وقتی
-  // TRUST_PROXY=1 است) — FIFO: قدیمی‌ترین سبد حذف می‌شود؛ هرس دوره‌ای هم فعال است
+  // TRUST_PROXY=1 است) — LRU: کم‌استفاده‌ترین سبد حذف می‌شود؛ هرس دوره‌ای هم فعال است
   if (buckets.size > MAX_BUCKETS) {
     const oldestKey = buckets.keys().next().value
     if (oldestKey !== undefined) buckets.delete(oldestKey)
