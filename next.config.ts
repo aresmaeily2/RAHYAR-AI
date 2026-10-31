@@ -21,6 +21,9 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // پیش‌نمایش Workspace: اجازهٔ بارگذاری منابع dev از دامنهٔ Preview و لوکال‌هاست
+  // (رفع انسداد /_next/* در Next 16 برای host های غیر localhost — فقط اثر dev)
+  allowedDevOrigins: ["localhost", "*.localhost", "127.0.0.1", "*.space-z.ai"],
   async headers() {
     return [
       {
