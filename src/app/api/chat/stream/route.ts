@@ -191,6 +191,23 @@ export async function POST(req: NextRequest) {
       const assistantMsg = await db.chatMessage.create({
         data: { userId, role: 'assistant', content: reply },
       })
+      // B-4 (R2): شاخهٔ محلی هم ردیف مصرف بنویسد — قبلاً بدون فراداده می‌ماند
+      try {
+        const { recordStreamUsage: rsu } = await import('@/lib/ai/gateway')
+        void rsu({
+          route: '/api/chat/stream',
+          task: 'chat',
+          userId,
+          inChars: message.length,
+          outBytes: reply.length,
+          latencyMs: 0,
+          status: 'ok',
+          provider: 'local_rules',
+          model: 'local_rules',
+        }).catch(() => {})
+      } catch {
+        /* فقط فراداده — هرگز مسیر اصلی را نمی‌شکند */
+      }
       const encoderL = new TextEncoder()
       const streamL = new ReadableStream({
         start(controller) {
@@ -320,8 +337,15 @@ export async function POST(req: NextRequest) {
         // GRAND-F5 (2-b#10): فرادادهٔ واقعی مصرف — مدل از payload و وضعیت خطا
         let modelLabel = ''
         let streamFailed = false
+        let abortCleanup: (() => void) | null = null
         try {
           const reader = upstream.getReader()
+          // B-14 (R2): قطع سمت کلاینت → قطع واقعی استریم بالادست (مهار هزینه مدل)
+          const onAbort = () => {
+            void reader.cancel().catch(() => {})
+          }
+          req.signal?.addEventListener('abort', onAbort)
+          abortCleanup = () => req.signal?.removeEventListener('abort', onAbort)
           const decoder = new TextDecoder()
           let buf = ''
           while (true) {
@@ -362,6 +386,8 @@ export async function POST(req: NextRequest) {
           // اگر استریم وسط کار قطع شد، با همان raw ادامه می‌دهیم
           streamFailed = true
         }
+        // B-14 (R2): پاک‌سازی شنوندهٔ قطع پس از پایان مصرف استریم
+        if (abortCleanup) abortCleanup()
 
         // ثبت مصرف استریم — فقط فراداده، بدون محتوای خصوصی
         void recordStreamUsage({

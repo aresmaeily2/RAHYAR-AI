@@ -11,6 +11,13 @@ server.log
 .env
 .env.*
 !.env.example
+# D-7 (R2): مواد محرمانه/لوکال از context بیلد خارج باشند
+artifacts
+.evidence-password
+.evidence-session-token
+release-delivery
+vault
+*.keystore
 download
 upload
 docs

@@ -10,7 +10,11 @@ const db = new PrismaClient()
 const PREVIEW_DIR = '/home/z/my-project/artifacts/preview'
 const USERNAME = 'owner'
 const DISPLAY_NAME = 'کاربر رهیار'
-const PASSWORD = 'REDACTED_C1'
+const PASSWORD = process.env.RAHYAR_PREVIEW_OWNER_PASSWORD ?? ''
+if (!PASSWORD) {
+  console.error('preview-setup: RAHYAR_PREVIEW_OWNER_PASSWORD missing (fail-closed, R2)')
+  process.exit(2)
+}
 
 mkdirSync(PREVIEW_DIR, { recursive: true })
 

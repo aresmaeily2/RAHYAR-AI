@@ -22,7 +22,6 @@ const ROOT_FILES = [
   'tailwind.config.ts',
   '.env.example',
   'README.md',
-  'worklog.md',
   '.gitignore',
 ]
 const INCLUDE_SCRIPTS = ['scripts/backup-db.sh', 'scripts/test-user-isolation.ts']

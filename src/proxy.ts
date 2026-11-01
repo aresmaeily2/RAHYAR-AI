@@ -22,7 +22,11 @@ import { NextRequest, NextResponse } from 'next/server'
  *  - API بدون کوکی (به‌جز مسیرهای عمومی) → 401 JSON
  */
 
-const SESSION_COOKIE = 'rahyar_session'
+// F-4 (R2): هماهنگ با src/lib/auth.ts — پیشوند __Host- فقط در تولید با فلگ صریح
+const SESSION_COOKIE =
+  process.env.NODE_ENV === 'production' && process.env.RAHYAR_COOKIE_HOST_PREFIX === '1'
+    ? '__Host-rahyar_session'
+    : 'rahyar_session'
 
 // مسیرهای عمومی — بدون نیاز به نشست
 const PUBLIC_PREFIXES = [

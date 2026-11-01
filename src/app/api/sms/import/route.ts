@@ -54,9 +54,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'حساب مقصد را انتخاب کن' }, { status: 400 })
     }
 
+    // B-11 (R2): پیش‌فرض فقط تراکنش‌های با اطمینان بالا (≥۰٫۹) — همسو با قرارداد پارسر
     const selected = Array.isArray(body?.selected)
       ? (body.selected as unknown[]).map(Number).filter((n) => Number.isInteger(n))
-      : transactions.map((_, i) => i)
+      : transactions
+          .map((t, i) => ({ t, i }))
+          .filter(({ t }) => (t?.confidence ?? 0) >= 0.9)
+          .map(({ i }) => i)
 
     const results: Array<{ index: number; id: string; duplicate: boolean }> = []
     for (const index of selected) {

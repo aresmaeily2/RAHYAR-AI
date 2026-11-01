@@ -11,7 +11,13 @@ import { db } from '@/lib/db'
 import crypto from 'crypto'
 import type { NextRequest, NextResponse } from 'next/server'
 
-export const SESSION_COOKIE = 'rahyar_session'
+// F-4 (R2): پیشوند __Host- در تولید فقط با فلگ صریح (نیازمند HTTPS در لبه) —
+// کوکی با Secure + path=/ و بدون Domain ست می‌شود؛ در استقرار HTTP خام
+// مرورگر کوکی __Host- را می‌اندازد، بنابراین پیش‌فرض خاموش می‌ماند.
+export const SESSION_COOKIE =
+  process.env.NODE_ENV === 'production' && process.env.RAHYAR_COOKIE_HOST_PREFIX === '1'
+    ? '__Host-rahyar_session'
+    : 'rahyar_session'
 export const SESSION_TTL_MS = 30 * 24 * 3600 * 1000 // ۳۰ روز
 export const SETUP_SENTINEL = 'SETUP_REQUIRED'
 

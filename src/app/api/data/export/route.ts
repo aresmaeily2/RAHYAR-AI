@@ -8,7 +8,8 @@ import { rateLimit, tooManyRequests, sameOriginOk, forbiddenOrigin } from '@/lib
  * نباید در فایل خروجی عمومیِ داده plaintext بیاید — کاربر ممکن است فایل را
  * برای اشتراک‌گذاری/پشتیبان ارسال کند. کلید از خروجی حذف می‌شود.
  */
-const SECRET_SETTING_KEYS = new Set(['ai_endpoint_key'])
+// F-6 (R2): URL اندپوینت مدل هم پیکربندی شخصی است — از خروجی پرتابل حذف می‌شود
+const SECRET_SETTING_KEYS = new Set(['ai_endpoint_key', 'ai_endpoint_url'])
 
 /**
  * خروجی داده کاربر — JSON خوانا از همه محتوای خودش:

@@ -133,7 +133,14 @@ function parseMessage(block: string, rawLine: string): ParsedSms | null {
     if (m) {
       amount = parseAmount(m[1])
       if (amount > 0) {
-        explicitToman = /تومان/.test(line) && !/ریال/.test(line)
+        // B-2 (R2): واحد از همسایگیِ «همان مبلغ» تعیین می‌شود، نه از کل پیامک —
+        // پیامک‌های ترکیبی «برداشت … تومان … موجودی … ریال» قبلاً ضریب ×۱۰ را
+        // از دست می‌دادند و مبلغ ۱۰ برابر کمتر ثبت می‌شد.
+        const idx = m.index ?? 0
+        const near = `${m[0]} ${line.slice(idx + m[0].length, idx + m[0].length + 14)}`
+        if (/تومان/.test(near)) explicitToman = true
+        else if (/ریال/.test(near)) explicitToman = false
+        else explicitToman = /تومان/.test(line) && !/ریال/.test(line)
         break
       }
     }
@@ -157,25 +164,46 @@ function parseMessage(block: string, rawLine: string): ParsedSms | null {
     let y = 0
     let mo = 0
     let d = 0
+    let gregorian = false
     if (a >= 1300 && a <= 1500) {
+      // جلالی yyyy/mm/dd (مثلاً 1404/07/09)
       y = a
       mo = b
       d = c
     } else if (c >= 1300 && c <= 1500) {
+      // جلالی dd/mm/yyyy
       y = c
       mo = b
       d = a
+    } else if (a > 31) {
+      // B-1 (R2): میلادی yyyy/mm/dd (مثلاً 2025/10/01) — قبلاً به شاخهٔ
+      // «بدون سال» می‌افتاد و با clamp ماه به ۱۲ و روز به ۱۰، تراکنش ~۱۴ ماه
+      // در آینده ثبت می‌شد
+      y = a
+      mo = b
+      d = c
+      gregorian = true
+    } else if (c > 31) {
+      // میلادی dd/mm/yyyy
+      y = c
+      mo = b
+      d = a
+      gregorian = true
     } else {
+      // بدون سال کامل — سال جاری
       mo = a
       d = b
       y = new Date().getFullYear()
+      gregorian = true
     }
-    if (y >= 1300 && y <= 1500) {
+    mo = Math.min(Math.max(mo, 1), 12)
+    d = Math.min(Math.max(d, 1), 31)
+    if (gregorian && y > 1000) {
+      occurredAt = new Date(y, mo - 1, d)
+    } else if (!gregorian && y >= 1300 && y <= 1500) {
       occurredAt = jalaliToGregorian(y, mo, d)
-    } else {
-      occurredAt = new Date(y, Math.min(mo, 12) - 1, Math.min(d, 31))
     }
-    if (tm) {
+    if (occurredAt && tm) {
       occurredAt.setHours(Math.min(Number(tm[1]), 23), Math.min(Number(tm[2]), 59), 0, 0)
     }
   }

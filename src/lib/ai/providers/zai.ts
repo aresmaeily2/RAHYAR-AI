@@ -81,35 +81,51 @@ export const zaiProvider: AIProvider = {
 
   async chat(messages: LlmMessage[], _ctx: ProviderCallContext): Promise<ProviderChatResult> {
     const client = await getClient()
-    const res = (await Promise.race([
-      client.chat.completions.create({
-        messages: toSdkMessages(messages),
-        thinking: { type: 'disabled' },
-      }),
-      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), TIMEOUT_MS)),
-    ])) as {
-      choices?: Array<{ message?: { content?: string } }>
-      model?: string
+    // B-12 (R2): تایمر timeout بعد از موفقیت پاک می‌شود — قبلاً رها می‌شد
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+      const res = (await Promise.race([
+        client.chat.completions.create({
+          messages: toSdkMessages(messages),
+          thinking: { type: 'disabled' },
+        }),
+        new Promise((_, rej) => {
+          timer = setTimeout(() => rej(new Error('timeout')), TIMEOUT_MS)
+        }),
+      ])) as {
+        choices?: Array<{ message?: { content?: string } }>
+        model?: string
+      }
+      const text = res?.choices?.[0]?.message?.content ?? ''
+      if (!text.trim()) throw new ProviderConfigError('مدل میزبان پاسخ خالی برگرداند')
+      return { text, model: res?.model ? String(res.model) : ZAI_MODEL_LABEL }
+    } finally {
+      if (timer) clearTimeout(timer)
     }
-    const text = res?.choices?.[0]?.message?.content ?? ''
-    if (!text.trim()) throw new ProviderConfigError('مدل میزبان پاسخ خالی برگرداند')
-    return { text, model: res?.model ? String(res.model) : ZAI_MODEL_LABEL }
   },
 
   async stream(messages: LlmMessage[], _ctx: ProviderCallContext): Promise<ReadableStream<Uint8Array>> {
     const client = await getClient()
-    const body = (await Promise.race([
-      client.chat.completions.create({
-        messages: toSdkMessages(messages),
-        stream: true,
-        thinking: { type: 'disabled' },
-      }),
-      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), TIMEOUT_MS)),
-    ])) as ReadableStream<Uint8Array> | unknown
-    if (!(body instanceof ReadableStream)) {
-      throw new ProviderConfigError('مدل میزبان استریم خالی برگرداند')
+    // B-12 (R2): پاک‌سازی تایمر در هر دو مسیر موفقیت/خطا
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+      const body = (await Promise.race([
+        client.chat.completions.create({
+          messages: toSdkMessages(messages),
+          stream: true,
+          thinking: { type: 'disabled' },
+        }),
+        new Promise((_, rej) => {
+          timer = setTimeout(() => rej(new Error('timeout')), TIMEOUT_MS)
+        }),
+      ])) as ReadableStream<Uint8Array> | unknown
+      if (!(body instanceof ReadableStream)) {
+        throw new ProviderConfigError('مدل میزبان استریم خالی برگرداند')
+      }
+      return body
+    } finally {
+      if (timer) clearTimeout(timer)
     }
-    return body
   },
 }
 

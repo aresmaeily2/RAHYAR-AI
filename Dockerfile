@@ -13,7 +13,7 @@
 # RAHYAR_ALLOW_OPEN_SETUP را هرگز 1 نکنید.
 
 # ── Stage 1: وابستگی‌ها ──────────────────────────────────────
-FROM oven/bun:1.2-alpine AS deps
+FROM oven/bun:1.3-alpine AS deps
 WORKDIR /app
 # openssl برای موتور Prisma روی musl (alpine) لازم است
 RUN apk add --no-cache openssl
@@ -23,7 +23,7 @@ RUN bun install --frozen-lockfile
 RUN bun run db:generate
 
 # ── Stage 2: بیلد ────────────────────────────────────────────
-FROM oven/bun:1.2-alpine AS builder
+FROM oven/bun:1.3-alpine AS builder
 WORKDIR /app
 RUN apk add --no-cache openssl
 COPY --from=deps /app/node_modules ./node_modules

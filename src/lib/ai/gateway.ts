@@ -16,6 +16,7 @@ import { db } from '@/lib/db'
 import { extractJson, type LlmMessage } from '@/lib/ai'
 import { resolveEngine } from './providers/registry'
 import { ProviderCapabilityError, ProviderConfigError } from './providers/types'
+import { tehranDayStart, tehranMonthStart } from '@/lib/persian-date'
 
 // ── پیکربندی سقف‌ها (env با پیش‌فرض محافظه‌کار) ──────────────
 export interface QuotaLimits {
@@ -148,16 +149,16 @@ export interface GatewayResult {
   latencyMs: number
 }
 
-async function countUsage(userId: string): Promise<QuotaUsage> {
-  const dayStart = new Date()
-  dayStart.setHours(0, 0, 0, 0)
-  const monthStart = new Date()
-  monthStart.setDate(1)
-  monthStart.setHours(0, 0, 0, 0)
+async function countUsage(userId: string, providerId: string): Promise<QuotaUsage> {
+  // B-8 (R2): مرز «روز/ماه» به وقت تهران — قبلاً نیمه‌شبِ سرور بود (روی میزبان UTC
+  // یعنی بازنشانی ۰۳:۳۰ تهران). B-3 (R2): فقط ردیف‌های همان ارائه‌دهندهٔ
+  // سهمیه‌دار شمرده می‌شوند — قبلاً ردیف‌های موتورهای رایگان هم در سقف مدل می‌رفت.
+  const dayStart = tehranDayStart()
+  const monthStart = tehranMonthStart()
   const [userToday, userMonth, systemToday] = await Promise.all([
-    db.aiUsage.count({ where: { userId, status: 'ok', createdAt: { gte: dayStart } } }),
-    db.aiUsage.count({ where: { userId, status: 'ok', createdAt: { gte: monthStart } } }),
-    db.aiUsage.count({ where: { status: 'ok', createdAt: { gte: dayStart } } }),
+    db.aiUsage.count({ where: { userId, status: 'ok', provider: providerId, createdAt: { gte: dayStart } } }),
+    db.aiUsage.count({ where: { userId, status: 'ok', provider: providerId, createdAt: { gte: monthStart } } }),
+    db.aiUsage.count({ where: { status: 'ok', provider: providerId, createdAt: { gte: dayStart } } }),
   ])
   return { userToday, userMonth, systemToday }
 }
@@ -243,7 +244,7 @@ export async function gatewayRun(req: GatewayRequest): Promise<GatewayResult> {
 
   // سهمیه فقط برای Providerهای سهمیه‌دار (مدل میزبان) شمرده می‌شود
   if (provider.consumesQuota) {
-    const usage = await countUsage(req.userId)
+    const usage = await countUsage(req.userId, provider.id)
     const decision = quotaDecision(usage, limits)
     if (!decision.allow) {
       await recordUsage({
@@ -329,7 +330,7 @@ export async function gatewayRunStream(
   if (inChars > limits.maxInputChars) throw new GatewayProviderError()
 
   if (provider.consumesQuota) {
-    const usage = await countUsage(req.userId)
+    const usage = await countUsage(req.userId, provider.id)
     const decision = quotaDecision(usage, limits)
     if (!decision.allow) {
       await recordUsage({

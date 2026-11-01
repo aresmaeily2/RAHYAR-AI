@@ -163,8 +163,20 @@ export function sameOriginOk(req: NextRequest): boolean {
   const origin = req.headers.get('origin')
   if (!origin) return true
   try {
-    const host = req.headers.get('host')
-    return new URL(origin).host === host
+    const originHost = new URL(origin).host
+    if (originHost === req.headers.get('host')) return true
+    // D-1 (مأموریت R2): پشت لبهٔ پروکسی Preview، مرورگر Origin عمومی
+    // (https://…space-z.ai) می‌فرستد ولی درخواست با Host داخلی می‌رسد؛
+    // تطابق صرف Host → 403 برای هر POST مرورگر از مسیر Preview.
+    // فقط وقتی TRUST_PROXY_HEADERS=1 صریح است (استقرار عمداً پشت پروکسی
+    // مدیریت‌شده)، X-Forwarded-Hostِ تنظیم‌شدهٔ پروکسی هم پذیرفته می‌شود؛
+    // بدون فلگ، رفتار fail-closed قبلی حفظ می‌شود. ردِ Sec-Fetch-Site:
+    // cross-site بالاتر سر جایش است (دفاع CSRF دوم دست‌نخورده).
+    if (TRUST_PROXY) {
+      const xfh = (req.headers.get('x-forwarded-host') ?? '').split(',')[0]?.trim()
+      if (xfh && originHost === xfh) return true
+    }
+    return false
   } catch {
     return false
   }

@@ -30,6 +30,8 @@ rsync -a \
   --exclude 'mini-services/' --exclude '.env' --exclude '*.db' --exclude '*.log' \
   --exclude '*.tsbuildinfo' --exclude '.gradle/' --exclude 'android/app/build/' \
   --exclude 'worklog.md' --exclude 'dev.log' --exclude 'server.log' \
+  --exclude '.evidence-password' --exclude '.evidence-session-token' \
+  --exclude '*.keystore' --exclude '*.jks' --exclude 'vault/' \
   "$ROOT/" "$STAGE/RahyAr-AI/"
 
 # ۳) مانیفست داخل بسته

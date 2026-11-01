@@ -60,6 +60,9 @@ function serializeMessage(m: {
 }
 
 export async function GET(req: NextRequest) {
+  // F-2 (R2): GET هم سقف نرخ دارد (سایر GETهای هم‌خانواده سقف دارند؛ این یکی جا مانده بود)
+  const rl0 = rateLimit(req, 60, 60_000)
+  if (!rl0.ok) return tooManyRequests(rl0)
   try {
     const user = await requireUser(req)
     const count = await db.chatMessage.count({ where: { userId: user.id } })
@@ -201,6 +204,10 @@ export async function POST(req: NextRequest) {
     ]
 
     // ۳) فراخوانی مدل — فقط از Gateway مرکزی
+    // B-5 (R2): mode بازتابی از موتور واقعی resolve‌شده باشد، نه همیشه 'model'
+    const { resolveEngine } = await import('@/lib/ai/providers/registry')
+    const eng = await resolveEngine(user.id)
+    const mode: 'model' | 'local_rules' = eng.engine === 'local_rules' ? 'local_rules' : 'model'
     let reply = ''
     let actions: ChatAction[] = []
     let followups: string[] = []
@@ -246,7 +253,7 @@ export async function POST(req: NextRequest) {
       userMessage: serializeMessage(userMsg),
       assistantMessage: serializeMessage(assistantMsg),
       actions,
-      mode: 'model',
+      mode,
     })
   } catch (e) {
     if (e instanceof AuthRequiredError) return unauthorizedResponse()

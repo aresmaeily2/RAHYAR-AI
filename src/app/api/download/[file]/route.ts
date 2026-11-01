@@ -6,6 +6,7 @@
 import { NextRequest } from 'next/server'
 import fs from 'fs'
 import path from 'path'
+import { rateLimit, tooManyRequests } from '@/lib/security'
 
 // سفید‌لیست دقیق — فقط این نام‌فایل‌ها قابل دانلودند
 const WHITELIST: Record<string, string> = {
@@ -21,9 +22,12 @@ const WHITELIST: Record<string, string> = {
 const DOWNLOAD_DIR = path.resolve(process.cwd(), 'download')
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ file: string }> },
 ) {
+  // B-9 (R2): مسیر عمومی بود ولی سقف نرخ نداشت — مهار تخلیهٔ پهنای باند
+  const rl = rateLimit(req, 30, 60_000)
+  if (!rl.ok) return tooManyRequests(rl)
   const { file } = await params
   const mime = WHITELIST[file]
   if (!mime) {

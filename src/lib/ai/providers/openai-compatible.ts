@@ -46,7 +46,9 @@ async function postChat(
   const ips = await lookup(target.hostname.replace(/^\[|\]$/g, ''), { all: true })
     .then((r) => r.map((x) => x.address))
     .catch(() => [] as string[])
-  const allowPrivate = process.env.AI_ALLOW_PRIVATE_ENDPOINTS !== '0'
+  // F-1 (R2): پیش‌فرض fail-closed — میزبان‌های خصوصی فقط با AI_ALLOW_PRIVATE_ENDPOINTS=1
+  // (استقرار عمومی چندکاربره دیگر پیش‌فرض باز ندارد؛ Ollama محلی = فلگ صریح)
+  const allowPrivate = process.env.AI_ALLOW_PRIVATE_ENDPOINTS === '1'
   if (!endpointHostAllowed(target.hostname, ips, allowPrivate)) {
     throw new ProviderConfigError('این آدرس Endpoint به دلایل امنیتی مجاز نیست')
   }

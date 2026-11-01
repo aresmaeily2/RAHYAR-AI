@@ -106,3 +106,9 @@ package-lock.json
 # ─── امضای release — هرگز وارد مخزن نمی‌شود ───
 /android/keystore/
 /android/keystore.properties
+
+# R2: مواد محرمانه فقط-لوکال — هرگز tracked نمی‌شوند (گارد pre-push هم فعال است)
+.evidence-password
+.evidence-session-token
+android/rahyar-release.keystore
+/vault/

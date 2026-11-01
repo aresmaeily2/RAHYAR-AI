@@ -115,6 +115,29 @@ export function tehranMonthRange(month: string): { start: Date; end: Date } | nu
 }
 
 /** تاریخ میلادی ISO → شمسی خوانا با ارقام فارسی */
+/** B-8 (R2): شروع «روز» به وقت تهران — برای سقف‌های مصرف AI
+ * (ایران از ۱۴۰۱ ساعت تابستانی ندارد؛ آفست ثابت +۰۳:۳۰) */
+export function tehranDayStart(d: Date = new Date()): Date {
+  const ymd = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Tehran',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d)
+  return new Date(`${ymd}T00:00:00+03:30`)
+}
+
+/** B-8 (R2): شروع «ماه» گregorianِ جاری به وقت تهران */
+export function tehranMonthStart(d: Date = new Date()): Date {
+  const ymd = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Tehran',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d)
+  return new Date(`${ymd.slice(0, 7)}-01T00:00:00+03:30`)
+}
+
 export function formatJalali(
   iso: string | Date,
   opts: { weekday?: boolean; short?: boolean } = {},
