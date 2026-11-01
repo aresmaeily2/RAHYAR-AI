@@ -14,7 +14,7 @@ FP = {
     'C1': 'cec51518b9ac',
     'C2': 'ee0880daa2ca',
     'C4': 'dd65b755befe',
-    'C5': '8eb38003b10d',
+    'C5': '8eb38003b10d', 'C6': 'e20de4c418c6',
     'C10': '9774fdedae3b',
 }
 
