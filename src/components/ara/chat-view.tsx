@@ -129,12 +129,13 @@ function speechText(md: string): string {
 }
 
 function SourceCard({ sources }: { sources: SourceT[] }) {
+  const t = useI18n((st) => st.t)
   if (sources.length === 0) return null
   return (
     <div className="glass-chip mt-1.5 rounded-xl px-3 py-2">
       <p className="mb-1.5 flex items-center gap-1 text-[10px] font-semibold text-muted-foreground">
         <Globe className="h-3 w-3" />
-        منابع وب
+        {t('منابع وب')}
       </p>
       <div className="flex flex-wrap gap-1.5">
         {sources.map((s, i) => (
@@ -295,9 +296,9 @@ export function ChatView() {
       } else if (a.type === 'plan_day' && a.ok && a.plan) {
         setChatPlan(a.plan)
         setView('plan')
-        toast.success('برنامه امروز چیده شد — در نمای برنامه ببین')
+        toast.success(t('برنامه امروز چیده شد — در نمای برنامه ببین'))
       } else if (a.type === 'remember' && a.ok) {
-        toast('چیزی جدید درباره‌ات یاد گرفتم', { icon: <Brain className="h-4 w-4 text-primary" /> })
+        toast(t('چیزی جدید درباره‌ات یاد گرفتم'), { icon: <Brain className="h-4 w-4 text-primary" /> })
       }
     }
   }
@@ -470,7 +471,7 @@ export function ChatView() {
     a.download = `ara-chat-${new Date().toISOString().slice(0, 10)}.md`
     a.click()
     URL.revokeObjectURL(url)
-    toast.success('گفتگو دانلود شد')
+    toast.success(t('گفتگو دانلود شد'))
   }
 
   function toggleVoice() {
@@ -513,7 +514,7 @@ export function ChatView() {
     }
     recRef.current = session
     setListening(true)
-    toast(langRef.current === 'fa' ? 'گوش می‌دهم... فارسی حرف بزن' : 'Listening… speak now', {
+    toast(t('گوش می‌دهم... فارسی حرف بزن'), {
       icon: <Mic className="h-4 w-4 text-primary" />,
     })
   }
@@ -524,7 +525,7 @@ export function ChatView() {
       setCopiedId(m.id)
       setTimeout(() => setCopiedId(null), 1500)
     } catch {
-      toast.error('کپی ناموفق بود')
+      toast.error(t('کپی ناموفق بود'))
     }
   }
 
@@ -585,8 +586,8 @@ export function ChatView() {
             }
           }}
           disabled={phase !== 'idle'}
-          aria-label={autoSpeak ? 'قطع خواندن خودکار' : 'خواندن خودکار پاسخ‌ها'}
-          title={autoSpeak ? 'خواندن خودکار: روشن' : 'خواندن خودکار پاسخ‌ها'}
+          aria-label={autoSpeak ? t('قطع خواندن خودکار') : t('خواندن خودکار پاسخ‌ها')}
+          title={autoSpeak ? t('خواندن خودکار: روشن') : t('خواندن خودکار پاسخ‌ها')}
           className={cn(iconBtn, autoSpeak && 'bg-primary/10 text-primary hover:text-primary')}
         >
           {autoSpeak ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
@@ -597,8 +598,8 @@ export function ChatView() {
             setSearchOpen((v) => !v)
             setQuery('')
           }}
-          aria-label="جستجو در گفتگو"
-          title="جستجو در گفتگو"
+          aria-label={t('جستجو در گفتگو')}
+          title={t('جستجو در گفتگو')}
           className={cn(iconBtn, searchOpen && 'bg-primary/10 text-primary hover:text-primary')}
         >
           <Search className="h-4 w-4" />
@@ -606,8 +607,8 @@ export function ChatView() {
         {/* حافظه */}
         <button
           onClick={() => setMemoryOpen(true)}
-          aria-label="حافظه دستیار"
-          title="حافظه من"
+          aria-label={t('حافظه دستیار')}
+          title={t('حافظه من')}
           className={iconBtn}
         >
           <Brain className="h-4 w-4" />
@@ -616,8 +617,8 @@ export function ChatView() {
         <button
           onClick={exportChat}
           disabled={messages.length < 2}
-          aria-label="دانلود گفتگو"
-          title="خروجی گفتگو (مارک‌داون)"
+          aria-label={t('دانلود گفتگو')}
+          title={t('خروجی گفتگو (مارک‌داون)')}
           className={iconBtn}
         >
           <Download className="h-4 w-4" />
@@ -625,8 +626,8 @@ export function ChatView() {
         <button
           onClick={regenerate}
           disabled={phase !== 'idle' || messages.length < 2}
-          aria-label="تولید دوباره پاسخ"
-          title="تولید دوباره پاسخ"
+          aria-label={t('تولید دوباره پاسخ')}
+          title={t('تولید دوباره پاسخ')}
           className={iconBtn}
         >
           <RefreshCcw className="h-4 w-4" />
@@ -634,8 +635,8 @@ export function ChatView() {
         <button
           onClick={handleClearClick}
           disabled={phase !== 'idle'}
-          aria-label={confirmClear ? 'تأیید پاک‌سازی کل گفتگو' : 'شروع گفتگوی جدید — دو بار برای تأیید'}
-          title={confirmClear ? 'برای تأیید پاک‌سازی دوباره کلیک کن' : 'شروع گفتگوی جدید'}
+          aria-label={confirmClear ? t('تأیید پاک‌سازی کل گفتگو') : t('شروع گفتگوی جدید — دو بار برای تأیید')}
+          title={confirmClear ? t('برای تأیید پاک‌سازی دوباره کلیک کن') : t('شروع گفتگوی جدید')}
           className={cn(
             iconBtn,
             confirmClear && 'bg-destructive/15 text-destructive ring-1 ring-destructive/40',
@@ -730,7 +731,7 @@ export function ChatView() {
                     <>
                       <button
                         onClick={() => speak(m.content, m.id)}
-                        aria-label={speakingId === m.id ? 'توقف خواندن' : 'خواندن صوتی پاسخ'}
+                        aria-label={speakingId === m.id ? t('توقف خواندن') : t('خواندن صوتی پاسخ')}
                         className={cn(
                           'flex items-center gap-0.5 rounded px-1 py-0.5 hover:text-foreground',
                           speakingId === m.id && 'text-primary',
@@ -741,7 +742,7 @@ export function ChatView() {
                       </button>
                       <button
                         onClick={() => copyMsg(m)}
-                        aria-label="کپی پاسخ"
+                        aria-label={t('کپی پاسخ')}
                         className="flex items-center gap-0.5 rounded px-1 py-0.5 hover:text-foreground"
                       >
                         {copiedId === m.id ? <Check className="h-3 w-3 text-primary" /> : <Copy className="h-3 w-3" />}
@@ -811,8 +812,8 @@ export function ChatView() {
           <button
             onClick={toggleVoice}
             disabled={phase !== 'idle'}
-            aria-label="ورودی صوتی"
-            title="ورودی صوتی فارسی"
+            aria-label={t('ورودی صوتی')}
+            title={t('ورودی صوتی فارسی')}
             className={cn(
               'flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-all',
               listening
@@ -842,8 +843,8 @@ export function ChatView() {
               whileTap={{ scale: 0.88 }}
               transition={{ type: 'spring', stiffness: 500, damping: 20 }}
               onClick={stopGeneration}
-              aria-label="توقف تولید پاسخ"
-              title="توقف تولید"
+              aria-label={t('توقف تولید پاسخ')}
+              title={t('توقف تولید')}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-foreground text-background transition-all hover:opacity-85"
             >
               <Square className="h-3.5 w-3.5 fill-current" />
@@ -854,7 +855,7 @@ export function ChatView() {
               transition={{ type: 'spring', stiffness: 500, damping: 20 }}
               onClick={() => send()}
               disabled={!input.trim()}
-              aria-label="ارسال پیام"
+              aria-label={t('ارسال پیام')}
               className={cn(
                 'flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-all',
                 input.trim()

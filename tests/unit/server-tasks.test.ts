@@ -4,6 +4,7 @@
 
 import { describe, expect, test } from 'bun:test'
 import { resolveActionDueDate, resolveDueDate, sliceForCap } from '../../src/lib/server-tasks'
+import { tehranIsoDate } from '../../src/lib/persian-date'
 
 describe('resolveDueDate', () => {
   test('ورودی خالی → null', () => {
@@ -76,7 +77,9 @@ describe('resolveDueDate — weekday names (V23-FIX)', () => {
     for (const w of ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'thursday', 'saturday', 'پنج شنبه']) {
       const d = resolveDueDate(w)
       expect(d).toBeInstanceOf(Date)
-      const today = new Date().toISOString().slice(0, 10)
+      // R2 fix: مرز «امروز» = تهران، نه UTC — قبلاً بین ۲۰:۳۰–۲۴:۰۰ UTC
+      // روزِ از نظر تهران عوض شده بود و این آزمون flaky می‌شد
+      const today = tehranIsoDate()
       const diffDays = Math.round((d!.getTime() - new Date(today + 'T12:00:00Z').getTime()) / 86400000)
       expect(diffDays).toBeGreaterThanOrEqual(0)
       expect(diffDays).toBeLessThanOrEqual(6)

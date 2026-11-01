@@ -19,10 +19,11 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/i18n/store'
+import { formatNum } from '@/i18n/core'
 import { cn } from '@/lib/utils'
 import type { TaskT } from '@/lib/types'
 import { REPEAT_LABEL } from '@/lib/types'
-import { relativeDay } from '@/lib/persian-date'
+import { relativeDay, tehranIsoDate } from '@/lib/persian-date'
 import { useAra } from '@/lib/store'
 import { feedback } from '@/lib/feedback'
 
@@ -58,7 +59,8 @@ export function TaskItem({
   const upsertTask = useAra((s) => s.upsertTask)
   const subDone = task.subtasks.filter((s) => s.done).length
   const dueLabel = relativeDay(task.dueDate, lang)
-  const overdue = !done && task.dueDate && dueLabel?.includes('عقب‌افتاده')
+  // عقب‌افتاده مستقیماً از خود تاریخ — نه از متن برچسب (که در ان مستقل است)
+  const overdue = !done && !!task.dueDate && task.dueDate.slice(0, 10) < tehranIsoDate()
 
   function handleToggle() {
     if (!done) {
@@ -159,7 +161,7 @@ export function TaskItem({
       {/* متن */}
       <button
         onClick={() => onOpenDetail(task)}
-        className="min-w-0 flex-1 text-right"
+        className="min-w-0 flex-1 text-start"
       >
         <span
           className={cn(
@@ -186,7 +188,7 @@ export function TaskItem({
             {task.repeat && (
               <span className="inline-flex items-center gap-1 text-primary-text">
                 <Repeat className="h-3 w-3" />
-                {REPEAT_LABEL[task.repeat]}
+                {t(REPEAT_LABEL[task.repeat])}
               </span>
             )}
             {task.tag && (
@@ -194,7 +196,7 @@ export function TaskItem({
             )}
             {task.subtasks.length > 0 && (
               <span className="tnum">
-                {subDone}/{task.subtasks.length}
+                {formatNum(subDone, lang)}/{formatNum(task.subtasks.length, lang)}
               </span>
             )}
             {task.notes && !done && <AlignLeft className="h-3 w-3" />}

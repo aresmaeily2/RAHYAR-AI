@@ -12,6 +12,7 @@
 
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { useI18n } from '@/i18n/store'
 
 const KEY = 'rahyar-splash-seen'
 
@@ -35,6 +36,7 @@ function MarkPath({ delay, duration }: { delay: number; duration: number }) {
 export function Splash() {
   const reduce = useReducedMotion()
   const [show, setShow] = useState(false)
+  const t = useI18n((st) => st.t)
 
   // فقط شروع سرد نشست مرورگر — setState داخل کالبک تایمر (نه همگام در اثر)
   useEffect(() => {
@@ -67,7 +69,7 @@ export function Splash() {
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, transition: { duration: 0.35, ease: 'easeOut' } }}
           role="status"
-          aria-label="rahyar AI در حال آماده‌سازی"
+          aria-label={t('rahyar AI در حال آماده‌سازی')}
         >
           {/* هالهٔ نور */}
           {!reduce && (
@@ -137,7 +139,7 @@ export function Splash() {
               animate={{ opacity: 1 }}
               transition={{ delay: reduce ? 0 : 1.8, duration: 0.25 }}
             >
-              دستیار هوشمند شخصی
+              {t('دستیار هوشمند شخصی')}
             </motion.div>
           </motion.div>
         </motion.div>

@@ -47,6 +47,7 @@ import {
   PasswordRow,
 } from './profile-dialog'
 import { readSoundEnabled, setSoundEnabled, playUiSound } from '@/lib/feedback'
+import { APP_VERSION } from '@/lib/version'
 import { TEXT_SCALES, TEXT_SCALE_LABELS, readStoredTextScale, applyTextScale, type TextScale } from '@/lib/appearance'
 
 type SectionId =
@@ -322,10 +323,10 @@ export function SettingsView() {
         {/* ── درباره ── */}
         <SettingsSection id="about" icon={Info} title={t('درباره')}>
           <div className="space-y-1.5 text-xs leading-6">
-            <p className="font-heading text-sm font-extrabold">{t('رهیار')} <span className="text-muted-foreground">v1.0</span></p>
+            <p className="font-heading text-sm font-extrabold">{t('رهیار')} <span className="text-muted-foreground">{t('نسخه')} {APP_VERSION}</span></p>
             <p className="text-muted-foreground">{t('دستیار هوشمند شخصی')}</p>
             <p className="text-muted-foreground">
-              AI: {t('موتور هوش مصنوعی')} (Local Rules + OpenAI-Compatible) · Ambient Engine · i18n (fa/en) · Finance · SMS
+              AI: {t('موتور هوش مصنوعی')} ({t('مدل میزبان')} + Local Rules + OpenAI-Compatible) · Ambient Engine · i18n (fa/en) · Finance · SMS
             </p>
           </div>
           <button
@@ -445,10 +446,10 @@ function AiEngineCard() {
       setTest(
         d.ok
           ? { ok: true, message: `✓ ${d.model} — ${formatNum(Math.round((d.latencyMs ?? 0) / 100) / 10, lang)}s` }
-          : { ok: false, message: d.error ? t(d.error) : 'failed' },
+          : { ok: false, message: d.error ? t(d.error) : t('تست اتصال ناموفق بود') },
       )
     } catch {
-      setTest({ ok: false, message: 'network error' })
+      setTest({ ok: false, message: t('خطای شبکه') })
     } finally {
       setBusy(false)
     }
@@ -502,10 +503,10 @@ function AiEngineCard() {
                 if (d.ok) {
                   setTest({ ok: true, message: `OK · ${d.model} · ${d.latencyMs}ms · ${d.sample}` })
                 } else {
-                  setTest({ ok: false, message: d.error ?? 'test failed' })
+                  setTest({ ok: false, message: d.error ?? t('تست ناموفق بود') })
                 }
               } catch {
-                setTest({ ok: false, message: 'network error' })
+                setTest({ ok: false, message: t('خطای شبکه') })
               } finally {
                 setBusy(false)
               }
@@ -651,7 +652,7 @@ function PermissionsCard() {
       </div>
       <div className="flex items-center justify-between gap-3 rounded-xl bg-secondary/50 px-3 py-2.5">
         <div>
-          <p className="text-xs font-medium">microphone</p>
+          <p className="text-xs font-medium">{t('میکروفون')}</p>
           <p className="text-[10px] text-muted-foreground">{t('ورودی صوتی فارسی')} — {mic === 'granted' ? '✓' : mic === 'denied' ? '✕' : '—'}</p>
         </div>
         <button

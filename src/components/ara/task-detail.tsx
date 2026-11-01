@@ -16,9 +16,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { useI18n } from '@/i18n/store'
+import { formatNum } from '@/i18n/core'
 import { cn } from '@/lib/utils'
 import { useAra } from '@/lib/store'
 import { parseQuickTask } from '@/lib/nlp'
+import { tehranIsoDate } from '@/lib/persian-date'
 import type { RepeatMode, TaskT } from '@/lib/types'
 
 interface TaskDetailProps {
@@ -34,7 +36,7 @@ const REPEAT_OPTIONS: Array<{ key: RepeatMode; label: string }> = [
 ]
 
 export function TaskDetail({ taskId, open, onOpenChange }: TaskDetailProps) {
-  const { t } = useI18n()
+  const { t, lang, calendarMode } = useI18n()
   const tasks = useAra((s) => s.tasks)
   const upsertTask = useAra((s) => s.upsertTask)
   const removeTask = useAra((s) => s.removeTask)
@@ -139,7 +141,7 @@ export function TaskDetail({ taskId, open, onOpenChange }: TaskDetailProps) {
       const d = await res.json()
       if (!res.ok) throw new Error(d?.error)
       upsertTask(d.task as TaskT)
-      toast.success(`${d.added} زیرکار هوشمند اضافه شد`)
+      toast.success(t('{n} زیرکار هوشمند اضافه شد', { n: d.added }))
     } catch {
       toast.error(t('تجزیه هوشمند ناموفق بود'))
     } finally {
@@ -168,7 +170,7 @@ export function TaskDetail({ taskId, open, onOpenChange }: TaskDetailProps) {
     patch({ dueDate: p.dueDate }, true)
   }
 
-  const isToday = task.dueDate?.slice(0, 10) === new Date().toISOString().slice(0, 10)
+  const isToday = task.dueDate?.slice(0, 10) === tehranIsoDate()
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -232,6 +234,10 @@ export function TaskDetail({ taskId, open, onOpenChange }: TaskDetailProps) {
               className="rounded-full bg-secondary/60 px-3 py-1.5 text-xs text-muted-foreground outline-none"
               aria-label={t('تاریخ سررسید')}
             />
+            {/* ورودی بومی تاریخ همیشه میلادی است — در حالت شمسی با برچسب کوچک روشن کن */}
+            {calendarMode === 'jalali' && (
+              <span className="self-center text-[10px] text-muted-foreground/60">({t('میلادی')})</span>
+            )}
           </div>
 
           {/* اولویت */}
@@ -323,7 +329,7 @@ export function TaskDetail({ taskId, open, onOpenChange }: TaskDetailProps) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <p className="text-xs font-medium text-muted-foreground">
-                زیرکارها {task.subtasks.length > 0 && `(${task.subtasks.filter((s) => s.done).length}/${task.subtasks.length})`}
+                {t('زیرکارها')} {task.subtasks.length > 0 && `(${formatNum(task.subtasks.filter((s) => s.done).length, lang)}/${formatNum(task.subtasks.length, lang)})`}
               </p>
               <Button
                 variant="ghost"

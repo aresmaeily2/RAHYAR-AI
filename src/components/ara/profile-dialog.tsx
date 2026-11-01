@@ -115,7 +115,7 @@ export function EffectsRow() {
           aria-label={t('جلوه‌های پس‌زمینه زنده')}
           onCheckedChange={(v) => {
             ambient.setEffects(v)
-            toast.success(v ? 'جلوه‌ها روشن شد' : 'حالت کم‌مصرف فعال شد')
+            toast.success(v ? t('جلوه‌ها روشن شد') : t('حالت کم‌مصرف فعال شد'))
           }}
         />
       </div>
@@ -133,7 +133,7 @@ export function EffectsRow() {
           onCheckedChange={(v) => {
             setSoundEnabled(v)
             if (v) playUiSound('success')
-            toast.success(v ? 'صداها روشن شد' : 'صداها خاموش شد')
+            toast.success(v ? t('صداها روشن شد') : t('صداها خاموش شد'))
           }}
         />
       </div>
@@ -294,8 +294,8 @@ export function ProfileDialog({ open, onOpenChange }: { open: boolean; onOpenCha
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="glass-overlay max-w-sm rounded-3xl">
           <DialogHeader>
-            <DialogTitle className="text-right">{t('پروفایل و حساب')}</DialogTitle>
-            <DialogDescription className="text-right">{t('نام نمایشی، امنیت حساب، اعلان‌ها و اتصال‌های بیرونی.')}</DialogDescription>
+            <DialogTitle className="text-start">{t('پروفایل و حساب')}</DialogTitle>
+            <DialogDescription className="text-start">{t('نام نمایشی، امنیت حساب، اعلان‌ها و اتصال‌های بیرونی.')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 pt-1">
             <label htmlFor="profile-name" className="sr-only">{t('نام من')}</label>

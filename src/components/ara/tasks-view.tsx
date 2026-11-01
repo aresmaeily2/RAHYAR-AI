@@ -85,13 +85,12 @@ export function TasksView() {
 
   return (
     <div className="space-y-5">
-      {/* فیلترها — قرص‌های شیشه‌ای */}
-      <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label={t('فیلتر کارها')}>
+      {/* فیلترها — قرص‌های شیشه‌ای (toggle ساده با aria-pressed، نه tab) */}
+      <div className="flex flex-wrap items-center gap-1.5" aria-label={t('فیلتر کارها')}>
         {FILTERS.map((f) => (
           <button
             key={f.key}
-            role="tab"
-            aria-selected={taskFilter === f.key}
+            aria-pressed={taskFilter === f.key}
             onClick={() => setTaskFilter(f.key)}
             className={cn(
               'ara-press rounded-full px-3.5 py-1.5 text-xs font-medium transition-all',

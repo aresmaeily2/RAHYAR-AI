@@ -10,6 +10,7 @@ import { motion } from 'framer-motion'
 import { useClientValue } from '@/lib/client-hooks'
 import { quoteOfDay, type Quote } from '@/lib/quotes'
 import { useI18n } from '@/i18n/store'
+import { formatNum } from '@/i18n/core'
 import { EASE_STANDARD } from './motion'
 import { Cloud, CloudFog, CloudLightning, CloudRain, CloudSnow, Sun } from 'lucide-react'
 
@@ -146,6 +147,7 @@ function WeatherIcon({ code, isDay }: { code: number; isDay: boolean }) {
 
 /** چیپ آب‌وهوا — در هیرو خانه؛ فقط اگر کاربر فعال کرده باشد */
 export function WeatherChip() {
+  const { t, lang } = useI18n()
   const setting = useClientValue(readWeatherSetting, { enabled: false, city: '' })
   const w = useSyncExternalStore(subscribeWeather, getWeatherSnapshot, () => null)
 
@@ -158,13 +160,13 @@ export function WeatherChip() {
     <motion.span
       className="glass-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium"
       role="status"
-      aria-label={`هوای ${w.city}: ${w.temp} درجه`}
+      aria-label={t('هوای {city}: {temp} درجه', { city: w.city, temp: w.temp })}
       initial={{ opacity: 0, scale: 0.94 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.26, ease: EASE_STANDARD }}
     >
       <WeatherIcon code={w.code} isDay={w.isDay} />
-      <span className="tnum" data-num>{w.temp}°</span>
+      <span className="tnum" data-num>{formatNum(w.temp, lang)}°</span>
       <span className="text-muted-foreground">{w.city}</span>
     </motion.span>
   )

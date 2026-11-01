@@ -3,7 +3,7 @@
 // ─── شیت حافظه دستیار — الگوی Memory قابل مدیریت (Copilot/ChatGPT) ──
 // دوزبانه کامل — همه متن‌ها از i18n (کلید طبیعی)
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Brain, Plus, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -15,6 +15,56 @@ export function MemorySheet({ open, onClose }: { open: boolean; onClose: () => v
   const [memories, setMemories] = useState<MemoryT[]>([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
+
+  // آخرین نسخه onClose — اثر فقط به open وابسته است تا با هر رندر والد فوکوس نرباید
+  const onCloseRef = useRef(onClose)
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
+
+  // معناشناسی دیالوگ: Esc برای بستن + تله فوکوس + بازگردانی فوکوس
+  const sheetRef = useRef<HTMLDivElement>(null)
+  const restoreFocusRef = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    restoreFocusRef.current = document.activeElement as HTMLElement | null
+    const raf = requestAnimationFrame(() => {
+      sheetRef.current?.querySelector<HTMLElement>('input')?.focus()
+    })
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onCloseRef.current()
+        return
+      }
+      if (e.key === 'Tab' && sheetRef.current) {
+        const focusables = sheetRef.current.querySelectorAll<HTMLElement>(
+          'button, input, [tabindex]:not([tabindex="-1"])',
+        )
+        if (focusables.length === 0) return
+        const first = focusables[0]
+        const last = focusables[focusables.length - 1]
+        const active = document.activeElement
+        const inside = sheetRef.current.contains(active)
+        if (e.shiftKey && (active === first || !inside)) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && (active === last || !inside)) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('keydown', onKey)
+      // بازگردانی فوکوس به محل قبل از باز شدن
+      restoreFocusRef.current?.focus?.()
+      restoreFocusRef.current = null
+    }
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -71,11 +121,15 @@ export function MemorySheet({ open, onClose }: { open: boolean; onClose: () => v
           onClick={onClose}
         >
           <motion.div
+            ref={sheetRef}
             initial={{ y: 60, opacity: 0, scale: 0.98 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 60, opacity: 0, scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 320, damping: 30 }}
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('حافظه من')}
             className="flex max-h-[75dvh] w-full max-w-lg flex-col rounded-t-3xl bg-background p-5 shadow-2xl sm:rounded-3xl"
           >
             <div className="mb-3 flex items-center gap-2.5">

@@ -39,12 +39,12 @@ export function QuickAdd() {
     if (!parsed) return []
     const out: string[] = []
     if (parsed.dueDate) out.push(t('تاریخ شناسایی شد'))
-    if (parsed.dueTime) out.push(`ساعت ${parsed.dueTime}`)
+    if (parsed.dueTime) out.push(t('ساعت {time}', { time: parsed.dueTime }))
     if (parsed.priority) out.push(t(PRIORITY_LABEL[parsed.priority]))
     if (parsed.tag) out.push(`#${parsed.tag}`)
-    if (parsed.repeat) out.push(REPEAT_LABEL[parsed.repeat])
+    if (parsed.repeat) out.push(t(REPEAT_LABEL[parsed.repeat]))
     return out
-  }, [parsed])
+  }, [parsed, t])
 
   async function submit() {
     const v = value.trim()
@@ -142,7 +142,7 @@ export function QuickAdd() {
           {STANDARD_TAGS.slice(0, 5).map((tag) => (
             <button
               key={tag}
-              onClick={() => setValue(`#${t(tag)} `)}
+              onClick={() => setValue(`#${tag} `)}
               className="ara-press glass-chip rounded-full px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:text-primary-text"
             >
               #{t(tag)}

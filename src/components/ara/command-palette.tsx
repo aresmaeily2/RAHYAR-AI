@@ -2,7 +2,7 @@
 
 // ─── کامند پالت ⌘K — جستجوی سراسری + پرش سریع + اکشن‌ها ────
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Command } from 'cmdk'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -15,11 +15,13 @@ import {
   Plus,
   Repeat,
   Search,
+  Settings,
   Sparkles,
   Sun,
   Target,
   Trash2,
   TrendingUp,
+  Wallet,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useAra } from '@/lib/store'
@@ -37,6 +39,8 @@ const VIEWS: Array<{ key: View; label: string; icon: typeof Sun; hint: string; h
   { key: 'calendar', label: 'تقویم', icon: CalendarDays, hint: '۳', hintEn: '3' },
   { key: 'chat', label: 'دستیار', icon: Sparkles, hint: '۴', hintEn: '4' },
   { key: 'plan', label: 'برنامه و پیشرفت', icon: TrendingUp, hint: '۵', hintEn: '5' },
+  { key: 'finance', label: 'مالی', icon: Wallet, hint: '۶', hintEn: '6' },
+  { key: 'settings', label: 'تنظیمات', icon: Settings, hint: '۷', hintEn: '7' },
 ]
 
 export function CommandPalette() {
@@ -53,6 +57,44 @@ export function CommandPalette() {
   const pulseQuickAdd = useAra((s) => s.pulseQuickAdd)
   const { theme, setTheme } = useTheme()
   const mounted = useClientValue(() => true, false)
+
+  // مدیریت فوکوس دیالوگ: ذخیره/بازگردانی + تله Tab داخل کانتینر
+  const overlayRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const restoreFocusRef = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    restoreFocusRef.current = document.activeElement as HTMLElement | null
+    // فوکوس اولیه روی ورودی جستجو
+    const raf = requestAnimationFrame(() => inputRef.current?.focus())
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab' || !overlayRef.current) return
+      const focusables = overlayRef.current.querySelectorAll<HTMLElement>(
+        'button, input, [tabindex]:not([tabindex="-1"])',
+      )
+      if (focusables.length === 0) return
+      const first = focusables[0]
+      const last = focusables[focusables.length - 1]
+      const active = document.activeElement
+      const inside = overlayRef.current.contains(active)
+      if (e.shiftKey && (active === first || !inside)) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && (active === last || !inside)) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('keydown', onKey)
+      // بازگردانی فوکوس به محل قبل از باز شدن
+      restoreFocusRef.current?.focus?.()
+      restoreFocusRef.current = null
+    }
+  }, [open])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -132,6 +174,7 @@ export function CommandPalette() {
           role="dialog"
           aria-modal="true"
           aria-label={t('کامند پالت')}
+          ref={overlayRef}
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.97, y: -8 }}
@@ -145,6 +188,7 @@ export function CommandPalette() {
               <div className="flex items-center gap-2.5 border-b px-4">
                 <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <Command.Input
+                  ref={inputRef}
                   autoFocus
                   placeholder={t('جستجو یا دستور... (کار، نما، تم)')}
                   className="h-13 w-full bg-transparent py-4 text-sm outline-none placeholder:text-muted-foreground/60"
@@ -156,7 +200,7 @@ export function CommandPalette() {
               <Command.List className="max-h-[50vh] overflow-y-auto p-2">
                 <Command.Empty className="py-8 text-center text-xs text-muted-foreground">{t('چیزی پیدا نشد')}</Command.Empty>
 
-                <Command.Group heading="کارهای فعال" className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-muted-foreground">
+                <Command.Group heading={t('کارهای فعال')} className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-muted-foreground">
                   {activeTasks.map((t) => (
                     <Item
                       key={t.id}
@@ -193,7 +237,7 @@ export function CommandPalette() {
                   )}
                 </Command.Group>
 
-                <Command.Group heading="اکشن‌های سریع" className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-muted-foreground">
+                <Command.Group heading={t('اکشن‌های سریع')} className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-muted-foreground">
                   <Item
                     value="new-task کار جدید افزودن"
                     onSelect={() => {
@@ -240,7 +284,7 @@ export function CommandPalette() {
                 </Command.Group>
 
                 {doneTasks.length > 0 && (
-                  <Command.Group heading="انجام‌شده" className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-muted-foreground">
+                  <Command.Group heading={t('انجام‌شده')} className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-muted-foreground">
                     {doneTasks.map((t) => (
                       <Item key={t.id} value={`task-done-${t.id} ${t.title}`} onSelect={() => {
                         setDetailTaskId(t.id)
@@ -256,19 +300,19 @@ export function CommandPalette() {
                 )}
 
                 {activeTasks.length > 0 && (
-                  <Command.Group heading="روی کارها" className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-muted-foreground">
+                  <Command.Group heading={t('روی کارها')} className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-muted-foreground">
                     {activeTasks.slice(0, 6).map((t) => (
                       <div key={t.id} className="flex items-center gap-1 px-1 py-0.5" data-value={`act-${t.id}`}>
                         <span className="min-w-0 flex-1 truncate px-1.5 text-[11px] text-muted-foreground">
                           {t.title}
                         </span>
                         <IconAct
-                          label="انجام شد"
+                          label={translate('انجام شد')}
                           onClick={() => toggleTask(t)}
                           icon={<CheckCircle2 className="h-3.5 w-3.5" />}
                         />
                         <IconAct
-                          label="تمرکز روی این کار"
+                          label={translate('تمرکز روی این کار')}
                           onClick={() => {
                             setFocusTaskId(t.id)
                             setView('today')
@@ -277,12 +321,12 @@ export function CommandPalette() {
                           icon={<Target className="h-3.5 w-3.5" />}
                         />
                         <IconAct
-                          label="کپی"
+                          label={translate('کپی')}
                           onClick={() => duplicateTask(t)}
                           icon={<ClipboardCopy className="h-3.5 w-3.5" />}
                         />
                         <IconAct
-                          label="حذف"
+                          label={translate('حذف')}
                           onClick={() => deleteTask(t)}
                           icon={<Trash2 className="h-3.5 w-3.5" />}
                           danger

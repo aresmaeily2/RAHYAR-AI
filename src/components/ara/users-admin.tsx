@@ -10,6 +10,7 @@ import { Ban, Copy, Download, KeyRound, Loader2, RefreshCw, Trash2, Upload, User
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { useI18n } from '@/i18n/store'
+import { formatNum } from '@/i18n/core'
 import { EASE_STANDARD } from './motion'
 import { Collapse } from './collapse'
 
@@ -25,7 +26,7 @@ interface UserRow {
 }
 
 export function UsersAdmin() {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const [isOwner, setIsOwner] = useState(false)
   const [users, setUsers] = useState<UserRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -203,14 +204,14 @@ export function UsersAdmin() {
             className="ara-press flex items-center gap-1 rounded-lg border bg-background/50 px-2 py-1 text-[10.5px] hover:bg-secondary"
             title={t('خروجی CSV')}
           >
-            <Download className="h-3 w-3" /> CSV
+            <Download className="h-3 w-3" /> {t('CSV')}
           </button>
           <button
             onClick={() => fileRef.current?.click()}
             className="ara-press flex items-center gap-1 rounded-lg border bg-background/50 px-2 py-1 text-[10.5px] hover:bg-secondary"
             title={t('ورود گروهی از CSV')}
           >
-            <Upload className="h-3 w-3" /> CSV
+            <Upload className="h-3 w-3" /> {t('CSV')}
           </button>
           <input
             ref={fileRef}
@@ -333,7 +334,7 @@ export function UsersAdmin() {
 
       {/* فهرست کاربران */}
       <div className="overflow-hidden rounded-xl border">
-        <table className="w-full text-right text-[11px]">
+        <table className="w-full text-start text-[11px]">
           <thead className="bg-secondary/50 text-muted-foreground">
             <tr>
               <th className="px-2.5 py-1.5 font-medium">{t('کاربر')}</th>
@@ -360,41 +361,41 @@ export function UsersAdmin() {
                     <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9.5px] text-emerald-600">{t('فعال است')}</span>
                   )}
                 </td>
-                <td className="px-2 py-1.5">{u.activeSessions}</td>
+                <td className="px-2 py-1.5">{formatNum(u.activeSessions, lang)}</td>
                 <td className="px-2 py-1.5">
                   {u.role !== 'OWNER' && (
                     <div className="flex justify-end gap-1">
                       <button
                         onClick={() => patch(u.id, { generatePassword: true }, 'رمز بازنشانی شد')}
-                        className="ara-press rounded-md border p-1 hover:bg-secondary"
+                        className="ara-press flex h-8 w-8 items-center justify-center rounded-md border p-1 hover:bg-secondary"
                         title={t('بازنشانی رمز')}
                         aria-label={t('بازنشانی رمز')}
                       >
-                        <KeyRound className="h-3 w-3" />
+                        <KeyRound className="h-3.5 w-3.5" />
                       </button>
                       <button
                         onClick={() => patch(u.id, { revokeSessions: true }, 'همه نشست‌ها لغو شد')}
-                        className="ara-press rounded-md border p-1 hover:bg-secondary"
+                        className="ara-press flex h-8 w-8 items-center justify-center rounded-md border p-1 hover:bg-secondary"
                         title={t('لغو نشست‌ها')}
                         aria-label={t('لغو نشست‌ها')}
                       >
-                        <RefreshCw className="h-3 w-3" />
+                        <RefreshCw className="h-3.5 w-3.5" />
                       </button>
                       <button
                         onClick={() => patch(u.id, { disabled: !u.disabled }, u.disabled ? 'حساب فعال شد' : 'حساب غیرفعال شد')}
-                        className="ara-press rounded-md border p-1 hover:bg-secondary"
+                        className="ara-press flex h-8 w-8 items-center justify-center rounded-md border p-1 hover:bg-secondary"
                         title={u.disabled ? t('فعال‌سازی') : t('غیرفعال‌سازی')}
                         aria-label={u.disabled ? t('فعال‌سازی') : t('غیرفعال‌سازی')}
                       >
-                        <Ban className={`h-3 w-3 ${u.disabled ? 'text-emerald-600' : 'text-amber-600'}`} />
+                        <Ban className={`h-3.5 w-3.5 ${u.disabled ? 'text-emerald-600' : 'text-amber-600'}`} />
                       </button>
                       <button
                         onClick={() => remove(u)}
-                        className="ara-press rounded-md border p-1 hover:bg-destructive/10"
+                        className="ara-press flex h-8 w-8 items-center justify-center rounded-md border p-1 hover:bg-destructive/10"
                         title={t('حذف')}
                         aria-label={t('حذف')}
                       >
-                        <Trash2 className="h-3 w-3 text-destructive" />
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
                       </button>
                     </div>
                   )}

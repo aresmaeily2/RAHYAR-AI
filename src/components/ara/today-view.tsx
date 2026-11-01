@@ -30,6 +30,7 @@ import { useAra } from '@/lib/store'
 import { useTaskActions } from './use-task-actions'
 import { useClientValue } from '@/lib/client-hooks'
 import { greeting, tehranDayOf, tehranIsoDate, todayFull } from '@/lib/persian-date'
+import { formatNum } from '@/i18n/core'
 import { listItem } from './motion'
 import type { TaskT } from '@/lib/types'
 
@@ -66,10 +67,10 @@ function timeAgo(iso: string, lang: 'fa' | 'en'): string {
     return `${Math.floor(h / 24)}d ago`
   }
   if (m < 1) return 'همین حالا'
-  if (m < 60) return `${m} دقیقه پیش`
+  if (m < 60) return `${formatNum(m, 'fa')} دقیقه پیش`
   const h = Math.floor(m / 60)
-  if (h < 24) return `${h} ساعت پیش`
-  return `${Math.floor(h / 24)} روز پیش`
+  if (h < 24) return `${formatNum(h, 'fa')} ساعت پیش`
+  return `${formatNum(Math.floor(h / 24), 'fa')} روز پیش`
 }
 
 function Section({
@@ -100,7 +101,7 @@ function Section({
         {onRescheduleAll && tasks.length > 0 && (
           <button
             onClick={onRescheduleAll}
-            className="ara-press mr-auto flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-secondary hover:text-primary-text"
+            className="ara-press ms-auto flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-secondary hover:text-primary-text"
           >
             <ArrowLeftCircle className="h-3 w-3" />{t('انتقال همه به امروز')}</button>
         )}
@@ -150,6 +151,7 @@ function StatCard({
   onClick?: () => void
   delay?: number
 }) {
+  const { lang } = useI18n()
   const color =
     tone === 'rose'
       ? 'var(--destructive)'
@@ -162,7 +164,7 @@ function StatCard({
       initial="initial"
       animate="animate"
       onClick={onClick}
-      className="glass-card glass-hoverable group rounded-2xl p-3 text-right"
+      className="glass-card glass-hoverable group rounded-2xl p-3 text-start"
     >
       <span
         className="mb-2 flex h-7 w-7 items-center justify-center rounded-lg"
@@ -174,7 +176,9 @@ function StatCard({
         <Icon className="h-3.5 w-3.5" />
       </span>
       <span className="flex items-baseline gap-1">
-        <span className="font-heading text-xl font-extrabold tnum leading-none">{value}</span>
+        <span className="font-heading text-xl font-extrabold tnum leading-none">
+          {typeof value === 'number' ? formatNum(value, lang) : value}
+        </span>
         {suffix && <span className="text-[10px] text-muted-foreground">{suffix}</span>}
       </span>
       <span className="mt-1 block text-[10.5px] text-muted-foreground">{label}</span>
@@ -202,7 +206,7 @@ function ShortcutCard({
       initial="initial"
       animate="animate"
       onClick={onClick}
-      className="glass-card glass-hoverable group flex items-center gap-3 rounded-2xl px-3.5 py-3 text-right"
+      className="glass-card glass-hoverable group flex items-center gap-3 rounded-2xl px-3.5 py-3 text-start"
     >
       <span
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110"
@@ -353,7 +357,7 @@ export function TodayView() {
         /* ادامه */
       }
     }
-    if (ok > 0) toast.success(`${ok} ${t('کار به امروز منتقل شد')}`)
+    if (ok > 0) toast.success(`${formatNum(ok, 'fa')} ${t('کار به امروز منتقل شد')}`)
   }
 
   return (
@@ -390,7 +394,7 @@ export function TodayView() {
                 }}
               >
                 <Flame className="h-3 w-3" />
-                {streak} {t('روز پشت‌سرهم')}
+                {formatNum(streak, lang)} {t('روز پشت‌سرهم')}
               </span>
             )}
             {overdue.length > 0 && (
@@ -401,7 +405,7 @@ export function TodayView() {
                   color: 'var(--destructive)',
                 }}
               >
-                {overdue.length} {t('عقب‌افتاده')}
+                {formatNum(overdue.length, lang)} {t('عقب‌افتاده')}
               </span>
             )}
           </div>
@@ -437,6 +441,7 @@ export function TodayView() {
           suffix={t("روز")}
           icon={Flame}
           tone={streak > 0 ? 'amber' : 'plain'}
+          onClick={() => setView('plan')}
           delay={2}
         />
         <StatCard

@@ -60,7 +60,7 @@ export function QuickAddInline({ presetDate }: { presetDate: string }) {
         disabled={!value.trim() || creating}
         aria-label={t('ثبت')}
         className={cn(
-          'flex h-6.5 w-6.5 items-center justify-center rounded-lg transition-all',
+          'flex h-9 w-9 items-center justify-center rounded-lg transition-all',
           value.trim() ? 'text-primary hover:bg-primary/10' : 'text-muted-foreground/40',
         )}
       >

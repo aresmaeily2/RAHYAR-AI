@@ -213,7 +213,7 @@ export function FinanceView() {
         </Collapse>
         <div className="flex flex-wrap gap-2">
           {accounts.length === 0 && (
-            <p className="px-1 text-xs text-muted-foreground">{t('حساب جدید')} — {t('افزودن اولین کار')}</p>
+            <p className="px-1 text-xs text-muted-foreground">{t('حساب مالی جدید')} — {t('اولین حساب خود را اضافه کن')}</p>
           )}
           {accounts.map((a, i) => {
             const Icon = kindIcon(a.kind)
@@ -249,7 +249,7 @@ export function FinanceView() {
               onClick={() => setShowSms((v) => !v)}
               className="glass-chip ara-press rounded-full px-2.5 py-1 text-[10px] text-muted-foreground transition-colors hover:text-foreground"
             >
-              SMS
+              {t('SMS')}
             </button>
             <ExportMenu />
             <button
@@ -290,7 +290,7 @@ export function FinanceView() {
 
         <ul className="divide-y divide-border/40">
           {txs.length === 0 && (
-            <li className="py-6 text-center text-xs text-muted-foreground">{t('هنوز کاری ثبت نکردی')}</li>
+            <li className="py-6 text-center text-xs text-muted-foreground">{t('هنوز تراکنشی ثبت نکردی')}</li>
           )}
           {txs.slice(0, 30).map((x, i) => (
             <motion.li
@@ -500,7 +500,7 @@ function BudgetSection({
                 <button
                   onClick={() => void remove(s.category)}
                   aria-label={`${t('حذف')} ${t(CATEGORY_LABELS[s.category] ?? s.category)}`}
-                  className="ara-press rounded-lg p-1 text-muted-foreground/50 opacity-0 transition-all hover:text-rose-600 focus-visible:opacity-100 group-hover:opacity-100"
+                  className="ara-press flex h-7 w-7 shrink-0 items-center justify-center rounded-lg p-1 text-muted-foreground/50 opacity-0 transition-all hover:text-rose-600 focus-visible:opacity-100 group-hover:opacity-100 max-md:opacity-60"
                 >
                   <Trash2 className="h-3 w-3" />
                 </button>

@@ -35,7 +35,7 @@ import { useTheme } from 'next-themes'
 import { CommandPalette } from './command-palette'
 import { ProfileChip } from './profile-dialog'
 import { TodayView } from './today-view'
-import { useI18n } from '@/i18n/store'
+import { useI18n, tStatic } from '@/i18n/store'
 import { longDate } from '@/i18n/date'
 import dynamic from 'next/dynamic'
 
@@ -53,7 +53,7 @@ const NAV_LABELS: Record<View, string> = {
 // تقسیم کد — نماهای غیرپیش‌فرض lazy load می‌شوند تا از باندل اولیه
 // خارج بمانند؛ نمای در حال بارگذاری اسکلت شیمردار دارد
 const viewFallback = () => (
-  <div className="p-4 space-y-3" aria-busy="true" aria-label="در حال بارگذاری">
+  <div className="p-4 space-y-3" aria-busy="true" aria-label={tStatic('در حال بارگذاری', useI18n.getState().lang)}>
     <div className="ara-skeleton h-8 w-1/3 rounded-xl" />
     <div className="ara-skeleton h-24 rounded-2xl" />
     <div className="ara-skeleton h-64 rounded-2xl" />
@@ -117,13 +117,14 @@ function useReminderCenter() {
             // هشدار زنده دستیار — تپش کوتاه Orb (پالس)
             ambient.setOrb('pulse')
             import('sonner').then(({ toast }) =>
-              toast('یادآوری رهیار', {
+              toast(useI18n.getState().t('یادآوری رهیار'), {
                 description: r.message,
                 duration: 12000,
               }),
             )
             if (st.browserNotifications && 'Notification' in window && Notification.permission === 'granted') {
-              const n = new Notification(document.documentElement.dataset.lang === 'en' ? 'Rahyar — reminder' : 'رهیار — یادآوری', { body: r.message, dir: 'rtl', lang: 'fa' })
+              const i18n = useI18n.getState()
+              const n = new Notification(i18n.t('رهیار — یادآوری'), { body: r.message, dir: i18n.dir, lang: i18n.lang })
               n.onclick = () => {
                 window.focus()
                 n.close()
@@ -180,6 +181,12 @@ function useShortcuts() {
         case '5':
           setView('plan')
           break
+        case '6':
+          setView('finance')
+          break
+        case '7':
+          setView('settings')
+          break
         case 'n':
         case 'ن':
           e.preventDefault()
@@ -222,6 +229,10 @@ export function AppShell() {
     void useI18n.getState().hydrate() // زبان/تقویم/تنظیمات از localStorage+سرور
     // خوش‌آمد زنده دستیار — نفس عمیق کوتاه در ورود (خودبازگشت به idle)
     ambient.setOrb('breathing')
+    // سرویس‌ورکر — کش و آفلاین فقط در تولید؛ خطا بی‌صدا (P0)
+    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+      navigator.serviceWorker.register('/sw.js').catch(() => {})
+    }
   }, [])
 
   useEffect(() => {
@@ -494,7 +505,7 @@ export function AppShell() {
       {/* دکمه شناور کار جدید — موبایل، فشار الاستیک */}
       <motion.button
         onClick={pulseQuickAdd}
-        aria-label="کار جدید"
+        aria-label={t('کار جدید')}
         whileTap={{ scale: 0.88, rotate: -6 }}
         transition={{ type: 'spring', stiffness: 520, damping: 18 }}
         className="ara-float ara-float-primary fixed bottom-24 left-4 z-30 flex h-14 w-14 items-center justify-center rounded-full md:hidden"

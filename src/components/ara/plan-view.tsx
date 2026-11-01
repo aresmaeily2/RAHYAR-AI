@@ -171,7 +171,7 @@ function useWeeklyStats(tasks: TaskT[], lang: 'fa' | 'en') {
 
 /** هیت‌مپ ۱۵ هفته اخیر (۱۵×۷) — سبک GitHub با ترتیب هفته ایرانی */
 function Heatmap({ tasks }: { tasks: TaskT[] }) {
-  const { lang } = useI18n()
+  const { t, lang } = useI18n()
   const grid = useMemo(() => {
     const counts = new Map<string, number>()
     for (const t of tasks) {
@@ -240,7 +240,11 @@ function Heatmap({ tasks }: { tasks: TaskT[] }) {
                 initial={{ opacity: 0, scale: 0.6 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: (wi * 7 + di) * 0.002, duration: 0.2 }}
-                title={`${formatJalali(day.iso, { short: true })} — ${day.count} کار`}
+                title={
+                  lang === 'en'
+                    ? `${new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(day.iso + 'T12:00:00'))} — ${t('{n} کار', { n: day.count })}`
+                    : `${formatJalali(day.iso, { short: true })} — ${t('{n} کار', { n: day.count })}`
+                }
                 className={cn(
                   'h-3.5 w-3.5 rounded-[4px] transition-transform hover:scale-125',
                   shade(day.count),
@@ -330,10 +334,10 @@ export function PlanView() {
           className="glass-card glass-hoverable flex items-center gap-3 rounded-2xl p-4"
         >
           <div>
-            <p className="font-heading text-2xl font-extrabold leading-7 tnum" style={{ color: 'var(--warning)' }}>{streak}</p>
+            <p className="font-heading text-2xl font-extrabold leading-7 tnum" style={{ color: 'var(--warning)' }}>{formatNum(streak, lang)}</p>
             <p className="text-[11px] text-muted-foreground">{t('روز پشت‌سرهم')}</p>
           </div>
-          <Flame className="mr-auto h-5 w-5" style={{ color: 'color-mix(in oklab, var(--warning) 70%, transparent)' }} />
+          <Flame className="ms-auto h-5 w-5" style={{ color: 'color-mix(in oklab, var(--warning) 70%, transparent)' }} />
         </motion.div>
 
         <motion.div
@@ -343,10 +347,10 @@ export function PlanView() {
           className="glass-card glass-hoverable flex items-center gap-3 rounded-2xl p-4"
         >
           <div>
-            <p className="font-heading text-2xl font-extrabold leading-7 tnum">{weekTotal}</p>
+            <p className="font-heading text-2xl font-extrabold leading-7 tnum">{formatNum(weekTotal, lang)}</p>
             <p className="text-[11px] text-muted-foreground">{t('این هفته')}</p>
           </div>
-          <CheckCheck className="mr-auto h-5 w-5" style={{ color: 'color-mix(in oklab, var(--primary) 70%, transparent)' }} />
+          <CheckCheck className="ms-auto h-5 w-5" style={{ color: 'color-mix(in oklab, var(--primary) 70%, transparent)' }} />
         </motion.div>
 
         <motion.div
@@ -356,10 +360,10 @@ export function PlanView() {
           className="glass-card glass-hoverable flex items-center gap-3 rounded-2xl p-4"
         >
           <div>
-            <p className="font-heading text-2xl font-extrabold leading-7 tnum" style={{ color: 'var(--success)' }}>{rate}{lang === 'en' ? '%' : '٪'}</p>
+            <p className="font-heading text-2xl font-extrabold leading-7 tnum" style={{ color: 'var(--success)' }}>{formatNum(rate, lang)}{lang === 'en' ? '%' : '٪'}</p>
             <p className="text-[11px] text-muted-foreground">{t('نرخ تکمیل کل')}</p>
           </div>
-          <TrendingUp className="mr-auto h-5 w-5" style={{ color: 'color-mix(in oklab, var(--success) 70%, transparent)' }} />
+          <TrendingUp className="ms-auto h-5 w-5" style={{ color: 'color-mix(in oklab, var(--success) 70%, transparent)' }} />
         </motion.div>
       </div>
 
@@ -384,7 +388,7 @@ export function PlanView() {
             return (
               <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
                 <span className="text-[10px] font-semibold text-muted-foreground tnum">
-                  {d.count > 0 ? d.count : ''}
+                  {d.count > 0 ? formatNum(d.count, lang) : ''}
                 </span>
                 <motion.div
                   initial={{ scaleY: 0 }}

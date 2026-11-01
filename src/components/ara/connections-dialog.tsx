@@ -82,8 +82,8 @@ export function ConnectionsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85dvh] max-w-md overflow-y-auto rounded-2xl">
         <DialogHeader>
-          <DialogTitle className="text-right">{t('اتصال‌های بیرونی')}</DialogTitle>
-          <DialogDescription className="text-right">{t('برای هر اتصال دقیقاً مشخص است چه دسترسی‌ای می‌خواهد، چه داده‌ای می‌بیند و چطور قطع می‌شود.')}</DialogDescription>
+          <DialogTitle className="text-start">{t('اتصال‌های بیرونی')}</DialogTitle>
+          <DialogDescription className="text-start">{t('برای هر اتصال دقیقاً مشخص است چه دسترسی‌ای می‌خواهد، چه داده‌ای می‌بیند و چطور قطع می‌شود.')}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 pt-1">
