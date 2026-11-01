@@ -51,10 +51,10 @@ echo "== 6) sign =="
 KS="$ROOT/rahyar.keystore"
 if [ ! -f "$KS" ]; then
   keytool -genkeypair -keystore "$KS" -alias rahyar -keyalg RSA -keysize 2048 \
-    -validity 10000 -storepass REDACTED_C4 -keypass REDACTED_C4 \
+    -validity 10000 -storepass ${RAHYAR_KS_STOREPASS:?RAHYAR_KS_STOREPASS is required (fail-closed)} -keypass ${RAHYAR_KS_KEYPASS:?RAHYAR_KS_KEYPASS is required (fail-closed)} \
     -dname "CN=Rahyar, O=RahyarAI, C=IR"
 fi
-"$BT/apksigner" sign --ks "$KS" --ks-pass pass:REDACTED_C4 --key-pass pass:REDACTED_C4 \
+"$BT/apksigner" sign --ks "$KS" --ks-pass pass:${RAHYAR_KS_STOREPASS?RAHYAR_KS_STOREPASS-required} --key-pass pass:${RAHYAR_KS_KEYPASS?RAHYAR_KS_KEYPASS-required} \
   --out "$OUT/Rahyar-Android-v1.0.0.apk" "$OUT/aligned.apk"
 
 echo "== 7) verify =="

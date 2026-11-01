@@ -4,20 +4,20 @@
 # کلید release: پس‌تصادفی، فقط در backups/ (هرگز در repo/ZIP/گزارش)
 set -euo pipefail
 ROOT=/home/z/my-project
-PROJ=$ROOT/REDACTED_C3
-BT=/home/z/my-project/artifacts/REDACTED_C3-build/tools/bt/REDACTED_C3-14
-ECJ=/home/z/my-project/artifacts/REDACTED_C3-build/tools/ecj.jar
-PLAT=/home/z/my-project/artifacts/REDACTED_C3-build/tools/plat/REDACTED_C3-34/REDACTED_C3.jar
-NOJAR=/home/z/my-project/artifacts/REDACTED_C3-build/tools/plat/REDACTED_C3-nolibs.jar
-OUT=/home/z/my-project/artifacts/REDACTED_C3-build/out
-KS_DIR=$ROOT/backups/REDACTED_C3-release-keystore
+PROJ=$ROOT/android
+BT=/home/z/my-project/artifacts/android-build/tools/bt/android-14
+ECJ=/home/z/my-project/artifacts/android-build/tools/ecj.jar
+PLAT=/home/z/my-project/artifacts/android-build/tools/plat/android-34/android.jar
+NOJAR=/home/z/my-project/artifacts/android-build/tools/plat/android-nolibs.jar
+OUT=/home/z/my-project/artifacts/android-build/out
+KS_DIR=$ROOT/backups/android-release-keystore
 VC=11; VN=1.1.0
 
-[ -f "$PLAT" ] || { echo "REDACTED_C3.jar missing"; exit 1; }
+[ -f "$PLAT" ] || { echo "android.jar missing"; exit 1; }
 [ -f "$ECJ" ] || { echo "ecj.jar missing"; exit 1; }
 mkdir -p "$OUT" "$KS_DIR"
 
-# REDACTED_C3.jar بدون java/* برای ECJ (رفع تداخل با java.base JDK 21)
+# android.jar بدون java/* برای ECJ (رفع تداخل با java.base JDK 21)
 if [ ! -f "$NOJAR" ]; then
   cp "$PLAT" "$NOJAR"
   zip -dq "$NOJAR" "java/*" && echo "stripped java/* for ECJ"
@@ -62,11 +62,11 @@ echo "== 5) align =="
 echo "== 6) sign debug =="
 DKS="$OUT/debug.keystore"
 if [ ! -f "$DKS" ]; then
-  keytool -genkeypair -keystore "$DKS" -alias REDACTED_C3debugkey -keyalg RSA -keysize 2048 \
-    -validity 10000 -storepass REDACTED_C3 -keypass REDACTED_C3 \
+  keytool -genkeypair -keystore "$DKS" -alias androiddebugkey -keyalg RSA -keysize 2048 \
+    -validity 10000 -storepass ${RAHYAR_KS_STOREPASS:?RAHYAR_KS_STOREPASS is required (fail-closed)} -keypass ${RAHYAR_KS_STOREPASS:?RAHYAR_KS_STOREPASS is required (fail-closed)} \
     -dname "CN=Android Debug,O=Android,C=US" >/dev/null 2>&1
 fi
-"$BT/apksigner" sign --ks "$DKS" --ks-pass pass:REDACTED_C3 --key-pass pass:REDACTED_C3 \
+"$BT/apksigner" sign --ks "$DKS" --ks-pass pass:${RAHYAR_KS_STOREPASS?RAHYAR_KS_STOREPASS-required} --key-pass pass:${RAHYAR_KS_KEYPASS?RAHYAR_KS_KEYPASS-required} \
   --out "$OUT/Rahyar-Android-v${VN}-debug.apk" "$OUT/aligned.apk"
 
 echo "== 7) sign release =="

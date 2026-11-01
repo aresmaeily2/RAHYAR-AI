@@ -8,7 +8,12 @@ const OUT = '/home/z/my-project/download/audit-v2/screens-web'
 fs.mkdirSync(OUT, { recursive: true })
 
 const USER = 'owner'
-const PASS = 'REDACTED_C7'
+// fail-closed: رمز فقط از env، بدون هیچ fallback یا مقدار hardcoded (P0-6R FINAL)
+const PASS = process.env.RAHYAR_EVIDENCE_PASSWORD
+if (!PASS || PASS.length < 12) {
+  console.error('audit-screens: RAHYAR_EVIDENCE_PASSWORD missing or shorter than 12 chars — aborting (fail-closed)')
+  process.exit(2)
+}
 
 async function api(path, body, cookie) {
   const res = await fetch(BASE + path, {
@@ -22,7 +27,7 @@ async function api(path, body, cookie) {
 
 // ۱) راه‌اندازی مالک (توکن نصب = مقدار env سرور)
 const setup = await api('/api/auth/setup', {
-  setupToken: 'local-dev-setup-token-0123456789abcdef',
+  setupToken: (process.env.RAHYAR_SETUP_TOKEN ?? ''),
   username: USER,
   displayName: 'علیرضا',
   password: PASS,

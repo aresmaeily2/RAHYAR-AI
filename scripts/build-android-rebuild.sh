@@ -3,15 +3,15 @@
 # خط لوله: aapt2 → ECJ → d8 → package → zipalign → [debug-sign فقط برای شواهد خط لوله]
 # خروجی‌ها:
 #   Rahyar-Android-v1.1.0-rebuild-unsigned.apk  (بدون امضا — مبنای امضای آینده پس از تصمیم مالک)
-#   Rahyar-Android-v1.1.0-rebuild-debug.apk     (کلید debug استاندارد REDACTED_C3 — فقط آزمون/شواهد، انتشار ممنوع)
+#   Rahyar-Android-v1.1.0-rebuild-debug.apk     (کلید debug استاندارد [REDACTED — pass via RAHYAR_KS_STOREPASS] — فقط آزمون/شواهد، انتشار ممنوع)
 set -euo pipefail
 ROOT=/home/z/my-project
-PROJ=$ROOT/REDACTED_C3
-BT=$ROOT/artifacts/REDACTED_C3-build/tools/bt/REDACTED_C3-14
-ECJ=$ROOT/artifacts/REDACTED_C3-build/tools/ecj.jar
-PLAT=$ROOT/artifacts/REDACTED_C3-build/tools/plat/REDACTED_C3-34/REDACTED_C3.jar
-NOJAR=$ROOT/artifacts/REDACTED_C3-build/tools/plat/REDACTED_C3-nolibs.jar
-OUT=$ROOT/artifacts/REDACTED_C3-build/out
+PROJ=$ROOT/android
+BT=$ROOT/artifacts/android-build/tools/bt/android-14
+ECJ=$ROOT/artifacts/android-build/tools/ecj.jar
+PLAT=$ROOT/artifacts/android-build/tools/plat/android-34/android.jar
+NOJAR=$ROOT/artifacts/android-build/tools/plat/android-nolibs.jar
+OUT=$ROOT/artifacts/android-build/out
 VC=11; VN=1.1.0
 [ -f "$PLAT" ] && [ -f "$ECJ" ] || { echo "tools missing"; exit 1; }
 mkdir -p "$OUT"
@@ -54,11 +54,11 @@ cp "$OUT/aligned.apk" "$OUT/Rahyar-Android-v${VN}-rebuild-unsigned.apk"
 echo "== 6) debug sign (کلید استاندارد debug — فقط شواهد خط لوله) =="
 DKS="$OUT/debug.keystore"
 if [ ! -f "$DKS" ]; then
-  keytool -genkeypair -keystore "$DKS" -alias REDACTED_C3debugkey -keyalg RSA -keysize 2048 \
-    -validity 10000 -storepass REDACTED_C3 -keypass REDACTED_C3 \
+  keytool -genkeypair -keystore "$DKS" -alias androiddebugkey -keyalg RSA -keysize 2048 \
+    -validity 10000 -storepass ${RAHYAR_KS_STOREPASS:?RAHYAR_KS_STOREPASS is required (fail-closed)} -keypass ${RAHYAR_KS_STOREPASS:?RAHYAR_KS_STOREPASS is required (fail-closed)} \
     -dname "CN=Android Debug,O=Android,C=US" >/dev/null 2>&1
 fi
-"$BT/apksigner" sign --ks "$DKS" --ks-pass pass:REDACTED_C3 --key-pass pass:REDACTED_C3 \
+"$BT/apksigner" sign --ks "$DKS" --ks-pass pass:${RAHYAR_KS_STOREPASS?RAHYAR_KS_STOREPASS-required} --key-pass pass:${RAHYAR_KS_KEYPASS?RAHYAR_KS_KEYPASS-required} \
   --out "$OUT/Rahyar-Android-v${VN}-rebuild-debug.apk" "$OUT/aligned.apk"
 
 echo "== 7) verify + badging compare =="
