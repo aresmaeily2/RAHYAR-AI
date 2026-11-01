@@ -24,6 +24,11 @@ const nextConfig: NextConfig = {
   // پیش‌نمایش Workspace: اجازهٔ بارگذاری منابع dev از دامنهٔ Preview و لوکال‌هاست
   // (رفع انسداد /_next/* در Next 16 برای host های غیر localhost — فقط اثر dev)
   allowedDevOrigins: ["localhost", "*.localhost", "127.0.0.1", "*.space-z.ai"],
+  // P0-6R FINAL (امنیتی): جلوگیری از ورود اسکریپت‌های ابزاری/آزمون به خروجی standalone —
+  // فایل‌های scripts/ حامل داده‌های era-شواهد بودند و توسط file-tracing کپی می‌شدند.
+  outputFileTracingExcludes: {
+    "*": ["./scripts/**/*", "./tests/**/*", "./docs/**/*", "./download/**/*"],
+  },
   async headers() {
     return [
       {
