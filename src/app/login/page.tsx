@@ -28,6 +28,8 @@ export default function LoginPage() {
   const t = useI18n((st) => st.t)
 
   useEffect(() => {
+    // U-1 (R2): hydrate فروشگاه i18n پیش از اولین رندر — کاربر EN دیگر فرم فارسی نمی‌بیند
+    void useI18n.getState().hydrate()
     fetch('/api/auth/session')
       .then((r) => r.json())
       .then((d) => {

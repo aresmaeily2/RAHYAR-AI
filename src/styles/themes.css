@@ -267,8 +267,10 @@
   --accent: color-mix(in oklab, var(--ax-500) 8%, var(--paper));
   --accent-foreground: var(--ax-700);
 
-  --primary: var(--ax-600);
-  --primary-strong: var(--ax-500);
+  /* U-2 (R2): دکمهٔ پرشده در حالت روشن → ax-700 — سفیدِ متن روی ax-600 برای
+     teal/green/orange/gold زیر ۴٫۵:۱ بود؛ ax-700 همهٔ اکسنت‌ها را ≥۵:۱ می‌کند */
+  --primary: var(--ax-700);
+  --primary-strong: var(--ax-600);
   --primary-foreground: var(--ax-on);
   --primary-text: var(--ax-700);        /* متنِ رنگی روی کاغذ روشن — کنتراست AA */
   --ring: var(--ax-500);
@@ -279,16 +281,18 @@
   --chart-1: var(--ax-600);
   --sidebar: transparent;
   --sidebar-foreground: var(--ink);
-  --sidebar-primary: var(--ax-600);
+  --sidebar-primary: var(--ax-700);
   --sidebar-primary-foreground: var(--ax-on);
   --sidebar-accent: color-mix(in oklab, var(--ink) 5%, var(--paper));
   --sidebar-accent-foreground: var(--ink);
   --sidebar-border: transparent;
   --sidebar-ring: var(--ax-500);
 
-  --success: #059669;
-  --warning: #d97706;
-  --destructive: #e11d48;
+  /* U-4 (R2): نسخه‌های تیره‌تر در حالت روشن — متن ۱۰-۱۱px روی کاغذ با مقادیر
+     قبلی زیر ۴٫۵:۱ بود (warning 3.01 / success 3.56 / destructive 4.43) */
+  --success: #047857;
+  --warning: #b45309;
+  --destructive: #be123c;
 
   /* هاله برند — سطح شناور اکسنت‌دار */
   --glow-brand: color-mix(in oklab, var(--ax-500) calc(var(--glow-strength) * 100%), transparent);
