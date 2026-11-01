@@ -16,9 +16,9 @@
 | 8 | build تولیدی + سرو + probes D-1 | Agent 7 | **DONE** | exit 0؛ P-A=401/P-B=403 |
 | 9 | E2E زنده + ویدئو + اسکرین‌شات + تک-ارسال | Agents 6/7 | **DONE** | `download/RahyAr_R2_Final/evidence/` |
 | 10 | مستندات ۰۱–۰۸ + CSV + گزارش واحد | Agents 9/0 | **DONE** | `docs/final-delivery/` |
-| 11 | بستهٔ سورس مستقل + manifest + README + credentials | Agent 7 | **IN PROGRESS** | build-full-source-zip.sh |
-| 12 | ممیزی مستقل نهایی (Agent 8) | Agent 8 | **PENDING** | → `09-independent-audit-r2.md` |
-| 13 | گزارش نهایی گفتگو + Complete | Agent 0 | PENDING | — |
+| 11 | بستهٔ سورس مستقل + manifest + README + credentials | Agent 7 | **DONE** | zip `0e0f8006…`؛ دریل نصب /tmp PASS؛ manifest ۱۳/۱۳ |
+| 12 | ممیزی مستقل نهایی (Agent 8) | Agent 8 | **DONE — ACCEPT** | `09-independent-audit-r2.md`؛ مسدودکنندهٔ C6 رفع شد (`push guard: OK`) |
+| 13 | گزارش نهایی گفتگو + Complete | Agent 0 | **DONE** | پیام پایانی + Complete |
 
 ## Backlog مالک (بیرونی — بدون توقف بقیه)
 | ID | مورد | مانع |
@@ -33,3 +33,6 @@
 - F-3/B-6/B-7 (Low) با مستند پذیرفته شد؛ فهرست در ۰۱/۰۳/۰۴.
 - zod bump به نسخهٔ بعد (تغییر lockfile در برش امنیتی R2 انجام نشد).
 - مأموریت FOOTBALL IQ KIDS: پس از بستن R2 شروع می‌شود (B-6 قبلی).
+
+## تصمیم نهایی دربارهٔ push به origin
+main از origin/main جلوتر است (۳۳+ کامیت)؛ گارد pre-push روی کل بازه **OK** است (Agent 8 تأیید مستقل). push انجام **نش**د چون: ① بازنویسی/پاک‌سازی تاریخچهٔ origin تصمیم مالک است و push جدید آن را پیچیده‌تر می‌کند، ② معیارهای پایان مأموریت به push وابسته نیستند. مسیر آماده: `git push origin main` (fast-forward)؛ بازگشت: `git push --force origin 28b64bb0bc21e162703a59a01f6d828f8c2065d4:main`.

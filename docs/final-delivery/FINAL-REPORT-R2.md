@@ -7,7 +7,7 @@
 ---
 
 ## ۱) ساختار و عملکرد تیم
-۱۰ نقش طبق مأموریت ایجاد و ماندگار شد (`agents/roles.md`). اجرا: Agent 0 ارکستراسیون/ادغام؛ ۷ ممیزی موازی read-only (Agents 1,2,3,4/5,6,7,9) با گزارش‌های ساختاریافته؛ موج‌های اصلاح با commitهای مجزا و پیام‌های traceable؛ ممیزی مستقل نهایی توسط Agent 8 (بخش ۹ همین گزارش). هر یافته با file:line/فرمان مستند شد؛ هیچ مقدار محرمانه‌ای در هیچ سند/لاگ/بسته چاپ نشد.
+۱۰ نقش طبق مأموریت ایجاد و ماندگار شد (`agents/roles.md`). اجرا: Agent 0 ارکستراسیون/ادغام؛ ۷ ممیزی موازی read-only (Agents 1,2,3,4/5,6,7,9) با گزارش‌های ساختاریافته؛ موج‌های اصلاح با commitهای مجزا و پیام‌های traceable؛ ممیزی مستقل Agent 8: **ACCEPT پس از رفع** (۰۹-independent-audit-r2.md). هر یافته با file:line/فرمان مستند شد؛ هیچ مقدار محرمانه‌ای در هیچ سند/لاگ/بسته چاپ نشد.
 
 ## ۲) ممیزی اولیه → نهایی (خلاصه)
 - **شروع**: سرور معلق، DB خالی، vault و بستهٔ قبلی در recycle از دست رفته، 403 مسیر Preview بی‌ریشه، حامل‌های secret در درخت، flaky آزمون UTC/Tehran.
@@ -37,7 +37,7 @@ typecheck 0 / lint 0 / **unit ۲۲۲/۲۲۲** / T1–T7 ALL-PASS / **build تو�
 `download/RahyAr_R2_Final/rahyar-source-<sha>.tar.gz` — مبتنی بر `git archive`، بدون node_modules/.env/keystore/vault/evidence؛ راستی‌آزمایی‌شده با اسکن نام‌فایل ممنوعه + fp-scan رجیستر (خروجی در manifest). دستور نصب/بیلد مستقل داخل بسته (SOURCE-MANIFEST).
 
 ## ۹) ممیزی مستقل (Agent 8)
-نتیجه و شواهد: `docs/final-delivery/09-independent-audit-r2.md` — پس از اجرای مجدد آزمون‌ها از روی commit واقعی، بررسی بسته و تاریخچه صادر می‌شود.
+**حکم نهایی: ACCEPT** — ارزیابی اولیه ACCEPT-WITH-BLOCKERS؛ مسدودکنندهٔ MEDIUM (C6 در گارد push) همان نشست رفع و با اجرای مجدد تأیید شد (`push guard: OK`؛ zip بازسازی‌شده: hard-register hits = ZERO). شواهد کامل: `09-independent-audit-r2.md`.
 
 ## ۱۰) مواردی که فقط به اقدام مالک نیاز دارند
 1. **چرخش** رمزهای تاریخی C1/C2/C5/C10 و رمز keystore (C3) — دسترسی مالک.

@@ -17,7 +17,7 @@
 | C9 | session token (`ff9d8259a6e5`) | LOCAL ONLY | `.evidence-session-token` untrack؛ توکن INACTIVE (Session=0، TTL منقضی) | STRUCTURALLY_UNPUBLISHABLE |
 | C10 | رمز جفت username (`9774fdedae3b`) | PUBLIC | اسکراب | LOCAL_CLEAN |
 
-**خروجی اسکن نهایی درخت tracked**: C1=0، C2=0، C4=0، C5=0، C7=0، C10=0 فایل. C3=۲۴ فایل (کلمهٔ رایج در context غیراعتبارنامه‌ای — طبق سنت رجیستر غیر-اعتبارنامه‌ای)، C6=۱ (NA)، C8/C9 = فایل‌های untracked محلی (عمداً برای forensics حفظ شده‌اند).
+**خروجی اسکن نهایی درخت tracked**: C1=0، C2=0، C4=0، C5=0، C7=0، C10=0 فایل. C3=۲۵ فایل (کلمهٔ رایج در context غیراعتبارنامه‌ای — طبق سنت رجیستر غیر-اعتبارنامه‌ای)، C6=۱ (NA)، C8/C9 = فایل‌های untracked محلی (عمداً برای forensics حفظ شده‌اند).
 
 ## گاردهای ساختاری جدید
 1. `git rm --cached` برای `.evidence-password`، `.evidence-session-token`، `android/rahyar-release.keystore` + entryهای .gitignore.

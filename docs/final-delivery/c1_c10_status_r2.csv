@@ -4,7 +4,7 @@ C2,رمز owner دوره v1.0.0-rc1,ee0880daa2ca,PUBLIC (main+feature+tag),اس�
 C3,store/key-pass keystore فعلی,f60ed56a9c82,PUBLIC (تاریخچه) — خود فایل keystore هرگز به origin نرفته,vault بازسازی شد؛ بازیابی PASS (SHA-256 منطبق d4b7169a…),BACKUP_VERIFIED,چرخش رمز keystore,مالک
 C4,store-pass keystore قدیمی,dd65b755befe,PUBLIC — حامل build script + scan-data,اسکراب کامل (شامل ۲ اسکنر),LOCAL_CLEAN,تاریخچه (اختیاری),مالک
 C5,رمز کاربر تست sarika,8eb38003b10d,PUBLIC,اسکراب,LOCAL_CLEAN,چرخش,مالک
-C6,literal منفی badLogin,e20de4c418c6,PUBLIC,بدون اقدام,NOT_APPLICABLE,—,—
+C6,literal منفی badLogin,e20de4c418c6,PUBLIC,اسکراب از live-v2-tests.cjs (بازخوانی ممیز مستقل: مخالف رمزهای زنده),LOCAL_CLEAN,—,—
 C7,رمز دوره ۳۶۰,46d0a91d1e48,هرگز در origin نبود — HEAD تمیز,بدون اقدام لازم,LOCAL_CLEAN,پاک‌سازی شاخه fix قدیمی (اختیاری),مالک
 C8,bootstrap password,8aa62d3b0a15,LOCAL ONLY,fail-closed mint + T1-T7 ALL-PASS + untrack .evidence-password,STRUCTURALLY_UNPUBLISHABLE,—,—
 C9,session token (TTL 24h),ff9d8259a6e5,LOCAL ONLY — CONFIRMED_INACTIVE (Session=0),untrack .evidence-session-token,STRUCTURALLY_UNPUBLISHABLE,—,—
