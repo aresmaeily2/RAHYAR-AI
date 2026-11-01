@@ -36,7 +36,16 @@ lines.append("تطبیق پیام تازه: ردیف 21:54:03 در بازهٔ ا
 
 # ── ۳) نتایج تست و Build ──
 build_log = Path("/tmp/p06r-build2.log")
-build_tail = "\n".join(build_log.read_text("utf-8", "ignore").splitlines()[-6:]) if build_log.exists() else "(log cleaned)"
+if build_log.exists():
+    build_tail = "\n".join(build_log.read_text("utf-8", "ignore").splitlines()[-6:])
+else:
+    # لاگ موقت پاک شده — انتهای ثبت‌شدهٔ قبلی حفظ می‌شود (فقط-خواندنی)
+    prev = (OUT / "93_test_build_results.md")
+    if prev.exists() and "```" in prev.read_text("utf-8", "ignore"):
+        blocks = prev.read_text("utf-8", "ignore").split("```")
+        build_tail = blocks[1].strip() if len(blocks) > 2 else "(log cleaned)"
+    else:
+        build_tail = "(log cleaned)"
 (OUT / "93_test_build_results.md").write_text(f"""# نتایج تست و Build — {NOW}
 
 | آزمون | نتیجه |
@@ -61,16 +70,19 @@ build_tail = "\n".join(build_log.read_text("utf-8", "ignore").splitlines()[-6:])
 
 # ── ۴) وضعیت Git بعد ──
 head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
 omain = subprocess.run(["git", "rev-parse", "origin/main"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+omain_live = subprocess.run(["git", "ls-remote", "origin", "refs/heads/main"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
 ab = subprocess.run(["git", "rev-list", "--left-right", "--count", "origin/main...HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
 logn = subprocess.run(["git", "log", "--oneline", "-6"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
 tracked_changed = subprocess.run(["git", "diff", "--stat", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
 untracked = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
 (OUT / "94_git_after_state.md").write_text(f"""# وضعیت Git پس از اصلاحات — {NOW}
 
-- شاخهٔ جاری: fix/p06r-secrets-closeout
+- شاخهٔ جاری: {branch}
 - HEAD کامل: `{head}`
-- origin/main: `{omain}`
+- origin/main (محلی): `{omain}`
+- origin/main (سرور زنده via ls-remote): `{omain_live}`
 - جلو/عقب (عقب/جلو): {ab}
 - tracked تغییرکردهٔ commit‌نشده: {'هیچ' if not tracked_changed else tracked_changed}
 - untracked:
