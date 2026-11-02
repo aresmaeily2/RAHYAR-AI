@@ -17,6 +17,15 @@ const WHITELIST: Record<string, string> = {
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   // کیت امضا فقط به‌صورت رمزنگاری‌شده (AES-256-CBC/PBKDF2) توزیع می‌شود — رمز گشایش فقط در پیام خصوصی به مالک
   'rahyar-release-signing-kit.zip.enc': 'application/octet-stream',
+  // R2+ — بستهٔ تحویل نهایی به مالک (فایل‌های واقعی در پوشهٔ download)
+  'RahyAr_R2_OWNER_DELIVERY.zip': 'application/zip',
+  'RahyAr_R2_Full_Source.zip': 'application/zip',
+  'RahyAr_R2_Screenshots_16.zip': 'application/zip',
+  'RahyAr_R2_COMPLETE_SOURCE.txt': 'text/plain; charset=utf-8',
+  'RahyAr_R2_Walkthrough_Video.mp4': 'video/mp4',
+  'RahyAr_R2_Walkthrough_Video.webm': 'video/webm',
+  'SHA256SUMS.txt': 'text/plain; charset=utf-8',
+  'README-OWNER-DELIVERY.md': 'text/markdown; charset=utf-8',
 }
 
 const DOWNLOAD_DIR = path.resolve(process.cwd(), 'download')

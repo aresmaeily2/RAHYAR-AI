@@ -6,7 +6,9 @@ import type { NextConfig } from "next";
  * و unsafe-eval از اسکریپت‌ها حذف شود؛ اینجا فقط سرآیندهای بدون nonce.
  */
 const securityHeaders = [
-  { key: "X-Frame-Options", value: "DENY" },
+  // R2+: X-Frame-Options حذف شد — CSP frame-ancestors در src/proxy.ts نقش آن را
+  // با allowlist دقیق (فقط دامنه‌های پنل چت) ایفا می‌کند؛ DENY مانع دیدن برنامهٔ
+  // مالک در پنل پیش‌نمایش می‌شد. دفاع ضد-کلیک‌جکینگ حفظ شده، فقط دقیق‌تر.
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-DNS-Prefetch-Control", value: "off" },

@@ -62,7 +62,11 @@ export function proxy(request: NextRequest) {
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
-    "frame-ancestors 'none'",
+    // R2+ (نمایش زنده برای مالک): پنل پیش‌نمایش چت، اپ را در iframe از دامنه‌های
+    // پلتفرم embed می‌کند. 'none' مانع دیدن برنامه توسط مالک می‌شد؛ به‌جای حذف
+    // حفاظ، allowlist دقیق دامنه‌های پنل — همان دفاع ضد-کلیک‌جکینگ با سطح دسترسی
+    // کنترل‌شده (فقط دامنه‌های رسمی پلتفرم می‌توانند embed کنند).
+    "frame-ancestors 'self' https://z.ai https://*.z.ai https://*.space-z.ai",
   ].join('; ')
 
   const requestHeaders = new Headers(request.headers)
