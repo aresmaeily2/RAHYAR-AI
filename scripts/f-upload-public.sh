@@ -12,6 +12,8 @@ FILES=(
   "RahyAr_COMPLETE_SOURCE.txt"
   "RahyAr_Screenshots_22.zip"
   "rahyar-final-walkthrough.mp4"
+  "Rahyar-Android-v2.1.0-debug.apk"
+  "Rahyar-Android-v2.1.0-release.apk"
 )
 
 echo "=== tmpfiles.org ===" | tee -a "$OUT"

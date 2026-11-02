@@ -1,5 +1,5 @@
 #!/bin/bash
-# راستی‌آزمایی مستقل لینک‌های عمومی — دانلود واقعی + مقایسه اندازه/بایت + سلامت محتوا
+# راستی‌آزمایی مستقل نهایی — دانلود واقعی ناشناس + بایت‌مقایسه + ZIP/TXT/ویدئو
 set -uo pipefail
 cd /home/z/my-project/download
 V=/home/z/my-project/artifacts/verify-links.txt
@@ -8,58 +8,65 @@ V=/home/z/my-project/artifacts/verify-links.txt
 check_zip() { unzip -tq "$2" > /dev/null 2>&1 && echo "$1 zip-integrity: OK" || echo "$1 zip-integrity: FAIL"; }
 check_txt() {
   local f=$1 orig=$2
-  local l1=$(head -2 "$f" | tail -1) lmid=$(sed -n "$(( $(wc -l < "$f") / 2 ))p" "$f" | head -c 60) ll=$(tail -3 "$f" | head -1 | head -c 60)
   local ok=$(python3 -c "
 a=open('$f','rb').read(); b=open('$orig','rb').read()
 print('IDENTICAL' if a==b else f'DIFF {len(a)} vs {len(b)}')")
-  echo "txt-check($f): first=${l1:0:40} mid=${lmid:0:30} tail=${ll:0:30} compare=$ok"
+  echo "txt-check: first=$(head -2 "$f" | tail -1 | head -c 40) | compare=$ok"
 }
 
 echo "════ tmpfiles.org — real anonymous downloads + byte comparison ════" | tee -a "$V"
 declare -A MAP=(
-  ["bundle"]="wlA2dQOh0peK/rahyar-web-standalone.zip|/home/z/my-project/download/rahyar-web-standalone.zip"
-  ["srczip"]="wIAQdUOO0egq/rahyar_full_source.zip|/home/z/my-project/download/RahyAr_Full_Source.zip"
-  ["srctxt"]="wUAgd0Ok0DKm/rahyar_complete_source.txt|/home/z/my-project/download/RahyAr_COMPLETE_SOURCE.txt"
-  ["shots"]="wBAfdzO00CUR/rahyar_screenshots_22.zip|/home/z/my-project/download/RahyAr_Screenshots_22.zip"
-  ["video"]="wYA3doOu0kTi/rahyar-final-walkthrough.mp4|/home/z/my-project/download/rahyar-final-walkthrough.mp4"
+  ["bundle"]="wsATd12Hxfat/rahyar-web-standalone.zip|rahyar-web-standalone.zip"
+  ["srczip"]="wbAtdn2pxpYd/rahyar_full_source.zip|RahyAr_Full_Source.zip"
+  ["srctxt"]="w3AVdK2oxPiB/rahyar_complete_source.txt|RahyAr_COMPLETE_SOURCE.txt"
+  ["shots"]="wmAGdw27xB2P/rahyar_screenshots_22.zip|RahyAr_Screenshots_22.zip"
+  ["video"]="w9AfdH26xf46/rahyar-final-walkthrough.mp4|rahyar-final-walkthrough.mp4"
+  ["apkdbg"]="w1AOdP2txLPv/rahyar-android-v2.1.0-debug.apk|Rahyar-Android-v2.1.0-debug.apk"
+  ["apkrel"]="wvA3dn2gxHEf/rahyar-android-v2.1.0-release.apk|Rahyar-Android-v2.1.0-release.apk"
 )
-for k in bundle srczip srctxt shots video; do
+for k in bundle srczip srctxt shots video apkdbg apkrel; do
   IFS='|' read -r path orig <<< "${MAP[$k]}"
-  # صفحهٔ wrapper → استخراج لینک مستقیم توکن‌دار
-  WRAP=$(curl -sL -m 60 "https://tmpfiles.org/dl/$path" 2>/dev/null)
+  WRAP=$(curl -sL -m 90 "https://tmpfiles.org/dl/$path" 2>/dev/null)
   DLURL=$(echo "$WRAP" | grep -oE 'https://tmpfiles\.org/dl/[0-9]+\.[a-f0-9]+/[^"]+' | head -1)
-  if [ -z "$DLURL" ]; then echo "[$k] no-direct-link (page changed?)"; continue; fi
+  if [ -z "$DLURL" ]; then echo "[$k] no-direct-link" | tee -a "$V"; continue; fi
   curl -sL -m 280 "$DLURL" -o "/tmp/verify-$k" 2>/dev/null
-  local_size=$(stat -c%s "/tmp/verify-$k" 2>/dev/null || echo 0)
-  orig_size=$(stat -c%s "$orig" 2>/dev/null || echo 0)
-  if [ "$local_size" = "$orig_size" ] && [ "$local_size" != "0" ]; then
-    echo "[$k] size MATCH: $local_size bytes" | tee -a "$V"
+  ls=$(stat -c%s "/tmp/verify-$k" 2>/dev/null || echo 0); osz=$(stat -c%s "$orig" 2>/dev/null || echo 0)
+  if [ "$ls" = "$osz" ] && [ "$ls" != "0" ]; then
+    echo "[$k] size MATCH: $ls bytes" | tee -a "$V"
     case $k in
       bundle|srczip|shots) check_zip "$k" "/tmp/verify-$k" | tee -a "$V";;
       srctxt) check_txt "/tmp/verify-$k" "$orig" | tee -a "$V";;
       video) ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "/tmp/verify-$k" | xargs echo "[$k] video duration(s):" | tee -a "$V";;
+      apkdbg|apkrel) unzip -tq "/tmp/verify-$k" > /dev/null 2>&1 && echo "[$k] apk-zip-structure: OK" | tee -a "$V";;
     esac
   else
-    echo "[$k] SIZE MISMATCH: got=$local_size orig=$orig_size" | tee -a "$V"
+    echo "[$k] SIZE MISMATCH: got=$ls orig=$osz" | tee -a "$V"
   fi
   rm -f "/tmp/verify-$k"
 done
 
-echo "════ gofile.io — official links, page reachability ════" | tee -a "$V"
-declare -A GMAP=(
-  ["pkg"]="IzmbtgYx" ["bundle"]="1HRaf6ly" ["srczip"]="4HjOOV2M"
-  ["srctxt"]="0OmSDgxM" ["shots"]="S7TeVTnx" ["video"]="Gm5fEL2B"
+echo "════ uguu.se — third copies ════" | tee -a "$V"
+declare -A UMAP=(
+  ["u-txt"]="https://d.uguu.se/bmQYlFxH.txt|RahyAr_COMPLETE_SOURCE.txt"
+  ["u-vid"]="https://n.uguu.se/suADBnFX.mp4|rahyar-final-walkthrough.mp4"
+  ["u-p2"]="https://n.uguu.se/nWveErNg.001|RahyAr_FINAL_OWNER_DELIVERY.zip.001"
 )
-for k in pkg bundle srczip srctxt shots video; do
-  gid=${GMAP[$k]}
+for k in u-txt u-vid u-p2; do
+  IFS='|' read -r url orig <<< "${UMAP[$k]}"
+  curl -sL -m 280 "$url" -o "/tmp/verify-$k" 2>/dev/null
+  ls=$(stat -c%s "/tmp/verify-$k" 2>/dev/null || echo 0); osz=$(stat -c%s "$orig" 2>/dev/null || echo 0)
+  [ "$ls" = "$osz" ] && [ "$ls" != "0" ] && echo "[$k] size MATCH: $ls" | tee -a "$V" || echo "[$k] MISMATCH got=$ls orig=$osz" | tee -a "$V"
+  rm -f "/tmp/verify-$k"
+done
+
+echo "════ gofile.io — official links, page reachability (retries) ════" | tee -a "$V"
+for gid in i8aaEFVr uemMcslo r6HThgZm EwsLEZqv iOdxLP8s J7ShKPHg GEVzFZCc pT2dPHxF; do
   code=000
   for try in 1 2 3; do
     code=$(curl -sL -o /tmp/gp -w "%{http_code}" -m 45 "https://gofile.io/d/$gid" 2>/dev/null)
     [ "$code" = "200" ] && break
-    sleep 4
+    sleep 3
   done
-  hit=$(grep -c "gofile\|download" /tmp/gp 2>/dev/null || echo 0)
-  echo "gofile/$k ($gid): HTTP $code, app-page-hits=$hit (tries=$try)" | tee -a "$V"
+  echo "gofile/$gid: HTTP $code (tries=$try)" | tee -a "$V"
 done
-rm -f /tmp/gp
 echo "════ VERIFY DONE ════" | tee -a "$V"

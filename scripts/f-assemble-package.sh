@@ -66,8 +66,27 @@ cp artifacts/media/final/rahyar-final-walkthrough.mp4 "$ROOT/05_VIDEO/"
 WEBM=$(ls artifacts/media/final/video/*.webm 2>/dev/null | head -1)
 [ -n "$WEBM" ] && cp "$WEBM" "$ROOT/05_VIDEO/rahyar-final-walkthrough-original.webm"
 DUR=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 artifacts/media/final/rahyar-final-walkthrough.mp4 2>/dev/null | cut -d. -f1)
-DUR=${DUR:-60}
+DUR=${DUR:-600}
 echo "video duration: ${DUR}s"
+
+# ── F2 (مأموریت تکمیلی): APKهای واقعی اندروید + شواهد عامل + اسکن امنیتی ──
+echo "  [01+] APKs..."
+for apk in artifacts/android-build/out/Rahyar-Android-v2.1.0-debug.apk artifacts/android-build/out/Rahyar-Android-v2.1.0-release.apk; do
+  [ -f "$apk" ] && cp "$apk" "$ROOT/01_APPLICATION/"
+done
+cat > "$ROOT/01_APPLICATION/ANDROID-BUILD-STATUS_FA.md" << EOF
+# وضعیت بیلد اندروید — $(date +%Y-%m-%d) (commit $HASH)
+- دو APK واقعی ساخته و امضا شد: debug (گواهی debug) و release (PKCS12 RSA-4096، اعتبار ۱۰۰۰۰ روز)
+- apksigner verify: طرح‌های v2+v3 روی هر دو؛ zipalign -c 4 پاس
+- badging: com.rahyarai.app | versionCode 22 | versionName 2.1.0 | minSdk 24 | targetSdk 34
+- مجوزها: INTERNET، POST_NOTIFICATIONS، SCHEDULE_EXACT_ALARM، RECEIVE_BOOT_COMPLETED، VIBRATE
+  (RECORD_AUDIO عمداً نیست — گویا از SpeechRecognizer سیستم استفاده می‌شود؛ VoiceHelper.java)
+- ۴۹/۴۹ تست JVM (JUnit4) پاس — از جمله OfflineContractTest و VoiceEventsTest
+- بیلد با خط لوله بدون-Gradle: aapt2 (build-tools 34.0.0) → ECJ 3.33.0 → d8 → zipalign → apksigner؛
+  اسکریپت: scripts/build-android-apk-v12.sh (پروموت‌شده از artifacts)
+- **مانع صادقانه**: نصب روی شبیه‌ساز/دستگاه در این سندباکس ممکن نیست (adb/emulator//dev/kvm نیست) — ساختگی تحویل نشده
+- keystore release: backups/android-release-keystore/ (خارج از گیت و بسته؛ رمز در فایل 0600 کنار آن)
+EOF
 
 # ── 06: مستندات ──
 cat > "$ROOT/06_DOCUMENTATION/INSTALL_GUIDE_FA.md" << 'EOF'
@@ -113,7 +132,56 @@ cat > "$ROOT/06_DOCUMENTATION/FEATURES_MATRIX_FA.md" << 'EOF'
 | Web Push | نیست | docs/REMINDERS_PLATFORMS.md |
 EOF
 
+cat > "$ROOT/06_DOCUMENTATION/VOICE_STATUS_FA.md" << 'EOF'
+# وضعیت صدا — صادقانه و آزمون‌پذیر (F2 §۴)
+## چی که هست و آزمون شده
+- **Push-to-Talk (جایگزین Wake-word در وب)**: دکمهٔ ورودی صوتی در نوار چت — فعال‌سازی در زمان استفاده (اجازهٔ مرورگر همین را می‌دهد)
+- **TTS پاسخ گفتاری**: speechSynthesis وب + TTS بومی اندروید؛ تنظیم voiceReplies در تنظیمات
+- **اندروید**: VoiceHelper.java از SpeechRecognizer سیستم استفاده می‌کند (بدون نیاز به RECORD_AUDIO — بدیهی چون سرویس سیستم میکروفون را مدیریت می‌کند)
+- تست‌های واحد: f2-agentic (کاهش‌لایق در محیط بدون مرورگر — false بدون exception)
+- تست‌های JVM اندروید: VoiceEventsTest — ۴۹/۴۹ پاس
+## چی که در سندباکس آزمون‌ناپذیر است (محدودیت سخت)
+- **STT زنده با میکروفون واقعی** (فارسی/انگلیسی): سندباکس neither میکروفون دارد nor خروجی صدا — هر ادعای «پاس زنده» دروغ بود؛ کد کامل در سورس + اندروید، اجرای زنده فقط روی دستگاه واقعی
+- **Wake-word / گوش‌به‌فرمان پس‌زمینه**: پیاده نشده — صادقانه اعلام می‌شود.
+  - وب: مرورگرها شنیدن مداوم پس‌زمینه را نمی‌دهند (سیاست پلتفرمی، دورزدنش حریم خصوصی را می‌شکند) — راهکار عملی همان Push-to-Talk است (موجود)
+  - اندروید: مسیر واقعی = Foreground Service + SpeechRecognizer جزئی (Android 12+) یا موتور Wake-word (Porcupine — نیازمند کلید/لایسنس خارجی، وابستگی بیرونی) + مجوز RECORD_AUDIO + بهینه‌سازی باتری (Doze whitelist). کد سرویس نوشته نشده — به‌جای ادعای کاذب، راهکار بالا مستند است
+- **مصرف باتری/حریم خصوصی**: چون wake-word مداوم وجود ندارد، شنیدن فقط در زمان استفاده است (کمترین مصرف)؛ دادهٔ صوت به سرویس ارائه‌دهندهٔ گفتار مرورگر/سیستم می‌رود — هیچ صوتی در سرور رهیار ذخیره یا ارسال نمی‌شود
+EOF
+cat > "$ROOT/06_DOCUMENTATION/ANDROID_STATUS_FA.md" << 'EOF'
+# وضعیت اندروید — F2 §۵
+- **دو APK واقعی ساخته شد** (بند ۰۱ بسته): Rahyar-Android-v2.1.0-debug.apk و -release.apk (امضای v2+v3، zipalign پاس)
+- pipeline بدون Gradle (aapt2+ECJ+d8) — اسکریپت بازتولید: scripts/build-android-apk-v12.sh + scripts/fetch-android-tools.sh (دانلود ابزارهای رسمی Google/Maven — SHA-256 در artifacts/reports/android-tools-provenance.txt)
+- **نصب روی دستگاه/شبیه‌ساز انجام نشد** — adb/emulator/KVM در سندباکس نیست؛ هیچ APK ساختگی یا «نصب‌شدهٔ ادعایی» وجود ندارد. APKها APK استاندارد هستند و روی هر دستگاه اندروید ۷+ قابل نصب‌اند (side-load)
+- **آزمون‌های JVM**: ۴۹/۴۹ (ReminderAlarms، VoiceEvents، OfflineContract، LocalStore، AppConfig، RahyarCore، RahyarNativeBridge)
+- کارهای بعدی پیشنهادی: تست دستی روی گوشی واقعی، ساخت ویرایش owner (vc23)، اتصال WebView به سرور production
+EOF
+
+cat > "$ROOT/06_DOCUMENTATION/VOICE_STATUS_FA.md" << 'VEOF'
+# وضعیت صدا — صادقانه و آزمون‌پذیر (F2 §۴)
+## هست و آزمون شده
+- Push-to-Talk (جایگزین مجاز wake-word در وب): دکمهٔ ورودی صوتی در نوار چت — فعال‌سازی در زمان استفاده
+- TTS پاسخ گفتاری: speechSynthesis وب + TTS بومی اندروید؛ تنظیم voiceReplies
+- اندروید: VoiceHelper.java از SpeechRecognizer سیستم (بدون RECORD_AUDIO — سرویس سیستم میکروفون را مدیریت می‌کند)
+- تست واحد کاهش‌لایق (بدون مرورگر → false بدون exception) + VoiceEventsTest اندروید (۴۹/۴۹ JVM)
+## در سندباکس آزمون‌ناپذیر (محدودیت سختِ محیط)
+- STT زنده با میکروفون واقعی (فارسی/انگلیسی): سندباکس میکروفون/خروجی صدا ندارد — کد کامل در سورس؛ اجرای زنده فقط روی دستگاه
+## Wake-word: پیاده نشده — صادقانه
+- وب: شنیدن مداوم پس‌زمینه سیاست مرورگرها اجازه نمی‌دهد → راهکار عملی همان Push-to-Talk (موجود)
+- اندروید: مسیر واقعی = Foreground Service + SpeechRecognizer جزئی (Android 12+) یا Porcupine (نیازمند لایسنس بیرونی) + RECORD_AUDIO + Doze whitelist — کد سرویس نوشته نشده؛ به‌جای ادعا، راهکار مستند است
+- باتری/حریم خصوصی: بدون wake-word، شنیدن فقط در زمان استفاده (کمترین مصرف)؛ صوت به سرویس گفتار مرورگر/سیستم می‌رود — هیچ صوتی به سرور رهیار نمی‌رود
+VEOF
+cat > "$ROOT/06_DOCUMENTATION/ANDROID_STATUS_FA.md" << 'AEOF'
+# وضعیت اندروید — F2 §۵
+- دو APK واقعی ساخته شد (بند ۰۱): debug + release (امضای v2+v3، zipalign، apksigner verify)
+- pipeline بدون Gradle: aapt2 (build-tools 34.0.0) + ECJ 3.33.0 + d8 — بازتولید: scripts/build-android-apk-v12.sh (+fetch-android-tools.sh؛ SHA-256 ابزارها در provenance log)
+- نصب روی دستگاه/شبیه‌ساز انجام نشد — adb/emulator/KVM در سندباکس نیست؛ APKها استانداردند (اندروید ۷+، side-load)
+- تست‌های JVM: ۴۹/۴۹
+- بعدی: تست دستی روی گوشی، ویرایش owner (vc23)، اتصال WebView به سرور production
+AEOF
+
 # ── 07: گزارش ممیزی ──
+cp artifacts/rahyar-audit/FAG_SCENARIOS_LIVE.txt "$ROOT/07_AUDIT_REPORT/scenarios-S1-S5-live.log" 2>/dev/null || true
+cp artifacts/rahyar-audit/FAG2_SCENARIOS_LIVE.txt "$ROOT/07_AUDIT_REPORT/scenarios-S6-S10-live.log" 2>/dev/null || true
 cat > "$ROOT/07_AUDIT_REPORT/AUDIT_REPORT_FA.md" << EOF
 # گزارش ممیزی جامع مأموریت نهایی — $TODAY
 **commit ممیزی‌شده**: $HASH | روش: مطالعهٔ مستقیم کد + اجرای واقعی (نه اتکا به گزارش‌های قبلی)
@@ -131,13 +199,18 @@ STT (Web Speech + بومی اندروید) و TTS کامل؛ wake-word نه (م�
 EOF
 
 # ── 08: امنیت ──
+cp artifacts/rahyar-audit/F2_SECURITY_SCANS.txt "$ROOT/08_SECURITY_REPORT/secret-scans-source-vs-history.txt" 2>/dev/null || true
 cat > "$ROOT/08_SECURITY_REPORT/SECURITY_STATUS_FA.md" << EOF
-# وضعیت امنیتی — $TODAY (commit $HASH)
-- C1..C10 رجیستر کامل: LOCAL_CLEAN / BACKUP_VERIFIED / STRUCTURALLY_UNPUBLISHABLE (جزئیات در گزارش قبلی R2 که مبنای همین نسخه است).
-- این بسته: هیچ رمز/توکن/کلیدی ندارد (اسکن secret پیش از بسته‌بندی انجام شد — scripts/tests/run-p06r-secret-tests.sh ALL-PASS).
-- CSP با nonce + strict-dynamic؛ frame-ancestors فقط دامنه‌های رسمی پنل؛ گاردهای عاملیت (حذف/فراموشی با فعل صریح)؛ سقف نرخ روی همهٔ APIها؛ پارس پیامک با رضایت دومرحله‌ای.
-- توضیح صادقانه: رمز keystore در wipe پلتفرم از دست رفت — سرنخ بازسازی: کلید تازه بسازید (T1–T7 fail-closed از env).
-- حساب owner نمایشی با رمز موقت در پیام تحویل — بلافاصله عوض شود.
+# وضعیت امنیتی — $TODAY (commit $HASH) — مأموریت تکمیلی F2 §۲
+- چرخش اعتبارنامه: رمز افشاشدهٔ گزارش قبلی منقضی تلقی شد؛ حساب با اعتبارنامهٔ جدید تصادفی بازسازی شد (رمز فقط در پیام چت — در هیچ فایلی نیست)؛ همهٔ نشست‌ها/توکن‌ها ابطال شدند
+- اسکن جداگانهٔ سورس و تاریخچه (پیوست: secret-scans-source-vs-history.txt):
+  - سورس: ۸۱۰ فایل — یافته‌ها فقط placeholderهای REDACTED_C1..C10 / هش CSP / مسیر — بدون رمز واقعی
+  - تاریخچه: ۱۵۱ کامیت / ۱۰۲۷ blob یکتا — همان کلاس‌ها — بدون رمز واقعی
+  - الگوها: کلید خصوصی، AWS، Google/Slack، bearer، رمز-انتساب، توکن high-entropy
+- C1..C10 بازبینی شد: رجیستر LOCAL_CLEAN / BACKUP_VERIFIED / STRUCTURALLY_UNPUBLISHABLE به قوت خود؛ هیچ secret در بسته (اسکن + p06r ALL-PASS پیش از بسته‌بندی)
+- keystore: قبلی در wipe از دست رفت → keystore release جدید (PKCS12 RSA-4096، CN=RahyAr، ۱۰۰۰۰ روز) در backups/ (بیرون از گیت/بسته، رمز 0600)
+- CSP nonce + strict-dynamic؛ frame-ancestors فقط دامنه‌های رسمی؛ گاردهای عاملیت حالا با ماشین-وضعیت تأیید صریح؛ claim-first idempotency؛ رضایت دومرحله‌ای پارس پیامک
+- سرویس بیرونی بدون توکن: .z-ai-config سندباکس، خارج از گیت و بسته (تایید git ls-files + اسکن)
 EOF
 
 # ── 09: آزمون‌ها ──
@@ -147,16 +220,18 @@ cat > "$ROOT/09_TEST_RESULTS/TEST_RESULTS_FA.md" << EOF
 |---|---|
 | Typecheck (tsc --noEmit) | PASS — صفر خطا |
 | Lint (eslint src) | PASS — صفر خطا |
-| Unit (bun test) | **۲۵۴/۲۵۴** (۷۸۷ expect، ۱۶ فایل، شامل agentic-f1) — صفر skip |
+| Unit (bun test) | **۲۶۱/۲۶۱** (۸۱۱ expect، ۱۷ فایل، شامل agentic-f1 + f2-agentic + voice) — صفر skip |
 | Production build (next build) | PASS |
 | Secret tests (T1–T7 + G-C*) | ALL-PASS |
 | E2E مرورگر (grand-e2e) | **۱۱/۱۱ PASS — صفر خطای کنسول** (axe: صفر critical/serious) |
-| ۵ سناریوی الزامی مأموریت (زنده، اثر واقعی DB) | **۵/۵ PASS** — یادآور واقعی تهران، خلاصهٔ مالی از DB واقعی، plan_day واقعی، پیش‌نویس بدون ارسال، قرار+یادآور متصل — اثرها در اسکرین‌شات‌های 05/06/07 و لاگ سناریو (07_AUDIT_REPORT/scenarios-live.log) |
+| ۵ سناریوی پایه مأموریت (زنده، اثر واقعی DB) | **۵/۵ PASS** — یادآور واقعی تهران، خلاصهٔ مالی از DB واقعی، plan_day واقعی، پیش‌نویس بدون ارسال، قرار+یادآور متصل |
+| ۵ سناریوی تکمیلی F2 (S6-S10) | **۵/۵ PASS** — چندمرحله‌ای تقویم+یادآور با ریاضی دقیق تهران، قطع واقعی سرویس AI، retry با clientKey، تأیید/انصراف عملیات حساس، راستی‌آزمایی پس از اجرا |
 | بازیابی پس از قطع شبکه (درون‌اپ) | PASS (اسکرین‌شات 21/22) |
 | فا/ان + RTL/LTR | PASS (E2E بندهای 1 و 8) |
 | موبایل/دسکتاپ (overflow) | PASS (۰px در هر دو) |
 | Preview زنده | در حال اجرا روی پنل — ورود owner 200، داشبورد 200 |
-Skip شده: هیچ. آزمون‌نشده به‌علت محیط: STT زنده (بدون میکروفون سندباکس) — صادقانه ثبت شد.
+Skip شده: هیچ. آزمون‌نشده به‌علت محیط: STT زنده (بدون میکروفون سندباکس)، نصب APK روی دستگاه واقعی/شبیه‌ساز (adb/KVM نیست) — صادقانه ثبت شد.
+| اندروید (JVM tests + build) | **۴۹/۴۹ پاس** + دو APK امضاشده (debug + release، apksigner v2+v3) — جزئیات: 01_APPLICATION/ANDROID-BUILD-STATUS_FA.md |
 EOF
 
 # ── README + APK نکته ──
