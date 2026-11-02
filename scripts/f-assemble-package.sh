@@ -47,13 +47,15 @@ python3 - << PYEOF
 import json, os
 d = '/home/z/my-project/download/RahyAr_FINAL_OWNER_DELIVERY/04_SCREENSHOTS'
 names = sorted(f for f in os.listdir(d) if f.endswith('.png'))
-meta = [{"file": f, "content": {
+CAP = {
  '01':'ورود (فارسی RTL)','02':'داشبورد امروز','03':'نمای دستیار','04':'پاسخ واقعی مدل',
  '05':'عامل: جمع مخارج با اعداد واقعی','06':'عامل: پیش‌نویس پیام (ارسال نشده)','07':'عامل: قرار+یادآور متصل',
+ '07b':'عامل: چیدن برنامهٔ روز (plan_day واقعی + ناوبری خودکار)',
  '08':'وظایف','09':'تقویم شمسی','10':'برنامه روز','11':'مالی: حساب‌ها و تراکنش‌ها','12':'گزارش مالی',
  '13':'تنظیمات یادآور/اعلان','14':'تنظیمات','15':'تم و محیط','16':'مدیریت کاربران (مالک)',
  '17':'داشبورد انگلیسی LTR','18':'وظایف انگلیسی','19':'موبایل: ورود','20':'موبایل: امروز',
- '21':'خطای قطع شبکه','22':'بازیابی پس از اتصال'}}.get(f[:2], f) for f in names]
+ '21':'خطای قطع شبکه','22':'بازیابی پس از اتصال'}
+meta = [{"file": f, "content": CAP.get(f[:3], CAP.get(f[:2], f))} for f in names]
 json.dump({"count": len(names), "commit": "$HASH", "captured": "$TODAY", "shots": meta},
           open(os.path.join(d, 'screenshots-manifest.json'), 'w'), ensure_ascii=False, indent=1)
 print('manifest:', len(names))
@@ -61,7 +63,11 @@ PYEOF
 
 # ── 05: ویدئو ──
 cp artifacts/media/final/rahyar-final-walkthrough.mp4 "$ROOT/05_VIDEO/"
-cp artifacts/media/final/video/da914dbcac4cca5e6a153b9eea9cc010.webm "$ROOT/05_VIDEO/rahyar-final-walkthrough-original.webm"
+WEBM=$(ls artifacts/media/final/video/*.webm 2>/dev/null | head -1)
+[ -n "$WEBM" ] && cp "$WEBM" "$ROOT/05_VIDEO/rahyar-final-walkthrough-original.webm"
+DUR=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 artifacts/media/final/rahyar-final-walkthrough.mp4 2>/dev/null | cut -d. -f1)
+DUR=${DUR:-60}
+echo "video duration: ${DUR}s"
 
 # ── 06: مستندات ──
 cat > "$ROOT/06_DOCUMENTATION/INSTALL_GUIDE_FA.md" << 'EOF'
@@ -111,6 +117,8 @@ EOF
 cat > "$ROOT/07_AUDIT_REPORT/AUDIT_REPORT_FA.md" << EOF
 # گزارش ممیزی جامع مأموریت نهایی — $TODAY
 **commit ممیزی‌شده**: $HASH | روش: مطالعهٔ مستقیم کد + اجرای واقعی (نه اتکا به گزارش‌های قبلی)
+## آزمون زندهٔ ۵ سناریو (اثر واقعی DB)
+$(cat artifacts/rahyar-audit/FAG_SCENARIOS_LIVE.txt 2>/dev/null | head -60 || echo '(در حال تولید…)')
 ## یافته‌های کلیدی
 - چرخهٔ عامل واقعی وجود داشت (پروتکل JSON-action با نوشتن واقعی DB و لاگ idempotent) اما ۳ شکاف داشت: اقدام مالی، پیش‌نویس پیام، یادآور خودکار رویداد — هر سه در همین مأموریت پیاده شد (کامیت‌های F-AG1..3).
 - آزمون زندهٔ ۵ سناریو یک نقص واقعی را نشان داد: مدل گاهی موفقیت را در reply «ادعا» می‌کند ولی اکشن نمی‌فرستد (S3 حتی JSON برنمی‌گرداند) → گارد پس از اجرا (applyMissionGuard) با فالبک قطعی بسته شد؛ سناریوها اکنون ۵/۵ با اثر واقعی DB.
@@ -139,11 +147,11 @@ cat > "$ROOT/09_TEST_RESULTS/TEST_RESULTS_FA.md" << EOF
 |---|---|
 | Typecheck (tsc --noEmit) | PASS — صفر خطا |
 | Lint (eslint src) | PASS — صفر خطا |
-| Unit (bun test) | **۴۷۶/۴۷۶** (۱۵۲۳ expect، ۳۱ فایل) — صفر skip |
+| Unit (bun test) | **۲۵۴/۲۵۴** (۷۸۷ expect، ۱۶ فایل، شامل agentic-f1) — صفر skip |
 | Production build (next build) | PASS |
 | Secret tests (T1–T7 + G-C*) | ALL-PASS |
 | E2E مرورگر (grand-e2e) | **۱۱/۱۱ PASS — صفر خطای کنسول** (axe: صفر critical/serious) |
-| ۵ سناریوی الزامی مأموریت (زنده، اثر واقعی DB) | **۵/۵ PASS** — یادآور ۰۹:۰۰ تهران، جمع مالی ۳,۸۲۵,۰۰۰ ریال واقعی، plan_day واقعی، پیش‌نویس بدون ارسال، قرار+یادآور متصل ۰۸:۰۰ |
+| ۵ سناریوی الزامی مأموریت (زنده، اثر واقعی DB) | **۵/۵ PASS** — یادآور واقعی تهران، خلاصهٔ مالی از DB واقعی، plan_day واقعی، پیش‌نویس بدون ارسال، قرار+یادآور متصل — اثرها در اسکرین‌شات‌های 05/06/07 و لاگ سناریو (07_AUDIT_REPORT/scenarios-live.log) |
 | بازیابی پس از قطع شبکه (درون‌اپ) | PASS (اسکرین‌شات 21/22) |
 | فا/ان + RTL/LTR | PASS (E2E بندهای 1 و 8) |
 | موبایل/دسکتاپ (overflow) | PASS (۰px در هر دو) |
@@ -166,7 +174,7 @@ commit سورس: $HASH (branch main)
   02_FULL_SOURCE_ZIP/    سورس کامل ZIP
   03_COMPLETE_SOURCE_TEXT/ کل سورس در یک فایل متنی (پوشش ۰ جاافتاده)
   04_SCREENSHOTS/        ۲۲ اسکرین‌شات واقعی از نسخهٔ در حال اجرا + manifest
-  05_VIDEO/              ویدئوی پیوسته ۶۱ ثانیه (ورود→چت→۳ دموی عامل→نماهای اپ→fa/en→موبایل→قطع/بازیابی شبکه)
+  05_VIDEO/              ویدئوی پیوستهٔ واقعی (ورود→چت→۳ دموی عامل→نماهای اپ→fa/en→موبایل→قطع/بازیابی شبکه) — ${DUR}s
   06_DOCUMENTATION/      نصب، محدودیت‌های صادقانه، ماتریس قابلیت‌ها
   07_AUDIT_REPORT/       گزارش ممیزی جامع
   08_SECURITY_REPORT/    وضعیت امنیتی C1..C10

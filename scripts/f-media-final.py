@@ -37,7 +37,35 @@ def login(page):
     page.wait_for_url(f'{BASE}/', timeout=30000)
     settle(page, 2200)
 
+def wait_reply_done(page, max_s=90):
+    """wait until streaming finishes (stop button appears then disappears)"""
+    import time as _t
+    t0 = _t.time()
+    seen = False
+    while _t.time() - t0 < max_s:
+        page.wait_for_timeout(1200)
+        stop = page.locator('[aria-label*="توقف"]').count()
+        if stop:
+            seen = True
+        if seen and stop == 0:
+            break
+    page.wait_for_timeout(1200)
+
+def ensure_chat(page):
+    """make sure we are in the assistant view with a fillable composer"""
+    for _ in range(3):
+        if page.locator('textarea').count() > 0:
+            try:
+                page.locator('textarea').last.click(timeout=4000)
+                return
+            except Exception:
+                pass
+        page.keyboard.press('4')
+        page.wait_for_timeout(1800)
+
 def chat_send(page, text):
+    wait_reply_done(page)
+    ensure_chat(page)
     box = page.locator('textarea').last
     box.fill(text)
     box.press('Enter')
@@ -61,8 +89,8 @@ with sync_playwright() as p:
     page.keyboard.press('4')
     settle(page, 1500)
     shot(page, '03-assistant-fa')
-    chat_send(page, 'یک برنامه ساده برای امروز پیشنهاد بده')
-    wait_chip(page, 'دنباله', 60000) if False else page.wait_for_timeout(14000)
+    chat_send(page, 'سلام رهیار! خودت را در دو جمله کوتاه معرفی کن')
+    wait_reply_done(page, max_s=60)
     shot(page, '04-ai-real-answer-fa')
 
     # دموهای عامل — سناریوهای الزامی مأموریت (اثر واقعی)
@@ -82,6 +110,15 @@ with sync_playwright() as p:
     page.wait_for_selector('text=یادآوری: قرار', timeout=40000)
     settle(page, 800)
     shot(page, '07-agentic-event-reminder')
+
+    # دموی plan_day — اکشن برنامه‌ریزی واقعی (نصب‌شده توسط گارد مأموریت)
+    chat_send(page, 'یک برنامه ساده برای امروز پیشنهاد بده')
+    try:
+        page.wait_for_selector('text=برنامه امروز چیده شد', timeout=45000)
+    except Exception:
+        wait_reply_done(page, max_s=50)
+    settle(page, 2500)
+    shot(page, '07b-agentic-plan-day')
 
     page.keyboard.press('2')
     settle(page, 1500)
@@ -194,7 +231,11 @@ with sync_playwright() as p:
     vp.keyboard.press('4')
     settle(vp, 1500)
     chat_send(vp, 'یک برنامه ساده برای امروز پیشنهاد بده')
-    vp.wait_for_timeout(14000)
+    try:
+        vp.wait_for_selector('text=برنامه امروز چیده شد', timeout=45000)
+    except Exception:
+        wait_reply_done(vp, max_s=50)
+    settle(vp, 2500)  # ناوبری خودکار به نمای برنامه — اثر واقعی اکشن
     chat_send(vp, 'مخارج این هفته را جمع کن و گزارش بده.')
     try:
         vp.wait_for_function(
