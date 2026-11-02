@@ -1,6 +1,6 @@
 # 10 — تحویل نهایی به مالک (R2+) — 2026-11-02
 
-**commit مبنا**: `cf2c446` (main) | بسته: `download/RahyAr_R2_OWNER_DELIVERY/` (۳۹ فایل، SHA256SUMS 38/38 verify)
+**commit مبنا**: `c77e44abd42c` (main) | بسته: `download/RahyAr_R2_OWNER_DELIVERY/` (۳۹ فایل، SHA256SUMS 38/38 verify)
 
 ## خلاصه اجرا
 - **وضعیت شروع**: HEAD `cf2c446`، ۳۲ commit جلوتر از origin، درخت تمیز — مطابق گزارش قبلی. بستهٔ قبلی download در بازیافت سندباکس از دست رفته بود → بازسازی کامل از صفر.
