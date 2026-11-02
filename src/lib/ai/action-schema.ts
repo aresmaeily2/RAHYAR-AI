@@ -30,6 +30,8 @@ export const AssistantActionSchema = z.discriminatedUnion('type', [
     dueDate: shortText.optional(),
     dueTime: z.string().regex(timePattern).optional(),
     repeat: z.union([z.literal('daily'), z.literal('weekly')]).optional(),
+    // F-AG1: یادآور خودکار «X دقیقه قبل از سررسید» — اجرا در همان add_task اتمیک می‌سازد
+    remindBeforeMin: z.number().int().min(5).max(1440).optional(),
   }),
   z
     .object({
@@ -89,6 +91,20 @@ export const AssistantActionSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('breakdown_task'),
     taskId: z.string().max(64),
+  }),
+  // F-AG1 (مأموریت نهایی — فاز ۲/۳): خواندن مالی فقط-خواندنی؛ هیچ اکشن مالی
+  // نوشتنی از چت مجاز نیست (ثبت تراکنش فقط از UI/پیامک با رضایت صریح)
+  z.object({
+    type: z.literal('finance_summary'),
+    range: z.enum(['today', 'week', 'month']),
+  }),
+  // F-AG2: پیش‌نویس پیام — هرگز ارسال نمی‌شود؛ ارسال واقعی فقط با خود کاربر.
+  // این انتخاب امنیتی است: هیچ سرویس پیام‌رسان بیرونی در چرخهٔ عامل نیست.
+  z.object({
+    type: z.literal('draft_message'),
+    recipient: shortText.optional(),
+    body: z.string().min(1).max(2000),
+    channel: z.enum(['sms', 'telegram', 'whatsapp', 'email']).optional(),
   }),
 ])
 

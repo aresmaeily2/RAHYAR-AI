@@ -53,7 +53,25 @@ export type ChatAction =
   | { type: 'forget'; ok: boolean; fact?: string; note?: string }
   | { type: 'add_reminder'; ok: boolean; reminder?: ReminderT; note?: string }
   | { type: 'breakdown_task'; ok: boolean; task?: TaskT; note?: string }
+  | { type: 'finance_summary'; ok: boolean; summary?: FinanceSummaryView; note?: string }
+  | {
+      type: 'draft_message'
+      ok: boolean
+      draft?: { recipient: string | null; body: string; channel: string }
+      note?: string
+    }
   | { type: 'unknown'; note: string }
+
+/** نمای خلاصهٔ مالی برای چیپ چت — مبالغ همیشه در واحد نمایش (ریال/تومان) */
+export interface FinanceSummaryView {
+  range: 'today' | 'week' | 'month'
+  expense: number
+  income: number
+  net: number
+  count: number
+  currency: 'irr' | 'toman'
+  topCats: Array<{ category: string; total: number }>
+}
 
 export interface ChatMessageT {
   id: string

@@ -10,6 +10,7 @@ import { getUserLang } from '@/lib/server-settings'
 import {
   replyTaskAdded,
   replyDailyReport,
+  replyFinanceSummary,
   replyTaskDone,
   replyTaskNotFound,
   replyFocusStarted,
@@ -102,6 +103,11 @@ export async function POST(req: NextRequest) {
         const { dailyReport } = await import('@/lib/assistant/report')
         const rep = await dailyReport(userId)
         reply = replyDailyReport(lang, rep)
+      } else if (intent.kind === 'finance_report') {
+        // F-AG1: جمع مخارج/درآمد با اعداد واقعی DB — بدون مدل
+        const { financeSummaryFor } = await import('@/lib/finance/summary')
+        const { agg, currency } = await financeSummaryFor(userId, intent.range)
+        reply = replyFinanceSummary(lang, { ...agg, range: intent.range, currency })
       } else if (intent.kind === 'complete_task') {
         // تکمیل کار با تطبیق فازی عنوان — قطعی و کم‌ریسک
         const { matchTask } = await import('@/lib/assistant/match')

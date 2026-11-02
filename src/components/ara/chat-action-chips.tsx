@@ -2,10 +2,71 @@
 
 // ─── چیپ‌های اکشن چت — نمایش نتایج عملیات دستیار ────────────
 
+import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Bell, Brain, CalendarCheck2, Check, ListTree, Star, Sunrise, Timer, Trash2 } from 'lucide-react'
+import { Bell, Brain, CalendarCheck2, Check, Copy, ListTree, Mail, Star, Sunrise, Timer, Trash2, Wallet } from 'lucide-react'
 import { useI18n } from '@/i18n/store'
-import type { ChatMessageT } from '@/lib/types'
+import type { ChatMessageT, FinanceSummaryView } from '@/lib/types'
+
+/** کارت خلاصهٔ مالی — اعداد واقعی از DB، در واحد نمایش کاربر */
+function FinanceChip({ s }: { s: FinanceSummaryView }) {
+  const { t, lang } = useI18n()
+  const unit = s.currency === 'toman' ? (lang === 'fa' ? 'تومان' : 'toman') : (lang === 'fa' ? 'ریال' : 'rial')
+  const fmt = (n: number) => Math.abs(Math.round(n)).toLocaleString(lang === 'en' ? 'en-US' : 'fa-IR')
+  const rangeLabel = lang === 'fa' ? ({ today: 'امروز', week: 'این هفته', month: 'این ماه' } as const)[s.range] : ({ today: 'today', week: 'this week', month: 'this month' } as const)[s.range]
+  const catLabel = (c: string) =>
+    lang === 'fa'
+      ? ({ food: 'خوراک', transport: 'حمل‌ونقل', shopping: 'خرید', bills: 'قبوض', health: 'سلامت', education: 'آموزش', fun: 'سرگرمی', family: 'خانواده', charity: 'خیریه', other: 'سایر', salary: 'حقوق', freelance: 'فریلنس', gift: 'هدیه', interest: 'سود', sale: 'فروش' } as Record<string, string>)[c] ?? c
+      : c
+  return (
+    <div className="rounded-xl chip-accent px-3 py-2 text-xs">
+      <div className="mb-1 flex items-center gap-1.5 font-medium text-primary">
+        <Wallet className="h-3.5 w-3.5" />
+        {t('خلاصه مالی')} — {rangeLabel}
+      </div>
+      <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-muted-foreground">
+        <span>{t('هزینه')}: <b className="text-foreground">{fmt(s.expense)}</b> {unit}</span>
+        {s.income > 0 && <span>{t('درآمد')}: <b className="text-foreground">{fmt(s.income)}</b> {unit}</span>}
+        <span>{t('تعداد تراکنش')}: {fmt(s.count)}</span>
+      </div>
+      {s.topCats.length > 0 && (
+        <p className="mt-1 text-[10px] text-muted-foreground/80">
+          {s.topCats.map((c) => `${catLabel(c.category)}: ${fmt(c.total)} ${unit}`).join(lang === 'fa' ? '، ' : ', ')}
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** کارت پیش‌نویس پیام — هرگز ارسال نمی‌شود؛ فقط نمایش + کپی */
+function DraftChip({ draft }: { draft: { recipient: string | null; body: string; channel: string } }) {
+  const { t } = useI18n()
+  const [copied, setCopied] = useState(false)
+  return (
+    <div className="rounded-xl bg-secondary px-3 py-2 text-xs">
+      <div className="mb-1 flex items-center gap-1.5 font-medium text-muted-foreground">
+        <Mail className="h-3.5 w-3.5" />
+        {t('پیش‌نویس پیام')}
+        <span className="rounded-full chip-warn px-2 py-0.5 text-[10px]">{t('ارسال نشده — فقط پیش‌نویس')}</span>
+      </div>
+      {draft.recipient && <p className="mb-0.5 text-muted-foreground">{t('مقصد')}: {draft.recipient}</p>}
+      <p className="whitespace-pre-wrap leading-6 text-foreground">{draft.body}</p>
+      <button
+        type="button"
+        onClick={() => {
+          void navigator.clipboard?.writeText(draft.body).then(() => {
+            setCopied(true)
+            setTimeout(() => setCopied(false), 1800)
+          })
+        }}
+        className="mt-1.5 flex items-center gap-1 rounded-lg bg-background px-2 py-1 text-[10px] text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <Copy className="h-3 w-3" />
+        {copied ? t('کپی شد') : t('کپی متن')}
+      </button>
+    </div>
+  )
+}
 
 export function ActionChips({ message }: { message: ChatMessageT }) {
   const { t, lang } = useI18n()
@@ -136,6 +197,12 @@ export function ActionChips({ message }: { message: ChatMessageT }) {
             </div>
           )
         }
+        if (a.type === 'finance_summary' && a.ok && a.summary) {
+          return <FinanceChip key={i} s={a.summary} />
+        }
+        if (a.type === 'draft_message' && a.ok && a.draft) {
+          return <DraftChip key={i} draft={a.draft} />
+        }
         if (
           (a.type === 'update_task' ||
             a.type === 'add_task' ||
@@ -145,7 +212,9 @@ export function ActionChips({ message }: { message: ChatMessageT }) {
             a.type === 'snooze_task' ||
             a.type === 'plan_day' ||
             a.type === 'remember' ||
-            a.type === 'forget') &&
+            a.type === 'forget' ||
+            a.type === 'finance_summary' ||
+            a.type === 'draft_message') &&
           !a.ok
         ) {
           return (

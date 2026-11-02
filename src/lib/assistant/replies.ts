@@ -5,6 +5,7 @@
 
 import { pick } from '@/lib/server-lang'
 import type { AppLang as Lang } from '@/lib/types'
+import { categoryLabel } from '@/lib/finance/summary'
 
 /** ارقام فارسی برای پیام‌های فارسی — انگلیسی لاتین می‌ماند */
 function num(lang: Lang, n: number | string): string {
@@ -39,6 +40,42 @@ export function replyDailyReport(lang: Lang, r: ReportFacts): string {
 /** پاسخ تکمیل کار */
 export function replyTaskDone(lang: Lang, title: string): string {
   return pick(lang, `انجام شد: «${title}». آفرین!`, `Done: “${title}”. Well done!`)
+}
+
+// ── F-AG1: پاسخ قطعی گزارش مالی با اعداد واقعی ─────────────────
+
+export interface FinanceFacts {
+  range: 'today' | 'week' | 'month'
+  expense: number
+  income: number
+  count: number
+  topCats: Array<{ category: string; total: number }>
+  currency: 'irr' | 'toman'
+}
+
+const RANGE_FA = { today: 'امروز', week: 'این هفته', month: 'این ماه' } as const
+const RANGE_EN = { today: 'today', week: 'this week', month: 'this month' } as const
+
+export function replyFinanceSummary(lang: Lang, f: FinanceFacts): string {
+  const unit = f.currency === 'toman' ? (lang === 'fa' ? 'تومان' : 'toman') : (lang === 'fa' ? 'ریال' : 'rial')
+  const exp = num(lang, Math.round(f.expense / (f.currency === 'toman' ? 10 : 1)).toLocaleString('en-US'))
+  const inc = num(lang, Math.round(f.income / (f.currency === 'toman' ? 10 : 1)).toLocaleString('en-US'))
+  if (lang === 'fa') {
+    if (f.expense === 0 && f.income === 0)
+      return `${RANGE_FA[f.range]} هنوز تراکنشی ثبت نشده؛ از نمای «مالی» یا ورود پیامک بانکی می‌توانی اضافه کنی.`
+    const cats = f.topCats
+      .slice(0, 3)
+      .map((c) => `${categoryLabel(c.category, 'fa')}: ${num(lang, Math.round(c.total / (f.currency === 'toman' ? 10 : 1)).toLocaleString('en-US'))} ${unit}`)
+      .join('، ')
+    return `جمع هزینهٔ ${RANGE_FA[f.range]}: ${exp} ${unit}${f.income > 0 ? ` — درآمد: ${inc} ${unit}` : ''}.${cats ? `\nبزرگ‌ترین دسته‌ها: ${cats}` : ''}`
+  }
+  if (f.expense === 0 && f.income === 0)
+    return `No transactions recorded ${RANGE_EN[f.range]} yet — add them from the Finance view or bank-SMS import.`
+  const cats = f.topCats
+    .slice(0, 3)
+    .map((c) => `${categoryLabel(c.category, 'en')}: ${Math.round(c.total / (f.currency === 'toman' ? 10 : 1)).toLocaleString('en-US')} ${unit}`)
+    .join(', ')
+  return `Expenses ${RANGE_EN[f.range]}: ${exp} ${unit}${f.income > 0 ? ` — income: ${inc} ${unit}` : ''}.${cats ? `\nTop categories: ${cats}` : ''}`
 }
 
 /** کار برای تکمیل پیدا نشد */

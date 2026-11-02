@@ -129,6 +129,12 @@ export const en: Translations = {
   'کار انجام شد': 'Task completed',
   'آفرین! کار انجام شد': 'Well done! Task completed',
   'انجام نشد': 'Not done',
+  // F-AG1/F-AG2 — چیپ‌های مالی و پیش‌نویس پیام
+  'خلاصه مالی': 'Finance summary',
+  'تعداد تراکنش': 'Transactions',
+  'پیش‌نویس پیام': 'Message draft',
+  'ارسال نشده — فقط پیش‌نویس': 'Not sent — draft only',
+  'کپی متن': 'Copy text',
   'انجام نشد؛ دوباره تلاش کن': "Couldn't do it; try again",
   'جزئیات، لینک‌ها، نکات...': 'Details, links, notes…',
 

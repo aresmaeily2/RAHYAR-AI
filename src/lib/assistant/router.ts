@@ -7,10 +7,14 @@
 
 import { parseQuickTask, type ParsedQuickTask } from '@/lib/nlp'
 
+/** محدودهٔ گزارش مالی — عین تعریف src/lib/finance/summary.ts (رویتر خالص می‌ماند) */
+export type FinanceRange = 'today' | 'week' | 'month'
+
 export type DeterministicIntent =
   | { kind: 'add_task'; parsed: ParsedQuickTask }
   | { kind: 'complete_task'; rawTitle: string }
   | { kind: 'daily_report' }
+  | { kind: 'finance_report'; range: FinanceRange }
   | { kind: 'list_today' }
   | { kind: 'start_focus' }
   | { kind: 'help' }
@@ -30,6 +34,9 @@ const FOCUS_PATTERNS =
   /(?:شروع\s*تمرکز|تمرکز\s*(?:کن|شروع)|پومودورو|زمان\s*تمرکز|تایمر\s*تمرکز|\bstart\s+(?:a\s+)?focus\b|\bpomodoro\b|\bfocus\s+(?:mode|timer)\b)/i
 const HELP_PATTERNS =
   /(?:چیکار[\s‌]*می[\s‌]*تونی|چه\s*کارهایی\s*می[\s‌]*تونی|کمک|راهنما|بلدی\s*چیکار|\bwhat\s+can\s+you\s+do\b|\bhelp\b)/i
+// F-AG1: گزارش مالی قطعی — «مخارج این هفته را جمع کن و گزارش بده»
+const FINANCE_PATTERNS =
+  /(?:مخارج|هزینه(?:‌?ها)?|خرج|درآمدها?|مصرف|پول).{0,24}(?:جمع|گزارش|خلاصه|چقدر|چند|بالانس)|جمع\s*(?:زن|بزن).{0,12}(?:مخارج|خرج|هزینه)|گزارش\s*مالی|خلاصه\s*مالی|\bhow much (?:did i spend|have i spent)\b|\bspending (?:report|summary)\b|\bexpense (?:report|summary)\b/i
 
 /**
  * تشخیص نیت قطعی — خالص و بدون اثر جانبی.
@@ -46,9 +53,17 @@ export function detectIntent(message: string): DeterministicIntent {
   const asksComplete = COMPLETE_PATTERNS.test(text)
   const asksFocus = FOCUS_PATTERNS.test(text)
   const asksHelp = HELP_PATTERNS.test(text)
+  const asksFinance = FINANCE_PATTERNS.test(text)
 
   // کمک/راهنما — قطعی و بدون مدل
   if (asksHelp && !asksAdd) return { kind: 'help' }
+
+  // F-AG1: گزارش مالی — قطعی با اعداد واقعی (محدوده پیش‌فرض: هفته)
+  if (asksFinance && !asksAdd) {
+    return { kind: 'finance_report', range: extractFinanceRange(text) }
+  }
+  // گارد ابهام مالی+ثبت — مسیر مدل با تأیید کاربر
+  if (asksFinance && asksAdd) return { kind: 'model' }
 
   // تمرکز — قطعی
   if (asksFocus && !asksAdd && !asksReport) return { kind: 'start_focus' }
@@ -74,6 +89,18 @@ export function detectIntent(message: string): DeterministicIntent {
   }
 
   return { kind: 'model' }
+}
+
+/**
+ * استخراج محدودهٔ گزارش مالی از جمله — خالص؛ پیش‌فرض هفتهٔ جاری تهران
+ * «مخارج این هفته» ← week | «این ماه» ← month | «امروز» ← today
+ */
+export function extractFinanceRange(text: string): FinanceRange {
+  const t = text ?? ''
+  // نکته: \b با حروف فارسی کار نمی‌کند (فراسنج واژهٔ یونیکد نیست) — مرز دستی با نشانه‌گذاری پایان
+  if (/(?:این\s*)?ماه(?=\s|$|[،.,!?؟؛:])|this month|monthly/i.test(t)) return 'month'
+  if (/امروز(?=\s|$|[،.,!?؟؛:])|today\b/i.test(t)) return 'today'
+  return 'week'
 }
 
 /**

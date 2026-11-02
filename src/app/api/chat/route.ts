@@ -11,6 +11,7 @@ import { pick } from '@/lib/server-lang'
 import {
   replyTaskAdded,
   replyDailyReport,
+  replyFinanceSummary,
   replyTaskList,
   replyModelFailure,
   replyFallback,
@@ -139,6 +140,11 @@ export async function POST(req: NextRequest) {
         const { dailyReport } = await import('@/lib/assistant/report')
         const rep = await dailyReport(user.id)
         reply = replyDailyReport(lang, rep)
+      } else if (intent.kind === 'finance_report') {
+        // F-AG1: جمع مخارج/درآمد با اعداد واقعی DB — بدون مدل (سناریوی الزامی مأموریت)
+        const { financeSummaryFor } = await import('@/lib/finance/summary')
+        const { agg, currency } = await financeSummaryFor(user.id, intent.range)
+        reply = replyFinanceSummary(lang, { ...agg, range: intent.range, currency })
       } else {
         const rows = await db.task.findMany({
           where: { userId: user.id, status: 'todo' },

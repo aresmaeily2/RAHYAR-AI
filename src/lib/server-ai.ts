@@ -15,6 +15,7 @@ import { addDaysIso, formatJalali, tehranIsoDate, tehranParts } from '@/lib/pers
 import { getUserName } from '@/lib/server-profile'
 import { hasExplicitDeleteVerb, hasExplicitForgetVerb } from '@/lib/security'
 import { validateChatActions } from '@/lib/ai/action-schema'
+import { financeSummaryFor, reminderAtFromDue } from '@/lib/finance/summary'
 
 export { hasExplicitDeleteVerb, hasExplicitForgetVerb }
 
@@ -121,6 +122,9 @@ ${activeTasksList(tasks)}
 - اگر کاربر خواست برنامه امروزش چیده شود → plan_day (بدون پارامتر) تا برنامه در نمای برنامه ثبت و نمایش داده شود؛ در reply یک جمله کوتاه درباره تمرکز اصلی بگو.
 - اطلاعات مهم و ماندگار درباره کاربر («من گیته خورم»، «جلسه‌هایم شنبه‌هاست») → remember با fact کوتاه. اگر کاربر خواست چیزی را فراموش کنی → forget با بخشی از همان متن. این کارها را بی‌سروصدا انجام بده و فقط اگر طبیعی بود به آن اشاره کن.
 - برای یادآوری («یادم بنداز...») → add_reminder با remindAt دقیق به شکل YYYY-MM-DDTHH:mm (به وقت تهران).
+- اگر برای رویداد/کارِ دارای ساعت خواست «X دقیقه/ساعت قبل یادآوری» → همان add_task را با remindBeforeMin (دقیقه، ۵ تا ۱۴۴۰) بفرست تا یادآور متصل خودکار ساخته شود؛ «یک ساعت قبل» یعنی remindBeforeMin: 60.
+- اگر کاربر درباره مخارج/درآمد سؤال آماری کرد («مخارج این هفته را جمع کن») → finance_summary با range: today|week|month (پیش‌فرض week). مالی فقط خواندنی است؛ ثبت تراکنش از چت انجام نمی‌شود.
+- اگر کاربر خواست پیامی آماده شود («یک پیام آماده کن و قبل از ارسال نشانم بده») → draft_message با recipient اختیاری و body کامل. این اکشن هرگز ارسال نمی‌کند — فقط پیش‌نویس نشان داده می‌شود؛ در reply هم صریح بگو ارسال با خود کاربر است.
 - اگر کار بزرگی ثبت کردی و شکستی، پیشنهاد بده آن را تجزیه کنیم؛ اگر موافقت کرد → breakdown_task.
 - اگر اطلاعات وب تازه (اخبار، قیمت، آب‌وهوا) در پیام سیستم ارائه شد، پاسخ را بر اساس همان بده و منابع را به‌صورت پیوند مارک‌داون در reply بیاور؛ هرگز منابع را از خودت نساز.
 - سؤال عمومی، سلام‌وعلیک یا چت معمولی → فقط reply بنویس و actions خالی بگذار.
@@ -144,7 +148,9 @@ ${replyHint}
 {"type":"remember","fact":"..."}
 {"type":"forget","fact":"بخشی از متن حقیقت"}
 {"type":"add_reminder","message":"...","remindAt":"YYYY-MM-DDTHH:mm"}
-{"type":"breakdown_task","taskId":"..."}`
+{"type":"breakdown_task","taskId":"..."}
+{"type":"finance_summary","range":"today|week|month"}
+{"type":"draft_message","recipient":"...","body":"...","channel":"sms|telegram|whatsapp|email"}`
 }
 
 // ─── تجزیه کار به زیرکار ────────────────────────────────────
@@ -231,6 +237,11 @@ export interface RawAction {
   repeat?: string
   starred?: boolean
   fact?: string
+  remindBeforeMin?: number
+  range?: string
+  recipient?: string
+  body?: string
+  channel?: string
 }
 
 function parseTime24(s?: string): string | null {
@@ -304,6 +315,37 @@ export async function executeChatActions(
           })
           await logAction({ userId, actionType: 'add_task', status: 'success', targetType: 'task', targetId: t.id, idempotencyKey: idempotencyKey ? `${idempotencyKey}:add` : null })
           results.push({ type: 'add_task', ok: true, task: serializeTask(t) })
+          // F-AG1: یادآور متصل «X دقیقه قبل از سررسید» — همان گاردهای مسیر REST
+          if (a.remindBeforeMin && t.dueDate && t.dueTime) {
+            const at = reminderAtFromDue(t.dueDate, t.dueTime, a.remindBeforeMin)
+            if (!at) {
+              results.push({
+                type: 'add_reminder',
+                ok: false,
+                note: note('یادآور متصل ساخته نشد (سررسید گذشته یا خیلی دور بود)', 'Linked reminder skipped (due date past or too far)'),
+              })
+            } else {
+              const activeReminders = await db.reminder.count({ where: { fired: false, userId } })
+              if (activeReminders >= 50) {
+                results.push({ type: 'add_reminder', ok: false, note: note('یادآوری‌های فعال خیلی زیاد است', 'Too many active reminders') })
+              } else {
+                const r = await db.reminder.create({
+                  data: {
+                    userId,
+                    taskId: t.id,
+                    message: note(`یادآوری: ${t.title.slice(0, 240)}`, `Reminder: ${t.title.slice(0, 240)}`),
+                    remindAt: at,
+                  },
+                })
+                await logAction({ userId, actionType: 'add_reminder', status: 'success', targetType: 'reminder', targetId: r.id, detail: 'linked to task' })
+                results.push({
+                  type: 'add_reminder',
+                  ok: true,
+                  reminder: { id: r.id, taskId: r.taskId, message: r.message, remindAt: r.remindAt.toISOString(), fired: r.fired },
+                })
+              }
+            }
+          }
           break
         }
         case 'complete_task': {
@@ -530,6 +572,32 @@ export async function executeChatActions(
           }
           const t = await findTaskById(task.id, userId)
           results.push({ type: 'breakdown_task', ok: true, task: t ? serializeTask(t) : undefined })
+          break
+        }
+        case 'finance_summary': {
+          // F-AG1: فقط-خواندنی — هیچ نوشتنی در مالی از چت انجام نمی‌شود
+          const range = (['today', 'week', 'month'] as const).includes(a.range as 'today') ? (a.range as 'today' | 'week' | 'month') : 'week'
+          const { agg, currency } = await financeSummaryFor(userId, range)
+          await logAction({ userId, actionType: 'finance_summary', status: 'success', detail: `${range} count=${agg.count}` })
+          results.push({ type: 'finance_summary', ok: true, summary: { range, expense: agg.expense, income: agg.income, net: agg.net, count: agg.count, currency, topCats: agg.topCats } })
+          break
+        }
+        case 'draft_message': {
+          // F-AG2: فقط پیش‌نویس — بدون هیچ فراخوانی شبکه‌ای/سرویس بیرونی.
+          // ارسال واقعی همیشه با خود کاربر است (اصل تأیید عملیات حساس).
+          const body = (a.body ?? '').trim()
+          if (!body) {
+            results.push({ type: 'draft_message', ok: false, note: note('متن پیام خالی بود', 'Message body was empty') })
+            await logAction({ userId, actionType: 'draft_message', status: 'failed', detail: 'empty body' })
+            break
+          }
+          const draft = {
+            recipient: (a.recipient ?? '').trim().slice(0, 200) || null,
+            body: body.slice(0, 2000),
+            channel: (['sms', 'telegram', 'whatsapp', 'email'] as const).includes(a.channel as 'sms') ? (a.channel as string) : 'sms',
+          }
+          await logAction({ userId, actionType: 'draft_message', status: 'success', targetType: 'draft', detail: `channel=${draft.channel} len=${draft.body.length}` })
+          results.push({ type: 'draft_message', ok: true, draft })
           break
         }
         default:
