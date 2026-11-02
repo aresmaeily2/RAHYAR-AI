@@ -112,3 +112,6 @@ package-lock.json
 .evidence-session-token
 android/rahyar-release.keystore
 /vault/
+
+replacements.txt
+replace-stats.json
