@@ -6,6 +6,8 @@ import { getUserName } from '@/lib/server-profile'
 import { shouldSearch, performWebSearch } from '@/lib/server-search'
 import { detectIntent } from '@/lib/assistant/router'
 import { logAction } from '@/lib/assistant/action-log'
+import { claimIdempotencyKey } from '@/lib/assistant/action-log'
+import { getPendingAction, clearPendingAction, executePendingAction, CONFIRM_RE, CANCEL_RE } from '@/lib/assistant/pending-action'
 import { getUserLang } from '@/lib/server-settings'
 import { pick } from '@/lib/server-lang'
 import {
@@ -103,9 +105,37 @@ export async function POST(req: NextRequest) {
     }
     const idempotencyKey = cleanText((body as { clientKey?: unknown })?.clientKey, 120) || null
 
+    // F2-AG (سناریو ۹): ماشین-وضعیت تأیید عملیات حساس — قبل از هر مسیر دیگری.
+    // «بله/تأیید» → اجرای عملیات پندینگ روی ردیف واقعی؛ «انصراف/لغو» → ابطال.
+    const pendingOp = await getPendingAction(user.id)
+    if (pendingOp && (CONFIRM_RE.test(message) || CANCEL_RE.test(message))) {
+      const isCancel = CANCEL_RE.test(message)
+      const userMsg = await db.chatMessage.create({ data: { userId: user.id, role: 'user', content: message } })
+      let text: string
+      if (isCancel) {
+        await clearPendingAction(user.id)
+        await logAction({ userId: user.id, actionType: pendingOp.type, status: 'canceled', detail: 'canceled by user (pending-action state machine)' })
+        text = pick(lang, 'انصراف داده شد — هیچ تغییری اعمال نشد.', 'Canceled — nothing was changed.')
+      } else {
+        const r = await executePendingAction(user.id, pendingOp)
+        await clearPendingAction(user.id)
+        await logAction({ userId: user.id, actionType: pendingOp.type, status: r.ok ? 'success' : 'failed', detail: 'executed after explicit user confirmation' })
+        text = pick(lang, r.fa, r.en)
+      }
+      const assistantMsg = await db.chatMessage.create({ data: { userId: user.id, role: 'assistant', content: text, actions: null } })
+      return NextResponse.json({ userMessage: serializeMessage(userMsg), assistantMessage: serializeMessage(assistantMsg), actions: [], mode: 'deterministic' })
+    }
+
     // ۰) مسیر قطعی — اگر مدل لازم نیست، مدل فراخوانی نمی‌شود (بخش ۶ دستور)
     const intent = detectIntent(message)
     if (intent.kind !== 'model') {
+      // F2-AG: مسیر قطعی هم claim-first — retry همان درخواست دوباره‌کاری نمی‌سازد
+      if (!(await claimIdempotencyKey(user.id, idempotencyKey))) {
+        const userMsg = await db.chatMessage.create({ data: { userId: user.id, role: 'user', content: message } })
+        const dupNote = pick(lang, 'این درخواست قبلاً اجرا شده است (جلوگیری از اجرای دوباره).', 'This request was already executed (duplicate prevented).')
+        const assistantMsg = await db.chatMessage.create({ data: { userId: user.id, role: 'assistant', content: dupNote, actions: null } })
+        return NextResponse.json({ userMessage: serializeMessage(userMsg), assistantMessage: serializeMessage(assistantMsg), actions: [], mode: 'deterministic' })
+      }
       const userMsg = await db.chatMessage.create({
         data: { userId: user.id, role: 'user', content: message },
       })
@@ -131,7 +161,8 @@ export async function POST(req: NextRequest) {
           status: 'success',
           targetType: 'task',
           targetId: t.id,
-          idempotencyKey,
+          // F2-AG: زیرکلید مجزا از claim — وگرنه logAction کلید مصرف‌شده را duplicate می‌بیند و لاگ ثبت نمی‌شود
+          idempotencyKey: idempotencyKey ? `${idempotencyKey}:add` : null,
           detail: pick(lang, 'مسیر قطعی (بدون مدل)', 'Deterministic path (no model)'),
         })
         actions = [{ type: 'add_task', ok: true, task: serializeTask(t) } as ChatAction]

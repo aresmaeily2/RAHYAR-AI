@@ -203,6 +203,26 @@ export function ActionChips({ message }: { message: ChatMessageT }) {
         if (a.type === 'draft_message' && a.ok && a.draft) {
           return <DraftChip key={i} draft={a.draft} />
         }
+        // F2-AG (سناریو ۹): چیپ تأیید عملیات حساس — دکمه‌های سریع «بله / انصراف»
+        if ((a.type === 'delete_task' || a.type === 'forget') && a.pending) {
+          return (
+            <div key={i} className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+              <div className="flex items-center gap-1.5 font-medium">
+                <Trash2 className="h-3.5 w-3.5" />
+                {t('نیاز به تأیید شما')}
+              </div>
+              <p className="mt-0.5 text-muted-foreground">{a.note}</p>
+            </div>
+          )
+        }
+        // F2-AG (سناریو ۷/۸/۱۰): خطاهای قبلاً نامرئی (اکشن نامعتبر، duplicate، خطای اجرا) حالا دیده می‌شوند
+        if (a.type === 'unknown') {
+          return (
+            <div key={i} className="rounded-xl chip-danger px-3 py-2 text-xs">
+              {a.note}
+            </div>
+          )
+        }
         if (
           (a.type === 'update_task' ||
             a.type === 'add_task' ||
@@ -213,6 +233,7 @@ export function ActionChips({ message }: { message: ChatMessageT }) {
             a.type === 'plan_day' ||
             a.type === 'remember' ||
             a.type === 'forget' ||
+            a.type === 'delete_task' ||
             a.type === 'finance_summary' ||
             a.type === 'draft_message') &&
           !a.ok

@@ -20,6 +20,9 @@ os.chdir('/home/z/my-project')
 env = dict(os.environ)
 env['NODE_ENV'] = 'production'
 env['RAHYAR_DOWNLOAD_DIR'] = '/home/z/my-project/download'
+# سقف سهمیهٔ AI — پیکربندی مالک (تست‌های مأموریت + استفادهٔ واقعی؛ B-8 به وقت تهران)
+env.setdefault('AI_USER_DAILY_LIMIT', '600')
+env.setdefault('AI_SYSTEM_DAILY_LIMIT', '3000')
 env.setdefault('PORT', '3000')
 bun = shutil.which('bun') or '/usr/local/bin/bun'
 time.sleep(0.3)

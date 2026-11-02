@@ -12,6 +12,33 @@ export interface LoggedActionResult {
 }
 
 /**
+ * F2-AG (مأموریت تکمیلی §۳ سناریو ۸): رزرو کلید idempotency «پیش از اجرا» —
+ * claim-first. در الگوی قبلی، نوشتن DB اول انجام و لاگ بعد آن ثبت می‌شد؛
+ * در نتیجه retry همان درخواست، ردیف دوباره می‌ساخت. اکنون کلید پیش از هر
+ * نوشتنی رزرو می‌شود؛ اگر رزرو ناموفق باشد یعنی این درخواست قبلاً اجرا شده
+ * و کل دستهٔ اکشن‌ها خنثی می‌شود (بدون هیچ نوشتنی).
+ */
+export async function claimIdempotencyKey(userId: string, key: string | null): Promise<boolean> {
+  const k = key?.trim().slice(0, 120)
+  if (!k) return true // بدون کلید — مسیر قدیمی؛ بدون دوباره‌کاری‌یابی
+  try {
+    await db.actionLog.create({
+      data: {
+        userId,
+        actionType: 'idempotency_claim',
+        status: 'success',
+        idempotencyKey: k,
+        detail: 'claim-before-execute',
+      },
+    })
+    return true
+  } catch {
+    // نقض یکتایی — این کلید قبلاً مصرف شده است
+    return false
+  }
+}
+
+/**
  * ثبت نتیجه اقدام با کلید idempotency اختیاری.
  * اگر کلید قبلاً دیده شده → duplicate=true (اجرای تکراری خنثی می‌شود).
  */

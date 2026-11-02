@@ -44,13 +44,13 @@ export type ChatAction =
   | { type: 'add_task'; ok: boolean; task?: TaskT; note?: string }
   | { type: 'complete_task'; ok: boolean; task?: TaskT; note?: string }
   | { type: 'start_focus'; ok: boolean; note?: string }
-  | { type: 'delete_task'; ok: boolean; task?: TaskT; note?: string }
+  | { type: 'delete_task'; ok: boolean; task?: TaskT; note?: string; pending?: boolean }
   | { type: 'update_task'; ok: boolean; task?: TaskT; note?: string }
   | { type: 'star_task'; ok: boolean; task?: TaskT; note?: string }
   | { type: 'snooze_task'; ok: boolean; task?: TaskT; note?: string }
   | { type: 'plan_day'; ok: boolean; plan?: DailyPlan; note?: string }
   | { type: 'remember'; ok: boolean; fact?: string; note?: string }
-  | { type: 'forget'; ok: boolean; fact?: string; note?: string }
+  | { type: 'forget'; ok: boolean; fact?: string; note?: string; pending?: boolean }
   | { type: 'add_reminder'; ok: boolean; reminder?: ReminderT; note?: string }
   | { type: 'breakdown_task'; ok: boolean; task?: TaskT; note?: string }
   | { type: 'finance_summary'; ok: boolean; summary?: FinanceSummaryView; note?: string }

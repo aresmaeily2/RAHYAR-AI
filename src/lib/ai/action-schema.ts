@@ -122,6 +122,41 @@ export interface ValidatedActions {
   valid: AssistantAction[]
   /** تعداد ردشده‌ها برای ثبت فراداده */
   rejected: number
+  /** شرح اولین خطا — برای لاگ و شفافیت UI (بدون محتوای خصوصی) */
+  firstError?: string
+}
+
+/** ارقام فارسی/عربی → ASCII (درس F-AG2: مدل ارقام فارسی برمی‌گرداند) */
+const FA_DIGITS = /[۰-۹٠-٩]/g
+export function normalizeDigits(s: string): string {
+  return s.replace(FA_DIGITS, (d) =>
+    d >= '۰' && d <= '۹' ? String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)) : String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)),
+  )
+}
+
+/**
+ * F2-AG (سناریو ۶): نرمال‌سازی اکشن‌های خام مدل پیش از Zod —
+ * ارقام فارسی در متن/زمان و اعداد رشته‌ای عددی (مثل remindBeforeMin:"۳۰")
+ * که مدل به‌خاطر ورودی فارسی کاربر برمی‌گرداند؛ نباید به‌خاطر فرمت رد شوند.
+ */
+export function normalizeRawActions(raw: unknown): unknown {
+  if (Array.isArray(raw)) return raw.map(normalizeRawActions)
+  if (!raw || typeof raw !== 'object') return raw
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    out[k] = typeof v === 'string' ? normalizeDigits(v) : normalizeRawActions(v)
+  }
+  // اعداد رشته‌ای برای فیلدهای عددی شناخته‌شده
+  for (const numKey of ['remindBeforeMin', 'priority']) {
+    const v = out[numKey]
+    if (typeof v === 'string' && /^\d+$/.test(v.trim())) out[numKey] = Number(v.trim())
+  }
+  // dueTime: مدل گاهی «10:00 صبح» / «10 AM» می‌فرستد — اولین HH:mm استخراج می‌شود
+  if (typeof out['dueTime'] === 'string') {
+    const m = (out['dueTime'] as string).match(/(\d{1,2}):(\d{2})/)
+    if (m) out['dueTime'] = `${m[1].padStart(2, '0')}:${m[2]}`
+  }
+  return out
 }
 
 /**
@@ -131,16 +166,24 @@ export interface ValidatedActions {
  */
 export function validateChatActions(raw: unknown): ValidatedActions {
   if (!Array.isArray(raw)) return { valid: [], rejected: 0 }
-  const capped = raw.slice(0, 8)
+  const capped = raw.slice(0, 8).map(normalizeRawActions)
   const valid: AssistantAction[] = []
   let rejected = 0
+  let firstError: string | undefined
   for (const item of capped) {
     const parsed = AssistantActionSchema.safeParse(item)
     if (parsed.success) {
       valid.push(parsed.data)
     } else {
       rejected++
+      if (!firstError) {
+        firstError = parsed.error.issues
+          .slice(0, 2)
+          .map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`)
+          .join(' | ')
+          .slice(0, 200)
+      }
     }
   }
-  return { valid, rejected }
+  return { valid, rejected, firstError }
 }

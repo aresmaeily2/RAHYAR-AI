@@ -184,6 +184,9 @@ export function ChatView() {
   const bottomRef = useRef<HTMLDivElement>(null)
   const recRef = useRef<unknown>(null)
   const abortRef = useRef<AbortController | null>(null)
+  // F2-AG (سناریو ۸): کلید idempotency سمت کلاینت — در regenerate همان کلید
+  // استفاده می‌شود تا تولید پاسخ تازه، اکشن‌ها را دوباره اجرا نکند.
+  const clientKeyRef = useRef<string>('')
   const stoppedRef = useRef(false)
 
   useEffect(() => {
@@ -303,9 +306,10 @@ export function ChatView() {
     }
   }
 
-  async function send(text?: string) {
+  async function send(text?: string, reuseKey = false) {
     const content = (text ?? input).trim()
     if (!content || phase !== 'idle') return
+    if (!reuseKey) clientKeyRef.current = `ck-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
     setInput('')
     setPhase('waiting')
     stoppedRef.current = false
@@ -325,7 +329,7 @@ export function ChatView() {
       const res = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: content }),
+        body: JSON.stringify({ message: content, clientKey: clientKeyRef.current || undefined }),
         signal: ctrl.signal,
       })
       if (!res.ok || !res.body) throw new Error('خطا')
@@ -422,7 +426,7 @@ export function ChatView() {
     // حذف آخرین پاسخ دستیار
     const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant')
     setMessages((m) => (lastAssistant ? m.filter((x) => x.id !== lastAssistant.id) : m))
-    await send(lastUser.content)
+    await send(lastUser.content, true)
   }
 
   async function clearChat() {

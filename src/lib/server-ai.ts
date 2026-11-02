@@ -1,7 +1,8 @@
 // ─── مغز هوش مصنوعی «رهیار» — پرامپت‌ها و اجرای اکشن‌ها ───────
 import { db } from '@/lib/db'
 import { gatewayRunJson, GatewayDisabledError, GatewayQuotaError, quotaMessage } from '@/lib/ai/gateway'
-import { logAction } from '@/lib/assistant/action-log'
+import { logAction, claimIdempotencyKey } from '@/lib/assistant/action-log'
+import { setPendingAction, getPendingAction, clearPendingAction, executePendingAction, CONFIRM_RE, CANCEL_RE, type PendingOp } from '@/lib/assistant/pending-action'
 import { pick } from '@/lib/server-lang'
 import type { AppLang, ChatAction, DailyPlan, TaskT } from '@/lib/types'
 import {
@@ -15,7 +16,7 @@ import { addDaysIso, formatJalali, tehranIsoDate, tehranParts } from '@/lib/pers
 import { getUserName } from '@/lib/server-profile'
 import { hasExplicitDeleteVerb, hasExplicitForgetVerb } from '@/lib/security'
 import { validateChatActions } from '@/lib/ai/action-schema'
-import { detectMissionPattern } from '@/lib/assistant/router'
+import { detectMissionPattern, REMINDER_VERBS } from '@/lib/assistant/router'
 import { financeSummaryFor, parseRemindAtFlexible, reminderAtFromDue } from '@/lib/finance/summary'
 
 export { hasExplicitDeleteVerb, hasExplicitForgetVerb }
@@ -116,7 +117,7 @@ ${activeTasksList(tasks)}
 - اگر کاربر گفت کار تکرارشونده است («هر روز»، «روزانه»، «هر هفته»، «هفتگی») → repeat را daily یا weekly بگذار.
 - تاریخ‌های نسبی («امروز»، «فردا»، «پس‌فردا») را عیناً همین کلمه‌ها را بفرست؛ برای روزهای هفته («شنبه» تا «جمعه») هم هرگز تاریخ محاسبه نکن — فقط نام روز را عیناً بفرست (مثل «پنجشنبه») تا نزدیک‌ترین رخداد قطعی محاسبه شود؛ فقط اگر کاربر خودش تاریخ عددی گفت، YYYY-MM-DD بفرست.
 - وقتی کاربر گفت کاری را انجام داده → complete_task با taskId دقیق از لیست.
-- حذف کار (delete_task) فقط وقتی مجاز است که پیام فعلی کاربر صراحتاً فعل حذف داشته باشد («حذف کن»، «پاک کن»). در هر پیام حداکثر یک حذف انجام بده و هیچ‌وقت چند کار را یکجا حذف نکن. اگر حذف مبهم بود، اول در reply تأیید بگیر.
+- حذف کار (delete_task): اگر پیام فعلی کاربر فعل صریح حذف دارد («حذف کن»، «پاک کن») و کارِ موردنظر در فهرست کارهای بالا هست، همان لحظه اکشن delete_task را با title یا taskId همان کار بفرست — سؤال اضافه نپرس؛ سیستم خودش تأیید نهایی را مستقیم از کاربر می‌گیرد. فقط اگر هدف مبهم بود (چند کار مشابه یا بدون فعل حذف) اول در reply تأیید بگیر. در هر پیام حداکثر یک حذف.
 - برای تغییر جزئیات کار → update_task (فقط فیلدهای تغییر یافته).
 - ستاره‌دار کردن یا برداشتن ستاره → star_task با starred: true یا false.
 - به‌تعویق انداختن کار به فردا → snooze_task با taskId.
@@ -268,23 +269,37 @@ export async function executeChatActions(
   /** یادداشت کاربرپذیر دوزبانه */
   const note = (fa: string, en: string): string => pick(lang, fa, en)
 
+  // F2-AG (سناریو ۸): claim-first — پیش از هر نوشتنی کلید مصرف می‌شود؛
+  // retry همان درخواست هیچ ردیفی نمی‌سازد و با یادداشت شفاف برمی‌گردد.
+  const claimed = await claimIdempotencyKey(userId, idempotencyKey)
+  if (!claimed) {
+    results.push({
+      type: 'unknown',
+      note: note(
+        'این درخواست قبلاً اجرا شده است (جلوگیری از اجرای دوباره) — هیچ تغییری دوباره اعمال نشد.',
+        'This request was already executed (duplicate prevented) — nothing was applied twice.',
+      ),
+    })
+    return results
+  }
+
   // ممیزی ۳۶۰ (OWASP LLM05): گارد اسکیما پیش از اجرا — خروجی مدل هرگز
   // بدون عبور از Discriminated Union به دیتابیس نمی‌رسد؛ اکشن نامعتبر
   // اجرا نمی‌شود و به‌عنوان اقدام ناموفق ثبت می‌گردد.
-  const { valid, rejected } = validateChatActions(rawActions)
+  const { valid, rejected, firstError } = validateChatActions(rawActions)
   if (rejected > 0) {
     results.push({
       type: 'unknown',
       note: note(
-        `${rejected} اکشن نامعتبر از مدل رد شد`,
-        `${rejected} invalid model action(s) rejected`,
+        `${rejected} اکشن نامعتبر از مدل رد شد${firstError ? ` (${firstError})` : ''}`,
+        `${rejected} invalid model action(s) rejected${firstError ? ` (${firstError})` : ''}`,
       ),
     })
     await logAction({
       userId,
       actionType: 'invalid_action',
       status: 'failed',
-      detail: `schema validation rejected ${rejected} action(s)`,
+      detail: `schema validation rejected ${rejected} action(s)${firstError ? ` — ${firstError}` : ''}`,
     }).catch(() => {})
   }
   const list = valid
@@ -301,7 +316,7 @@ export async function executeChatActions(
             await logAction({ userId, actionType: 'add_task', status: 'failed', detail: 'عنوان خالی' })
             break
           }
-          const t = await db.task.create({
+          const tCreated = await db.task.create({
             data: {
               userId,
               title: a.title.trim().slice(0, 200),
@@ -314,6 +329,14 @@ export async function executeChatActions(
             },
             include: { subtasks: true },
           })
+          // F2-AG (سناریو ۱۰): راستی‌آزمایی از منبع واقعی — re-read پس از نوشتن؛
+          // موفقیت فقط وقتی اعلام می‌شود که ردیف واقعاً خواندنی باشد.
+          const t = await db.task.findUnique({ where: { id: tCreated.id }, include: { subtasks: true } })
+          if (!t) {
+            await logAction({ userId, actionType: 'add_task', status: 'failed', detail: 'post-write re-read failed' })
+            results.push({ type: 'add_task', ok: false, note: note('ثبت انجام شد اما راستی‌آزمایی نشد', 'Written but could not be verified') })
+            break
+          }
           await logAction({ userId, actionType: 'add_task', status: 'success', targetType: 'task', targetId: t.id, idempotencyKey: idempotencyKey ? `${idempotencyKey}:add` : null })
           results.push({ type: 'add_task', ok: true, task: serializeTask(t) })
           // F-AG1: یادآور متصل «X دقیقه قبل از سررسید» — همان گاردهای مسیر REST
@@ -330,7 +353,7 @@ export async function executeChatActions(
               if (activeReminders >= 50) {
                 results.push({ type: 'add_reminder', ok: false, note: note('یادآوری‌های فعال خیلی زیاد است', 'Too many active reminders') })
               } else {
-                const r = await db.reminder.create({
+                const rCreated = await db.reminder.create({
                   data: {
                     userId,
                     taskId: t.id,
@@ -338,12 +361,18 @@ export async function executeChatActions(
                     remindAt: at,
                   },
                 })
+                const r = await db.reminder.findUnique({ where: { id: rCreated.id } })
+                if (!r) {
+                  await logAction({ userId, actionType: 'add_reminder', status: 'failed', detail: 'linked reminder re-read failed' })
+                  results.push({ type: 'add_reminder', ok: false, note: note('یادآور ثبت شد اما راستی‌آزمایی نشد', 'Reminder written but could not be verified') })
+                } else {
                 await logAction({ userId, actionType: 'add_reminder', status: 'success', targetType: 'reminder', targetId: r.id, detail: 'linked to task' })
                 results.push({
                   type: 'add_reminder',
                   ok: true,
                   reminder: { id: r.id, taskId: r.taskId, message: r.message, remindAt: r.remindAt.toISOString(), fired: r.fired },
                 })
+                }
               }
             }
           }
@@ -387,10 +416,20 @@ export async function executeChatActions(
             results.push({ type: 'delete_task', ok: false, note: note('کار پیدا نشد', 'Task not found') })
             break
           }
-          await db.task.delete({ where: { id: task.id } })
-          deletes++
-          await logAction({ userId, actionType: 'delete_task', status: 'success', targetType: 'task', targetId: task.id })
-          results.push({ type: 'delete_task', ok: true, task: serializeTask(task) })
+          // F2-AG (سناریو ۹): حذف = عملیات حساس — همیشه با تأیید صریح کاربر؛
+          // ارجاع taskId از سمت مدل قابل‌اعتماد نیست (مدل id را از پرامپت تکرار می‌کند)
+          await setPendingAction(userId, { type: 'delete_task', taskId: task.id, title: task.title })
+          await logAction({ userId, actionType: 'delete_task', status: 'needs_confirmation', targetType: 'task', targetId: task.id })
+          results.push({
+            type: 'delete_task',
+            ok: false,
+            pending: true,
+            task: serializeTask(task),
+            note: note(
+              `حذف «${task.title.slice(0, 80)}» نیاز به تأیید دارد — بنویسید «بله» برای حذف یا «انصراف»`,
+              `Deleting “${task.title.slice(0, 80)}” needs your confirmation — reply “yes” or “cancel”`,
+            ),
+          })
           break
         }
         case 'update_task': {
@@ -490,14 +529,18 @@ export async function executeChatActions(
             results.push({ type: 'forget', ok: false, note: note('متن فراموشی خالی بود', 'Forget text was empty') })
             break
           }
-          const del = await db.memory.deleteMany({
-            where: { fact: { contains: frag.slice(0, 100) }, userId },
-          })
-          forgets++
+          // F2-AG (سناریو ۹): فراموشی حافظه = عملیات حساس (deleteMany) → تأیید صریح
+          await setPendingAction(userId, { type: 'forget', factContains: frag.slice(0, 100) })
+          await logAction({ userId, actionType: 'forget', status: 'needs_confirmation', detail: frag.slice(0, 100) })
           results.push({
             type: 'forget',
-            ok: del.count > 0,
-            note: del.count > 0 ? undefined : note('حافظه‌ای با این متن پیدا نشد', 'No memory matched that text'),
+            ok: false,
+            pending: true,
+            fact: frag.slice(0, 200),
+            note: note(
+              'فراموشی حافظه نیاز به تأیید دارد — بنویسید «بله» یا «انصراف»',
+              'Forgetting memory needs your confirmation — reply “yes” or “cancel”',
+            ),
           })
           break
         }
@@ -698,24 +741,33 @@ export async function applyMissionGuard(
 ): Promise<MissionGuardResult> {
   const kind = detectMissionPattern(userMessage)
   if (!kind) return { actions, reply, fallbackUsed: false }
+  // F2-AG (سناریو ۶): ارقام فارسی پیام کاربر برای پارس زمان/فاصله نرمال می‌شوند —
+  // «ساعت ۱۰» و «۳۰ دقیقه قبل» بدون این نرمال‌سازی به پیش‌فرض ۹:۰۰/۶۰ می‌افتادند.
+  const FA = '۰۱۲۳۴۵۶۷۸۹'
+  const norm = userMessage.replace(/[۰-۹]/g, (d) => String(FA.indexOf(d)))
   const note = (fa: string, en: string): string => pick(lang, fa, en)
   const hasOk = (pred: (a: ChatAction) => boolean): boolean => actions.some(pred)
 
   if (kind === 'event_reminder') {
-    const satisfied = hasOk((a) => (a.type === 'add_task' || a.type === 'add_reminder') && a.ok)
+    // F2-AG (سناریو ۶): اگر کاربر صریحاً فعل یادآوری به‌کار برده، فقط یادآورِ واقعاً
+    // ساخته‌شده گارد را راضی می‌کند — add_task تنهایی کافی نیست.
+    const needReminder = REMINDER_VERBS.test(userMessage)
+    const satisfied =
+      hasOk((a) => (a.type === 'add_task' || a.type === 'add_reminder') && a.ok) &&
+      (!needReminder || hasOk((a) => a.type === 'add_reminder' && a.ok))
     if (satisfied) return { actions, reply, fallbackUsed: false }
     // فالبک قطعی — پارس از خود پیام کاربر
-    const timeMatch = userMessage.match(/ساعت\s+(\d{1,2})(?::(\d{2}))?|at\s+(\d{1,2})(?::(\d{2}))?/i)
+    const timeMatch = norm.match(/ساعت\s+(\d{1,2})(?::(\d{2}))?|at\s+(\d{1,2})(?::(\d{2}))?/i)
     let hh = timeMatch ? parseInt(timeMatch[1] ?? timeMatch[3] ?? '9', 10) : 9
     const mi = timeMatch ? parseInt(timeMatch[2] ?? timeMatch[4] ?? '0', 10) : 0
-    if (/(?:عصر|بعدازظهر|بعد از ظهر|pm)/i.test(userMessage) && hh < 12) hh += 12
+    if (/(?:عصر|بعدازظهر|بعد از ظهر|pm)/i.test(norm) && hh < 12) hh += 12
     hh = Math.min(hh, 23)
     const hhmm = `${String(hh).padStart(2, '0')}:${String(mi).padStart(2, '0')}`
     const title = extractEventTitle(userMessage, lang)
     let before = 60
-    const dm = userMessage.match(/(\d+)\s*دقیقه\s*قبل/)
-    const hm = userMessage.match(/(\d+)\s*ساعت\s*قبل/)
-    if (/نیم\s*ساعت/.test(userMessage)) before = 30
+    const dm = norm.match(/(\d+)\s*دقیقه\s*قبل/)
+    const hm = norm.match(/(\d+)\s*ساعت\s*قبل/)
+    if (/نیم\s*ساعت/.test(norm)) before = 30
     else if (dm) before = Math.min(parseInt(dm[1], 10) || 60, 1440)
     else if (hm) before = Math.min((parseInt(hm[1], 10) || 1) * 60, 1440)
     const fb = await executeChatActions(

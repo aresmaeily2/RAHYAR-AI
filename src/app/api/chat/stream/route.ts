@@ -6,6 +6,8 @@ import { getUserName } from '@/lib/server-profile'
 import { shouldSearch, performWebSearch } from '@/lib/server-search'
 import { detectIntent } from '@/lib/assistant/router'
 import { logAction } from '@/lib/assistant/action-log'
+import { claimIdempotencyKey } from '@/lib/assistant/action-log'
+import { getPendingAction, clearPendingAction, executePendingAction, CONFIRM_RE, CANCEL_RE } from '@/lib/assistant/pending-action'
 import { getUserLang } from '@/lib/server-settings'
 import {
   replyTaskAdded,
@@ -66,9 +68,62 @@ export async function POST(req: NextRequest) {
     }
     const idempotencyKey = cleanText((body as { clientKey?: unknown })?.clientKey, 120) || null
 
+    // F2-AG (سناریو ۹): ماشین-وضعیت تأیید — هم‌ارز روت POST (SSE)
+    const pendingOp = await getPendingAction(userId)
+    if (pendingOp && (CONFIRM_RE.test(message) || CANCEL_RE.test(message))) {
+      const isCancel = CANCEL_RE.test(message)
+      const userMsg = await db.chatMessage.create({ data: { userId, role: 'user', content: message } })
+      let text: string
+      if (isCancel) {
+        await clearPendingAction(userId)
+        await logAction({ userId, actionType: pendingOp.type, status: 'canceled', detail: 'canceled by user (pending-action state machine)' })
+        text = pick(lang, 'انصراف داده شد — هیچ تغییری اعمال نشد.', 'Canceled — nothing was changed.')
+      } else {
+        const r = await executePendingAction(userId, pendingOp)
+        await clearPendingAction(userId)
+        await logAction({ userId, actionType: pendingOp.type, status: r.ok ? 'success' : 'failed', detail: 'executed after explicit user confirmation' })
+        text = pick(lang, r.fa, r.en)
+      }
+      const assistantMsg = await db.chatMessage.create({ data: { userId, role: 'assistant', content: text, actions: null } })
+      const encC = new TextEncoder()
+      const streamC = new ReadableStream({
+        start(controller) {
+          const send = (event: string, data: unknown) => {
+            controller.enqueue(encC.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`))
+          }
+          send('meta', { userMessageId: userMsg.id, searched: false })
+          send('done', { reply: text, actions: [], followups: [], sources: [], assistantId: assistantMsg.id })
+          controller.close()
+        },
+      })
+      return new Response(streamC, {
+        headers: { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive' },
+      })
+    }
+
     // ۰) مسیر قطعی — بدون هیچ فراخوانی مدل (بخش ۶ دستور)
     const intent = detectIntent(message)
     if (intent.kind !== 'model') {
+      // F2-AG: مسیر قطعی هم claim-first — retry همان درخواست دوباره‌کاری نمی‌سازد
+      if (!(await claimIdempotencyKey(userId, idempotencyKey))) {
+        const userMsg = await db.chatMessage.create({ data: { userId, role: 'user', content: message } })
+        const dupNote = pick(lang, 'این درخواست قبلاً اجرا شده است (جلوگیری از اجرای دوباره).', 'This request was already executed (duplicate prevented).')
+        const assistantMsg = await db.chatMessage.create({ data: { userId, role: 'assistant', content: dupNote, actions: null } })
+        const encD = new TextEncoder()
+        const streamD = new ReadableStream({
+          start(controller) {
+            const send = (event: string, data: unknown) => {
+              controller.enqueue(encD.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`))
+            }
+            send('meta', { userMessageId: userMsg.id, searched: false })
+            send('done', { reply: dupNote, actions: [], followups: [], sources: [], assistantId: assistantMsg.id })
+            controller.close()
+          },
+        })
+        return new Response(streamD, {
+          headers: { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive' },
+        })
+      }
       const userMsg = await db.chatMessage.create({
         data: { userId, role: 'user', content: message },
       })
@@ -94,7 +149,8 @@ export async function POST(req: NextRequest) {
           status: 'success',
           targetType: 'task',
           targetId: t.id,
-          idempotencyKey,
+          // F2-AG: زیرکلید مجزا از claim (هم‌عرض روت POST)
+          idempotencyKey: idempotencyKey ? `${idempotencyKey}:add` : null,
           detail: pick(lang, 'مسیر قطعی (بدون مدل)', 'Deterministic path (no model)'),
         })
         actions = [{ type: 'add_task', ok: true, task: serializeTask(t) } as ChatAction]
@@ -129,7 +185,7 @@ export async function POST(req: NextRequest) {
             status: 'success',
             targetType: 'task',
             targetId: target.id,
-            idempotencyKey,
+            idempotencyKey: idempotencyKey ? `${idempotencyKey}:complete` : null,
             detail: pick(lang, 'مسیر قطعی (انجام شد)', 'Deterministic path (completed)'),
           })
           actions = [{ type: 'complete_task', ok: true, task: serializeTask(updated) } as ChatAction]
@@ -426,6 +482,11 @@ export async function POST(req: NextRequest) {
           } else {
             // مدل JSON برننگرداند — گارد پایین اثر واقعی را تضمین می‌کند
             reply = raw.trim().slice(0, 4000) || 'الان نتوانستم درست پاسخ بدهم، لطفاً دوباره تلاش کن.'
+          }
+          // F2-AG (سناریو ۷): پاسخ ناقص هرگز بی‌نشان ذخیره نمی‌شود —
+          // اگر استریم وسط کار قطع شده باشد، کاربر باید بداند این پاسخ کامل نیست.
+          if (streamFailed) {
+            reply = `${reply}\n\n${pick(lang, '⚠️ توجه: این پاسخ ناقص است — جریان مدل قطع شد. برای پاسخ کامل دوباره تلاش کنید.', '⚠️ Note: this reply is incomplete — the model stream was cut. Please retry for the full answer.')}`
           }
           // F-AG3: گارد پس از اجرا — خارج از if/else تا شاخهٔ بدون-JSON هم پوشش داده شود
           {

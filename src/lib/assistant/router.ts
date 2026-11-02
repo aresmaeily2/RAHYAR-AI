@@ -24,6 +24,7 @@ export type DeterministicIntent =
 const ADD_VERBS =
   /(?:بذار|بزار|اضافه\s*کن|اضافهش\s*کن|ثبت\s*کن|یادداشت\s*کن|بنویس|بگم\s*که|بگو\s*که|درج\s*کن|\badd\b|\bcreate\b|\bnew task\b|\bremind me to add\b)/i
 const REMINDER_VERBS = /(?:یادم\s*بنداز|یادآوری\s*کن|یادت\s*باشه|یادت\s*باشه\s*که)/
+export { REMINDER_VERBS }
 const REPORT_PATTERNS =
   /(?:گزارش\s*(?:امروز|روز|روزانه)|امروز\s*چی\s*(?:شد|کار\s*شد)|وضعیت\s*امروز|چه\s*کارهایی\s*(?:انجام|تمام)\s*شد|\bdaily report\b|what did i do today|today'?s report)/i
 const LIST_TODAY_PATTERNS =
