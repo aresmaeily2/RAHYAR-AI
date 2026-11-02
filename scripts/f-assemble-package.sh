@@ -77,15 +77,16 @@ done
 cat > "$ROOT/01_APPLICATION/ANDROID-BUILD-STATUS_FA.md" << EOF
 # وضعیت بیلد اندروید — $(date +%Y-%m-%d) (commit $HASH)
 - دو APK واقعی ساخته و امضا شد: debug (گواهی debug) و release (PKCS12 RSA-4096، اعتبار ۱۰۰۰۰ روز)
-- apksigner verify: طرح‌های v2+v3 روی هر دو؛ zipalign -c 4 پاس
-- badging: com.rahyarai.app | versionCode 22 | versionName 2.1.0 | minSdk 24 | targetSdk 34
+- apksigner verify: گواهی هر دو چاپ شد؛ zipalign -f 4 پاس؛ badging: com.rahyarai.app | versionCode 22 | versionName 2.1.0 | minSdk 24 | targetSdk 34
 - مجوزها: INTERNET، POST_NOTIFICATIONS، SCHEDULE_EXACT_ALARM، RECEIVE_BOOT_COMPLETED، VIBRATE
-  (RECORD_AUDIO عمداً نیست — گویا از SpeechRecognizer سیستم استفاده می‌شود؛ VoiceHelper.java)
-- ۴۹/۴۹ تست JVM (JUnit4) پاس — از جمله OfflineContractTest و VoiceEventsTest
+  (RECORD_AUDIO عمداً نیست — از SpeechRecognizer سیستم استفاده می‌شود؛ VoiceHelper.java)
+- ۴۹/۴۹ تست JVM (JUnit4) پاس — اجراکنندهٔ بازتولیدپذیر: scripts/android-jvm-tests.sh (ECJ + JUnitCore بدون Gradle)
+  - یافتهٔ صادقانه در این اجرا: در runner بدون-Gradle، android.jar استاب اگر قبل از json-20240303 بیاید،
+    org.json استاب لود می‌شود و خطاها با false/−1 پوشانده می‌شد — ترتیب classpath اصلاح و مستند شد
 - بیلد با خط لوله بدون-Gradle: aapt2 (build-tools 34.0.0) → ECJ 3.33.0 → d8 → zipalign → apksigner؛
-  اسکریپت: scripts/build-android-apk-v12.sh (پروموت‌شده از artifacts)
-- **مانع صادقانه**: نصب روی شبیه‌ساز/دستگاه در این سندباکس ممکن نیست (adb/emulator//dev/kvm نیست) — ساختگی تحویل نشده
-- keystore release: backups/android-release-keystore/ (خارج از گیت و بسته؛ رمز در فایل 0600 کنار آن)
+  اسکریپت: scripts/build-android-apk-v12.sh + scripts/fetch-android-tools.sh (SHA-256 ابزارها در artifacts/reports/android-tools-provenance.txt)
+- **مانع صادقانه**: نصب روی شبیه‌ساز/دستگاه در این سندباکس ممکن نیست (دستگاه adb متصل نیست؛ KVM/emulator نیست) — ساختگی تحویل نشده؛ APKها استانداردند و روی هر اندروید ۷+ قابل side-load
+- keystore release: backups/android-release-keystore/ (خارج از گیت و بسته؛ رمزها فایل 0600 کنارشان)
 EOF
 
 # ── 06: مستندات ──
@@ -100,11 +101,12 @@ unzip rahyar-web-standalone.zip -d rahyar && cd rahyar
 EOF
 cat > "$ROOT/06_DOCUMENTATION/LIMITATIONS_FA.md" << EOF
 # محدودیت‌های صادقانه (تاریخ: $TODAY)
-1. **APK اندروید ساخته نشده** — دو دلیل واقعی: (الف) Android SDK در این محیط نصب نیست؛ (ب) در بازیابی پس از wipe پلتفرم، vault/ رمز keystore از دست رفت و بازسازی کلید بدون آن ممکن نیست. اسکریپت‌های build موجودند (scripts/build-android-apk-v11.sh، fail-closed با env).
-2. **هوش مصنوعی «مدل میزبان»** فقط روی زیرساخت با کانفیگ .z-ai-config فعال است؛ بدون آن موتور محلی قاعده‌محور (شفاف در UI).
-3. **ادغام‌های بیرونی** (ایمیل/تقویم بیرونی، تلگرام/واتساپ، ارسال پیام): فقط کاتالوگ — کد integration وجود ندارد؛ پیش‌نویس پیام عمداً هرگز ارسال نمی‌کند.
-4. **Wake-word / گوش‌به‌فرمان پس‌زمینه**: در وب ناممکن (مرورگر اجازهٔ شنیدن مداوم در پس‌زمینه نمی‌دهد)؛ در اندروید نیازمند سرویس foreground + مجوز RECORD_AUDIO — پیاده نشده، صادقانه ثبت شده.
-5. **Web Push**: نیست؛ اعلان = in-app + Notification API مرورگر (و AlarmManager بومی در اندروید کد موجود).
+1. **نصب APK روی دستگاه/شبیه‌ساز ممکن نیست** — دو APK واقعی و امضاشده ساخته شد (debug + release در بند ۰۱) ولی در سندباکس نه دستگاه adb متصل است نه KVM/emulator؛ هیچ APK ساختگی یا «نصب‌شدهٔ ادعایی» وجود ندارد. روی اندروید ۷+ قابل side-load است.
+2. **هوش مصنوعی «مدل میزبان»** فقط روی زیرساخت با کانفیگ .z-ai-config فعال است؛ بدون آن موتور محلی قاعده‌محور (شفاف در UI) — در این اجرا دقیقاً همین حالت فعال بوده و سناریوها روی همان پاس شده‌اند.
+3. **ادغام‌های بیرونی** (ایمیل/تقویم بیرونی، تلگرام/واتساپ، ارسال پیام/تماس): فقط کاتالوگ — کد integration وجود ندارد؛ پیش‌نویس پیام عمداً هرگز ارسال نمی‌کند.
+4. **Wake-word / گوش‌به‌فرمان پس‌زمینه**: پیاده نشده (وب: سیاست مرورگرها؛ اندروید: نیازمند Foreground Service + لایسنس موتور wake) — جایگزین عملی Push-to-Talk موجود است (VOICE_STATUS_FA.md).
+5. **Web Push**: نیست؛ اعلان = in-app + Notification API مرورگر (+ AlarmManager بومی در اندروید).
+6. **توکن نشست قدیمی در تاریخچهٔ گیت**: یک توکن نشست آزمایشی در blobهای قدیمی باقی است — مرده (DB از نو ساخته، صفر نشست، توکن فقط هش‌شده)؛ مستند در 08_SECURITY_REPORT.
 EOF
 cat > "$ROOT/06_DOCUMENTATION/FEATURES_MATRIX_FA.md" << 'EOF'
 # ماتریس قابلیت‌ها در برابر پیاده‌سازی واقعی (شواهد: مسیر فایل)
@@ -236,23 +238,23 @@ EOF
 
 # ── README + APK نکته ──
 cat > "$ROOT/01_APPLICATION/APP-HOW-TO-RUN.md" << EOF
-# اجرای برنامه (وب) — $TODAY
-**صادقانه: APK اندروید ساخته نشده** (Android SDK نیست + رمز keystore در wipe پلتفرم از دست رفت). فایل ساختگی تحویل داده نمی‌شود. پلتفرم واقعی محصول = وب؛ باندل استقرار همین پوشه است.
-مراحل: unzip rahyar-web-standalone.zip && cd rahyar && ./START-HERE.sh
-پیش‌نمایش زندهٔ فعلی از پنل چت قابل مشاهده است (ورود: owner — رمز موقت در پیام چت).
+# اجرای برنامه — $TODAY
+**وب (پلتفرم اصلی):** unzip rahyar-web-standalone.zip && cd rahyar && ./START-HERE.sh
+**اندروید:** دو APK واقعی و امضاشده در همین پوشه (debug برای تست، release برای انتشار) — روی اندروید ۷+ با side-load نصب می‌شود؛ app محلی/آفلاین است و WebView محلی را باز می‌کند.
+پیش‌نمایش زندهٔ فعلی از پنل چت قابل مشاهده است (ورود: owner — رمز موقت فقط در پیام چت، نه در هیچ فایلی).
 EOF
 cat > "$ROOT/README_OWNER_DELIVERY.txt" << EOF
 RahyAr — بستهٔ تحویل نهایی مأموریت (ساخته‌شده: $TODAY)
 commit سورس: $HASH (branch main)
 
-  01_APPLICATION/        باندل استقرار وب + راهنما (APK: ساخته نشده — دلیل مستند)
+  01_APPLICATION/        باندل استقرار وب + راهنما + دو APK اندروید امضاشده (debug+release)
   02_FULL_SOURCE_ZIP/    سورس کامل ZIP
   03_COMPLETE_SOURCE_TEXT/ کل سورس در یک فایل متنی (پوشش ۰ جاافتاده)
-  04_SCREENSHOTS/        ۲۲ اسکرین‌شات واقعی از نسخهٔ در حال اجرا + manifest
-  05_VIDEO/              ویدئوی پیوستهٔ واقعی (ورود→چت→۳ دموی عامل→نماهای اپ→fa/en→موبایل→قطع/بازیابی شبکه) — ${DUR}s
-  06_DOCUMENTATION/      نصب، محدودیت‌های صادقانه، ماتریس قابلیت‌ها
-  07_AUDIT_REPORT/       گزارش ممیزی جامع
-  08_SECURITY_REPORT/    وضعیت امنیتی C1..C10
+  04_SCREENSHOTS/        اسکرین‌شات‌های واقعی از نسخهٔ در حال اجرا + manifest
+  05_VIDEO/              ویدئوی پیوستهٔ واقعی — ${DUR}s
+  06_DOCUMENTATION/      نصب، محدودیت‌های صادقانه، ماتریس قابلیت‌ها، وضعیت صدا/اندروید
+  07_AUDIT_REPORT/       گزارش ممیزی جامع + لاگ زندهٔ ۱۰ سناریو
+  08_SECURITY_REPORT/    وضعیت امنیتی + اسکن جداگانهٔ سورس/تاریخچه
   09_TEST_RESULTS/       نتایج کامل آزمون‌ها
 
 راستی‌آزمایی: SHA256SUMS.txt → sha256sum -c SHA256SUMS.txt

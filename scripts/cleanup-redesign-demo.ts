@@ -9,7 +9,15 @@ import crypto from 'crypto'
 import { readFileSync, existsSync } from 'fs'
 
 const db = new PrismaClient()
-const AUDIT_TOKEN = 'lWNNErf30wFC61zxJtXkwOrGukTvRnU50S9zJlrwf5I'
+// F2 §۲: توکن هرگز در سورس hardcode نمی‌شود — فقط از فایل 0600 خوانده می‌شود (fail-closed)
+const AUDIT_TOKEN = process.env.RAHYAR_AUDIT_TOKEN
+  ?? (existsSync('/home/z/my-project/artifacts/rahyar-audit/AUDIT_TOKEN.txt')
+    ? readFileSync('/home/z/my-project/artifacts/rahyar-audit/AUDIT_TOKEN.txt', 'utf-8').trim()
+    : '')
+if (!AUDIT_TOKEN) {
+  console.error('audit token missing (fail-closed) — nothing to clean')
+  process.exit(2)
+}
 
 function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex')

@@ -1,72 +1,76 @@
 #!/bin/bash
-# راستی‌آزمایی مستقل نهایی — دانلود واقعی ناشناس + بایت‌مقایسه + ZIP/TXT/ویدئو
+# ─── راستی‌آزمایی مستقل نهایی F2 — هر لینک در نشست ناشناس تازه ═══════
+# برای هر فایل: دانلود واقعی → مقایسهٔ SHA-256 بایت‌به‌بایت با نسخهٔ محلی
+# → تست ZIP/TXT/ویدئو/APK. tmpfiles: استخراج لینک مستقیم token‌دار از صفحهٔ dl.
+# gofile: صفحهٔ عمومی (دانلود مستقیمش نیازمند توکن مرورگر است — check HTTP + size API).
 set -uo pipefail
 cd /home/z/my-project/download
 V=/home/z/my-project/artifacts/verify-links.txt
 : > "$V"
+LINKS=/home/z/my-project/artifacts/upload-links.txt
 
-check_zip() { unzip -tq "$2" > /dev/null 2>&1 && echo "$1 zip-integrity: OK" || echo "$1 zip-integrity: FAIL"; }
-check_txt() {
-  local f=$1 orig=$2
-  local ok=$(python3 -c "
-a=open('$f','rb').read(); b=open('$orig','rb').read()
-print('IDENTICAL' if a==b else f'DIFF {len(a)} vs {len(b)}')")
-  echo "txt-check: first=$(head -2 "$f" | tail -1 | head -c 40) | compare=$ok"
-}
+sha() { python3 -c "import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest())" "$1"; }
 
-echo "════ tmpfiles.org — real anonymous downloads + byte comparison ════" | tee -a "$V"
-declare -A MAP=(
-  ["bundle"]="wsATd12Hxfat/rahyar-web-standalone.zip|rahyar-web-standalone.zip"
-  ["srczip"]="wbAtdn2pxpYd/rahyar_full_source.zip|RahyAr_Full_Source.zip"
-  ["srctxt"]="w3AVdK2oxPiB/rahyar_complete_source.txt|RahyAr_COMPLETE_SOURCE.txt"
-  ["shots"]="wmAGdw27xB2P/rahyar_screenshots_22.zip|RahyAr_Screenshots_22.zip"
-  ["video"]="w9AfdH26xf46/rahyar-final-walkthrough.mp4|rahyar-final-walkthrough.mp4"
-  ["apkdbg"]="w1AOdP2txLPv/rahyar-android-v2.1.0-debug.apk|Rahyar-Android-v2.1.0-debug.apk"
-  ["apkrel"]="wvA3dn2gxHEf/rahyar-android-v2.1.0-release.apk|Rahyar-Android-v2.1.0-release.apk"
-)
-for k in bundle srczip srctxt shots video apkdbg apkrel; do
-  IFS='|' read -r path orig <<< "${MAP[$k]}"
-  WRAP=$(curl -sL -m 90 "https://tmpfiles.org/dl/$path" 2>/dev/null)
+# ── tmpfiles.org: دانلود ناشناس واقعی + SHA-256 ════
+echo "════ tmpfiles.org — anonymous download + SHA-256 byte-match ════" | tee -a "$V"
+python3 - "$LINKS" <<'PYEOF' > /tmp/tf-map.txt
+import sys
+for line in open(sys.argv[1]):
+    if '=>' in line and 'tmpfiles.org' in line:
+        f, url = line.strip().split(' => ')
+        print(f"{f}\t{url}")
+PYEOF
+while IFS=$'\t' read -r f url; do
+  [ -f "$f" ] || continue
+  WRAP=$(curl -sL -m 90 "$url" 2>/dev/null)
   DLURL=$(echo "$WRAP" | grep -oE 'https://tmpfiles\.org/dl/[0-9]+\.[a-f0-9]+/[^"]+' | head -1)
-  if [ -z "$DLURL" ]; then echo "[$k] no-direct-link" | tee -a "$V"; continue; fi
-  curl -sL -m 280 "$DLURL" -o "/tmp/verify-$k" 2>/dev/null
-  ls=$(stat -c%s "/tmp/verify-$k" 2>/dev/null || echo 0); osz=$(stat -c%s "$orig" 2>/dev/null || echo 0)
-  if [ "$ls" = "$osz" ] && [ "$ls" != "0" ]; then
-    echo "[$k] size MATCH: $ls bytes" | tee -a "$V"
-    case $k in
-      bundle|srczip|shots) check_zip "$k" "/tmp/verify-$k" | tee -a "$V";;
-      srctxt) check_txt "/tmp/verify-$k" "$orig" | tee -a "$V";;
-      video) ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "/tmp/verify-$k" | xargs echo "[$k] video duration(s):" | tee -a "$V";;
-      apkdbg|apkrel) unzip -tq "/tmp/verify-$k" > /dev/null 2>&1 && echo "[$k] apk-zip-structure: OK" | tee -a "$V";;
+  if [ -z "$DLURL" ]; then echo "[$f] tmpfiles: no-direct-link (پادشده یا نشت)" | tee -a "$V"; continue; fi
+  curl -sL -m 280 "$DLURL" -o "/tmp/verify-tf" 2>/dev/null
+  LSHA=$(sha "/tmp/verify-tf" 2>/dev/null); OSHA=$(sha "$f")
+  LSZ=$(stat -c%s "/tmp/verify-tf" 2>/dev/null || echo 0); OSZ=$(stat -c%s "$f")
+  if [ "$LSHA" = "$OSHA" ] && [ "$LSHA" != "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" ]; then
+    echo "[$f] tmpfiles SHA-256 MATCH ($LSZ bytes)" | tee -a "$V"
+    case "$f" in
+      *.zip) unzip -tq "/tmp/verify-tf" >/dev/null 2>&1 && echo "[$f] zip-integrity: OK" | tee -a "$V" || echo "[$f] zip-integrity: FAIL" | tee -a "$V";;
+      *.apk) unzip -tq "/tmp/verify-tf" >/dev/null 2>&1 && echo "[$f] apk-zip-structure: OK" | tee -a "$V";;
+      *.txt) echo "[$f] head: $(head -2 /tmp/verify-tf | tail -1 | head -c 50) | mid: $(sed -n "$(( $(wc -l < /tmp/verify-tf) / 2 ))p" /tmp/verify-tf | head -c 40)" | tee -a "$V";;
+      *.mp4) ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "/tmp/verify-tf" 2>/dev/null | xargs echo "[$f] video duration(s):" | tee -a "$V";;
     esac
   else
-    echo "[$k] SIZE MISMATCH: got=$ls orig=$osz" | tee -a "$V"
+    echo "[$f] tmpfiles SHA MISMATCH: got=$LSHA ($LSZ bytes) expected=$OSHA ($OSZ bytes)" | tee -a "$V"
   fi
-  rm -f "/tmp/verify-$k"
-done
+  rm -f /tmp/verify-tf
+done < /tmp/tf-map.txt
 
-echo "════ uguu.se — third copies ════" | tee -a "$V"
-declare -A UMAP=(
-  ["u-txt"]="https://d.uguu.se/bmQYlFxH.txt|RahyAr_COMPLETE_SOURCE.txt"
-  ["u-vid"]="https://n.uguu.se/suADBnFX.mp4|rahyar-final-walkthrough.mp4"
-  ["u-p2"]="https://n.uguu.se/nWveErNg.001|RahyAr_FINAL_OWNER_DELIVERY.zip.001"
-)
-for k in u-txt u-vid u-p2; do
-  IFS='|' read -r url orig <<< "${UMAP[$k]}"
-  curl -sL -m 280 "$url" -o "/tmp/verify-$k" 2>/dev/null
-  ls=$(stat -c%s "/tmp/verify-$k" 2>/dev/null || echo 0); osz=$(stat -c%s "$orig" 2>/dev/null || echo 0)
-  [ "$ls" = "$osz" ] && [ "$ls" != "0" ] && echo "[$k] size MATCH: $ls" | tee -a "$V" || echo "[$k] MISMATCH got=$ls orig=$osz" | tee -a "$V"
-  rm -f "/tmp/verify-$k"
-done
-
-echo "════ gofile.io — official links, page reachability (retries) ════" | tee -a "$V"
-for gid in i8aaEFVr uemMcslo r6HThgZm EwsLEZqv iOdxLP8s J7ShKPHg GEVzFZCc pT2dPHxF; do
+# ── gofile.io: صفحهٔ عمومی + API size ─═══
+echo "════ gofile.io — page reachability + content size via API ════" | tee -a "$V"
+python3 - "$LINKS" <<'PYEOF' > /tmp/gf-map.txt
+import sys
+for line in open(sys.argv[1]):
+    if '=>' in line and 'gofile.io' in line:
+        f, url = line.strip().split(' => ')
+        print(f"{f}\t{url}")
+PYEOF
+while IFS=$'\t' read -r f url; do
+  gid=$(basename "$url")
   code=000
   for try in 1 2 3; do
     code=$(curl -sL -o /tmp/gp -w "%{http_code}" -m 45 "https://gofile.io/d/$gid" 2>/dev/null)
     [ "$code" = "200" ] && break
     sleep 3
   done
-  echo "gofile/$gid: HTTP $code (tries=$try)" | tee -a "$V"
-done
+  INFO=$(curl -s -m 30 "https://api.gofile.io/contents/$gid" 2>/dev/null | python3 -c "
+import sys,json
+try:
+    d=json.load(sys.stdin)['data']
+    ch=d.get('children',{})
+    tot=sum(int(c.get('size',0)) for c in ch.values()) or int(d.get('size',0))
+    print(f\"files={len(ch)} size={tot}\")
+except Exception as e:
+    print('api-info-unavailable')" 2>/dev/null)
+  OSZ=$(stat -c%s "$f" 2>/dev/null || echo 0)
+  echo "gofile/$gid ($f): HTTP $code | api: $INFO | local-size: $OSZ" | tee -a "$V"
+done < /tmp/gf-map.txt
+
 echo "════ VERIFY DONE ════" | tee -a "$V"
+grep -cE "SHA-256 MATCH" "$V" | xargs echo "tmpfiles SHA-match count:" | tee -a "$V"
