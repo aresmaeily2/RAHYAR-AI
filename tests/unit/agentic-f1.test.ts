@@ -159,3 +159,39 @@ describe('reminderAtFromDue — تبدیل تهران‌محور یادآور م
     expect(reminderAtFromDue(due, '25:99', 60, new Date('2026-11-02T08:00:00Z'))).toBeNull()
   })
 })
+
+// ── F-AG3: گارد مأموریت + نرمال‌سازی زمان یادآور ──
+import { parseRemindAtFlexible } from '@/lib/finance/summary'
+import { detectMissionPattern } from '@/lib/assistant/router'
+
+describe('parseRemindAtFlexible — تفسیر تهران‌محور', () => {
+  test('پسوند Z مدل → تفسیر به وقت تهران (نه UTC)', () => {
+    // مدل برای «۹ صبح تهران» 2026-11-03T09:00Z فرستاده → باید 05:30Z شود
+    const d = parseRemindAtFlexible('2026-11-03T09:00:00.000Z')
+    expect(d?.toISOString()).toBe('2026-11-03T05:30:00.000Z')
+  })
+  test('برهنه بدون آفست → تهران', () => {
+    const d = parseRemindAtFlexible('2026-11-03T09:00')
+    expect(d?.toISOString()).toBe('2026-11-03T05:30:00.000Z')
+  })
+  test('آفست صریح → همان', () => {
+    const d = parseRemindAtFlexible('2026-11-03T09:00+03:30')
+    expect(d?.toISOString()).toBe('2026-11-03T05:30:00.000Z')
+  })
+})
+
+describe('detectMissionPattern — الگوهای اثر واقعی الزامی', () => {
+  test('سناریوی ۵ مأموریت ← event_reminder', () => {
+    expect(detectMissionPattern('قرار فردا را به تقویم اضافه کن و یک ساعت قبل یادآوری کن.')).toBe('event_reminder')
+  })
+  test('سناریوی ۴ مأموریت ← draft', () => {
+    expect(detectMissionPattern('یک پیام آماده کن و قبل از ارسال، متنش را به من نشان بده.')).toBe('draft')
+  })
+  test('سناریوی ۳ مأموریت ← plan', () => {
+    expect(detectMissionPattern('برای فردا سه کار مهم من را برنامه‌ریزی کن.')).toBe('plan')
+  })
+  test('چت معمولی ← null', () => {
+    expect(detectMissionPattern('سلام، حالت چطوره؟')).toBeNull()
+    expect(detectMissionPattern('مخارج این هفته را جمع کن و گزارش بده.')).toBeNull()
+  })
+})

@@ -15,7 +15,8 @@ import { addDaysIso, formatJalali, tehranIsoDate, tehranParts } from '@/lib/pers
 import { getUserName } from '@/lib/server-profile'
 import { hasExplicitDeleteVerb, hasExplicitForgetVerb } from '@/lib/security'
 import { validateChatActions } from '@/lib/ai/action-schema'
-import { financeSummaryFor, reminderAtFromDue } from '@/lib/finance/summary'
+import { detectMissionPattern } from '@/lib/assistant/router'
+import { financeSummaryFor, parseRemindAtFlexible, reminderAtFromDue } from '@/lib/finance/summary'
 
 export { hasExplicitDeleteVerb, hasExplicitForgetVerb }
 
@@ -505,8 +506,8 @@ export async function executeChatActions(
             results.push({ type: 'add_reminder', ok: false, note: note('اطلاعات ناقص بود', 'Incomplete information') })
             break
           }
-          const at = new Date(a.remindAt)
-          if (Number.isNaN(at.getTime())) {
+          const at = parseRemindAtFlexible(a.remindAt)
+          if (!at || Number.isNaN(at.getTime())) {
             results.push({ type: 'add_reminder', ok: false, note: note('زمان نامعتبر بود', 'Invalid time') })
             break
           }
@@ -617,4 +618,143 @@ export async function executeChatActions(
     }
   }
   return results
+}
+
+// ─── F-AG3: گارد مأموریت — کشف ادعای بدون‌اثر مدل و فالبک قطعی ────
+// در آزمون زندهٔ ۵ سناریو دیدیم مدل برای S3/S4/S5 ادعای موفقیت در reply
+// می‌نویسد ولی هیچ اکشنی نمی‌فرستد. این گارد چرخهٔ عامل را کامل می‌کند:
+// تشخیص شکست ← اصلاح قطعی ← گزارش واقعی (بخش ۲ مأموریت، بند ۶–۸).
+export interface MissionGuardResult {
+  actions: ChatAction[]
+  reply: string
+  fallbackUsed: boolean
+}
+
+/** استخراج عنوان رویداد از پیام — قطعی؛ برای فالبک event_reminder */
+function extractEventTitle(msg: string, lang: AppLang): string {
+  let t = msg
+    .replace(/(?:را)?\s*به\s*تقویم[\s\S]*$/, '')
+    .replace(/یادآوری[\s\S]*$/, '')
+    .replace(/یادم\s*بنداز[\s\S]*$/i, '')
+    .replace(/remind me[\s\S]*$/i, '')
+    .replace(/to (?:the )?calendar[\s\S]*$/i, '')
+    .replace(/(?:اضافه|ثبت)\s*کن/g, '')
+    .replace(/\b(?:add|create|schedule)\b/gi, '')
+    .replace(/برای\s*(?:فردا|امروز|پس‌فردا)/g, '')
+    .replace(/ساعت\s+\d{1,2}(?::\d{2})?/g, '')
+    .replace(/\bat\s+\d{1,2}(?::\d{2})?/gi, '')
+    .replace(/(?:فردا|امروز|پس‌فردا|tomorrow|today)/gi, '')
+    .replace(/(?:یک|۱|نیم)\s*ساعت\s*قبل/g, '')
+    .replace(/an? hour before/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^[،,.:؛!؟\s-]+|[،,.:؛!؟\s-]+$/g, '')
+  if (t.length < 2) t = lang === 'en' ? 'Appointment' : 'قرار'
+  return t.slice(0, 200)
+}
+
+/** استخراج بدنهٔ پیش‌نویس از reply مدل (مدل معمولاً متن را در reply نوشته) */
+function extractDraftBody(reply: string): string | null {
+  const m = reply.match(/(?:متن\s*پیام|متن|body|draft)\s*[:：]\s*([\s\S]{10,900})/i)
+  if (m) {
+    const body = m[1]
+      .split(/\n\s*\n/)[0]
+      .split(/\n\(/)[0]
+      .trim()
+    if (body.length >= 10) return body.slice(0, 2000)
+  }
+  const q = reply.match(/[«"“]([^«»"”]{15,900})[»"”]/)
+  if (q) return q[1].trim().slice(0, 2000)
+  return null
+}
+
+function extractRecipient(msg: string): string | null {
+  const m = msg.match(/(?:پیام|متن|ایمیل)\s*(?:برای|به)\s+([آ-ی‌a-zA-Z]{2,24})/i)
+  if (!m) return null
+  const blocked = ['تقویم', 'من', 'تو', 'شما', 'calendar', 'me']
+  const name = m[1].trim()
+  if (blocked.includes(name)) return null
+  return name.slice(0, 200)
+}
+
+function defaultDraft(lang: AppLang): string {
+  return lang === 'en'
+    ? 'Hello,\n\nThank you for your message. I have reviewed it and will get back to you with the details shortly.\n\nBest regards,'
+    : 'سلام،\n\nممنون از پیامت. بررسی کردم و به‌زودی با جزئیات پاسخ می‌دهم.\n\nبا احترام،'
+}
+
+/**
+ * گارد پس از اجرا: اگر پیام با الگوی «اثر واقعی الزامی» مأموریت بخورد و
+ * اکشن اجراشده‌ای که آن نیاز را برآورده کند وجود نداشته باشد، فالبک قطعی
+ * همان اثر واقعی را می‌سازد (کار + یادآور متصل / پیش‌نویس / برنامهٔ روز).
+ */
+export async function applyMissionGuard(
+  userMessage: string,
+  reply: string,
+  actions: ChatAction[],
+  userId: string,
+  idempotencyKey: string | null,
+  lang: AppLang,
+): Promise<MissionGuardResult> {
+  const kind = detectMissionPattern(userMessage)
+  if (!kind) return { actions, reply, fallbackUsed: false }
+  const note = (fa: string, en: string): string => pick(lang, fa, en)
+  const hasOk = (pred: (a: ChatAction) => boolean): boolean => actions.some(pred)
+
+  if (kind === 'event_reminder') {
+    const satisfied = hasOk((a) => (a.type === 'add_task' || a.type === 'add_reminder') && a.ok)
+    if (satisfied) return { actions, reply, fallbackUsed: false }
+    // فالبک قطعی — پارس از خود پیام کاربر
+    const timeMatch = userMessage.match(/ساعت\s+(\d{1,2})(?::(\d{2}))?|at\s+(\d{1,2})(?::(\d{2}))?/i)
+    let hh = timeMatch ? parseInt(timeMatch[1] ?? timeMatch[3] ?? '9', 10) : 9
+    const mi = timeMatch ? parseInt(timeMatch[2] ?? timeMatch[4] ?? '0', 10) : 0
+    if (/(?:عصر|بعدازظهر|بعد از ظهر|pm)/i.test(userMessage) && hh < 12) hh += 12
+    hh = Math.min(hh, 23)
+    const hhmm = `${String(hh).padStart(2, '0')}:${String(mi).padStart(2, '0')}`
+    const title = extractEventTitle(userMessage, lang)
+    let before = 60
+    const dm = userMessage.match(/(\d+)\s*دقیقه\s*قبل/)
+    const hm = userMessage.match(/(\d+)\s*ساعت\s*قبل/)
+    if (/نیم\s*ساعت/.test(userMessage)) before = 30
+    else if (dm) before = Math.min(parseInt(dm[1], 10) || 60, 1440)
+    else if (hm) before = Math.min((parseInt(hm[1], 10) || 1) * 60, 1440)
+    const fb = await executeChatActions(
+      [{ type: 'add_task', title, dueDate: 'فردا', dueTime: hhmm, remindBeforeMin: before }],
+      userMessage,
+      userId,
+      idempotencyKey ? `${idempotencyKey}:guard` : null,
+      lang,
+    )
+    await logAction({ userId, actionType: 'mission_guard', status: 'success', targetType: 'task', detail: 'event_reminder fallback' }).catch(() => {})
+    return { actions: [...actions, ...fb], reply, fallbackUsed: true }
+  }
+
+  if (kind === 'draft') {
+    if (hasOk((a) => a.type === 'draft_message' && a.ok)) return { actions, reply, fallbackUsed: false }
+    const body = extractDraftBody(reply) ?? defaultDraft(lang)
+    const draft = {
+      recipient: extractRecipient(userMessage),
+      body,
+      channel: /ایمیل|email/i.test(userMessage) ? 'email' : 'sms',
+    }
+    await logAction({ userId, actionType: 'draft_message', status: 'success', targetType: 'draft', detail: 'mission-guard fallback draft (never sent)' }).catch(() => {})
+    return { actions: [...actions, { type: 'draft_message', ok: true, draft }], reply, fallbackUsed: true }
+  }
+
+  // kind === 'plan'
+  const planOk = hasOk((a) => a.type === 'plan_day' && a.ok)
+  const multiTask = actions.filter((a) => a.type === 'add_task' && a.ok).length >= 2
+  if (planOk || multiTask) return { actions, reply, fallbackUsed: false }
+  const fb = await executeChatActions([{ type: 'plan_day' }], userMessage, userId, null, lang)
+  const okPlan = fb.find((a) => a.type === 'plan_day' && a.ok && a.plan)
+  if (!okPlan) {
+    // فالبک نهایی بدون مدل — برنامهٔ قطعی از کارهای اولویت‌دار
+    const { buildRuleBasedPlan } = await import('@/lib/assistant/rule-plan')
+    const tasks = (await db.task.findMany({ where: { status: 'todo', userId }, include: { subtasks: true }, take: 30 })).map(serializeTask)
+    const plan = buildRuleBasedPlan(tasks, lang)
+    await logAction({ userId, actionType: 'plan_day', status: 'success', targetType: 'plan', detail: 'rule-based mission fallback' }).catch(() => {})
+    return { actions: [...actions, { type: 'plan_day', ok: true, plan }], reply, fallbackUsed: true }
+  }
+  await logAction({ userId, actionType: 'mission_guard', status: 'success', targetType: 'plan', detail: 'plan fallback executed' }).catch(() => {})
+  return { actions: [...actions, ...fb], reply, fallbackUsed: true }
 }

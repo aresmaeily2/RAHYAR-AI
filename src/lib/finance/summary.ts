@@ -166,3 +166,26 @@ export function reminderAtFromDue(
   if (remind.getTime() > now.getTime() + 366 * DAY_MS) return null
   return remind
 }
+
+/**
+ * F-AG3: تفسیر یکنواخت remindAt مدل — قرارداد پرامپت «به وقت تهران» است ولی
+ * مدل گاهی پسوند Z (UTC) می‌گذارد یا برهنه می‌فرستد؛ هر دو به وقت تهران
+ * تفسیر می‌شوند (سندباکس UTC است — برهنه به‌عنوان UTC یعنی ۳:۵۰ ساعت خطا).
+ * خروجی Date معتبر یا null (اعتبارسنجی گذشته/دور در اجرا می‌ماند).
+ */
+export function parseRemindAtFlexible(s: string): Date | null {
+  const raw = (s ?? '').trim()
+  const m = raw.match(/^(\d{4}-\d{2}-\d{2})T(\d{1,2}:\d{2})(:\d{2})?(\.\d{1,3})?(Z|[+-]\d{2}:?\d{2})?$/)
+  if (!m) {
+    const d = new Date(raw)
+    return Number.isNaN(d.getTime()) ? null : d
+  }
+  const [, date, hhmm] = m
+  const suffix = m[5]
+  let norm = `${date}T${hhmm.padStart(5, '0')}:00`
+  if (!suffix) norm += TEHRAN_OFFSET // برهنه → تهران (قرارداد پرامپت)
+  else if (suffix === 'Z' || suffix === '+00:00' || suffix === '+0000') norm += TEHRAN_OFFSET // Z مدل → تفسیر تهران
+  else norm += suffix.startsWith('+0') || suffix.startsWith('-0') ? suffix : suffix // آفست صریح → همان
+  const d = new Date(norm)
+  return Number.isNaN(d.getTime()) ? null : d
+}

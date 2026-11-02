@@ -104,6 +104,33 @@ export function extractFinanceRange(text: string): FinanceRange {
 }
 
 /**
+ * F-AG3 — گارد مأموریت: الگوهای «اثر واقعی الزامی» که مدل گاهی فقط
+ * در reply ادعا می‌کند ولی اکشن نمی‌فرستد (در آزمون زندهٔ ۵ سناریو رخ داد:
+ * S3/S4/S5 بدون اکشن). تشخیص خالص — فالبک قطعی در server-ai اجرا می‌شود.
+ */
+export type MissionGuardKind = 'event_reminder' | 'draft' | 'plan'
+
+export function detectMissionPattern(message: string): MissionGuardKind | null {
+  const t = (message ?? '').trim()
+  if (t.length < 4) return null
+  const wantsEvent =
+    /(قرار|جلسه|ملاقات|نوبت|مصاحبه|ویزیت)/.test(t) &&
+    /(تقویم|یادآوری|یادم بنداز|یادت باشه|remind|calendar)/i.test(t) &&
+    /(اضافه|ثبت|بگذار|بنداز|کن|add|create)/i.test(t)
+  if (wantsEvent) return 'event_reminder'
+  const wantsDraft =
+    /(پیام|متن|ایمیل|اس‌ام‌اس|message|email)/i.test(t) &&
+    /(آماده|بنویس|نوشته|تنظیم|draft|prepare|write)/i.test(t) &&
+    /(نشان|قبل از ارسال|قبل از فرستادن|show|before sending)/i.test(t)
+  if (wantsDraft) return 'draft'
+  const wantsPlan =
+    /(برنامه.?ریزی|برنامه‌ریزی|برنامه بچین|برنامه بریز|برنامه‌اش را بچین|plan (?:my|the) )/i.test(t) ||
+    /(سه|3)\s*کار.{0,20}(برنامه|plan)/i.test(t)
+  if (wantsPlan) return 'plan'
+  return null
+}
+
+/**
  * استخراج هدف تکمیل از جمله:
  * «جلسه با تیم انجام شد» → «جلسه با تیم»
  * «تموم شد خرید» → «خرید»

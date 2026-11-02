@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { buildChatSystemPrompt, executeChatActions, getMemories, trimChatHistory, type RawAction } from '@/lib/server-ai'
+import { applyMissionGuard, buildChatSystemPrompt, executeChatActions, getMemories, trimChatHistory, type RawAction } from '@/lib/server-ai'
 import { getAllTasks, serializeTask } from '@/lib/server-tasks'
 import { getUserName } from '@/lib/server-profile'
 import { shouldSearch, performWebSearch } from '@/lib/server-search'
@@ -423,6 +423,10 @@ export async function POST(req: NextRequest) {
               .filter((f) => typeof f === 'string' && f.trim().length > 1)
               .slice(0, 3)
               .map((f) => f.trim().slice(0, 60))
+            // F-AG3: گارد پس از اجرا — ادعای مدل بدون اکشن را با فالبک قطعی جبران می‌کند
+            const guarded = await applyMissionGuard(message, reply, actions, userId, idempotencyKey, lang)
+            actions = guarded.actions
+            reply = guarded.reply
           } else {
             reply = raw.trim().slice(0, 4000) || 'الان نتوانستم درست پاسخ بدهم، لطفاً دوباره تلاش کن.'
           }
