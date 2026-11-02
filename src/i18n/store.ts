@@ -136,10 +136,9 @@ export const useI18n = create<I18nState>((set, get) => ({
     try {
       // F-AG4: پیش از ورود، settings/app همیشه 401 می‌دهد و خطای کنسول می‌سازد —
       // اول وضعیت نشست (endpoint عمومی)؛ فقط با نشست واقعی تنظیمات سرور خوانده شود
-      const s = await fetch('/api/auth/session', { cache: 'no-store' })
-        .then((x) => (x.ok ? (x.json() as Promise<{ authenticated?: boolean }>)) : null)
-        .catch(() => null)
-      if (!s?.authenticated) {
+      const sr = await fetch('/api/auth/session', { cache: 'no-store' }).catch(() => null)
+      const sj = sr?.ok ? ((await sr.json()) as { authenticated?: boolean }) : null
+      if (!sj?.authenticated) {
         if (!local) applyHtmlAttrs('fa')
         set({ hydrated: true })
         return
