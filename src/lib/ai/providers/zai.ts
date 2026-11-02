@@ -38,7 +38,9 @@ async function hasHostedConfig(): Promise<boolean> {
   const fs = await import('node:fs/promises')
   for (const p of configCandidates()) {
     try {
-      const st = await fs.stat(p)
+      // turbopackIgnore: مسیر پویا و عمدی است (بررسی وجود کانفیگ در ۳ مسیر رسمی)؛
+      // بدون آن تحلیل استاتیک کل پروژه را trace می‌کند و بیلد production می‌شکند
+      const st = await fs.stat(/*turbopackIgnore: true*/ p)
       if (st.isFile() && st.size > 0) return true
     } catch {
       // نبود فایل — مسیر بعدی
