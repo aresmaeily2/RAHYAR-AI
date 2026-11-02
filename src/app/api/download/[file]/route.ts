@@ -28,7 +28,13 @@ const WHITELIST: Record<string, string> = {
   'README-OWNER-DELIVERY.md': 'text/markdown; charset=utf-8',
 }
 
-const DOWNLOAD_DIR = path.resolve(process.cwd(), 'download')
+// R2+ باگ‌رفع: سرور standalone در startup خودش process.chdir(__dirname) می‌کند
+// (.next/standalone) و process.cwd() دیگر ریشهٔ پروژه نیست → مسیر download پیدا
+// نمی‌شد (404). انکر پایدار: env RAHYAR_DOWNLOAD_DIR (در .env.example مستند)؛
+// fallback به cwd برای حالت dev.
+const DOWNLOAD_DIR = process.env.RAHYAR_DOWNLOAD_DIR
+  ? path.resolve(process.env.RAHYAR_DOWNLOAD_DIR)
+  : path.resolve(process.cwd(), 'download')
 
 export async function GET(
   req: NextRequest,
