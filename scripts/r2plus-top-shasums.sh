@@ -9,6 +9,7 @@ import hashlib, os
 def sha(p):
     return hashlib.sha256(open(p, 'rb').read()).hexdigest()
 
+HEAD = os.popen('git rev-parse --short=7 HEAD').read().strip()
 pkg_sums = open('RahyAr_R2_OWNER_DELIVERY/SHA256SUMS.txt').read().rstrip()
 
 top_files = [
@@ -23,7 +24,7 @@ top_files = [
 ]
 
 with open('SHA256SUMS.txt', 'w') as out:
-    out.write("# RahyAr R2 — SHA-256 manifest (commit b8dc856)\n")
+    out.write(f"# RahyAr R2 — SHA-256 manifest (commit {HEAD})\n")
     out.write("# بخش ۱: فایل‌های داخل بستهٔ RahyAr_R2_OWNER_DELIVERY (مسیرها نسبت به ریشهٔ بسته)\n")
     out.write("#   بررسی: داخل پوشهٔ باز‌شده  →  sha256sum -c SHA256SUMS.txt\n")
     out.write("\n")
