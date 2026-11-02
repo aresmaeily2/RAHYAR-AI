@@ -133,7 +133,7 @@ const tomorrowIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tehran', 
   .format(new Date(Date.now() + 24 * 3600_000))
 const checks = {
   'S1: کار/یادآور واقعی تماس ثبت شد': newTasks.some((t) => t.title.includes('فلانی') || t.title.includes('تماس')) || results[0].includes('add_reminder✓'),
-  'S2: پاسخ مالی عدد واقعی دارد': /\d/.test(results[1].split('reply:')[1]?.split('|')[0] ?? ''),
+  'S2: پاسخ مالی عدد واقعی دارد': /[۰-۹0-9]/.test(results[1].split('reply:')[1]?.split('|')[0] ?? '') && /(ریال|تومان)/.test(results[1]),
   'S3: برنامهٔ واقعی در اکشن (plan_day یا ۲+ کار)': results[2].includes('plan_day✓') || results[2].includes('add_task✓'),
   'S4: پیش‌نویس ساخته شد و ارسال نشد': results[3].includes('draft['),
   'S5: قرار + یادآور متصل ساخته شد': newReminders.some((r) => r.taskId) || (results[4].includes('add_task✓') && results[4].includes('add_reminder✓')),
