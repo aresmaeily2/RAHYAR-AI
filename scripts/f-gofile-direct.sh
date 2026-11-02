@@ -9,7 +9,7 @@ FILES=(
   "rahyar-web-standalone.zip"
   "RahyAr_Full_Source.zip"
   "RahyAr_COMPLETE_SOURCE.txt"
-  "RahyAr_Screenshots_22.zip"
+  "RahyAr_Screenshots.zip"
   "rahyar-final-walkthrough.mp4"
   "Rahyar-Android-v2.1.0-debug.apk"
   "Rahyar-Android-v2.1.0-release.apk"

@@ -38,6 +38,10 @@ now = time.strftime('%Y-%m-%d %H:%M UTC')
 rows, full_shas = [], []
 for f, desc in FILES:
     p = f'{DL}/{f}'
+    if f == 'RahyAr_FINAL_REPORT.md':
+        # مرجع دوری: سایز/SHA/لینک‌های خودِ گزارش فقط در پیام چت داده می‌شود (نسخهٔ آپلودشده = همین نسخهٔ نهایی)
+        rows.append(f'| {f} | — | — | (لینک در پیام چت) | (لینک در پیام چت) |')
+        continue
     if not os.path.exists(p):
         rows.append(f'| {f} | — | — | (داخل بسته) | (داخل بسته) |')
         continue

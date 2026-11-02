@@ -184,38 +184,53 @@ AEOF
 # ── 07: گزارش ممیزی ──
 cp artifacts/rahyar-audit/FAG_SCENARIOS_LIVE.txt "$ROOT/07_AUDIT_REPORT/scenarios-S1-S5-live.log" 2>/dev/null || true
 cp artifacts/rahyar-audit/FAG2_SCENARIOS_LIVE.txt "$ROOT/07_AUDIT_REPORT/scenarios-S6-S10-live.log" 2>/dev/null || true
+cp artifacts/rahyar-audit/VOICE_EVIDENCE.txt "$ROOT/07_AUDIT_REPORT/voice-real-audio-evidence.txt" 2>/dev/null || true
+cp artifacts/rahyar-audit/ANDROID_JVM_TESTS.txt "$ROOT/07_AUDIT_REPORT/android-jvm-tests.log" 2>/dev/null || true
+for v in artifacts/rahyar-audit/voice/*.wav artifacts/rahyar-audit/voice/*-asr.json; do
+  [ -f "$v" ] && cp "$v" "$ROOT/07_AUDIT_REPORT/" || true
+done
 cat > "$ROOT/07_AUDIT_REPORT/AUDIT_REPORT_FA.md" << EOF
 # گزارش ممیزی جامع مأموریت نهایی — $TODAY
 **commit ممیزی‌شده**: $HASH | روش: مطالعهٔ مستقیم کد + اجرای واقعی (نه اتکا به گزارش‌های قبلی)
 ## آزمون زندهٔ ۵ سناریو (اثر واقعی DB)
 $(cat artifacts/rahyar-audit/FAG_SCENARIOS_LIVE.txt 2>/dev/null | head -60 || echo '(در حال تولید…)')
+## سناریوهای تکمیلی S6-S10
+$(cat artifacts/rahyar-audit/FAG2_SCENARIOS_LIVE.txt 2>/dev/null | head -40 || echo '(در حال تولید…)')
+## بازیابی کنترل‌شدهٔ این دور (checkpoint rollback)
+- فایل‌های src قدیمی که کامیت‌های قبلی حذفشان کرده بودند اما rollback زنده کرده بود (از جمله providers/builtin.ts که typecheck را می‌شکست) شناسایی و پاک شدند — worktree = HEAD
+- DB از نو ساخته شد (schema + seed نمایشی)؛ اعتبار مالک چرخانده شد؛ همهٔ نشست‌ها = ۰
+- پشتیبان پیش از هر تغییر: DB (SHA-256 ثبت‌شده) + git bundle کامل
 ## یافته‌های کلیدی
 - چرخهٔ عامل واقعی وجود داشت (پروتکل JSON-action با نوشتن واقعی DB و لاگ idempotent) اما ۳ شکاف داشت: اقدام مالی، پیش‌نویس پیام، یادآور خودکار رویداد — هر سه در همین مأموریت پیاده شد (کامیت‌های F-AG1..3).
 - آزمون زندهٔ ۵ سناریو یک نقص واقعی را نشان داد: مدل گاهی موفقیت را در reply «ادعا» می‌کند ولی اکشن نمی‌فرستد (S3 حتی JSON برنمی‌گرداند) → گارد پس از اجرا (applyMissionGuard) با فالبک قطعی بسته شد؛ سناریوها اکنون ۵/۵ با اثر واقعی DB.
 - باگ نقش owner در seed (USER به‌جای OWNER) — کشف با E2E، اصلاح شد.
 - باگ مسیر download در standalone (chdir) — قبلاً اصلاح (RAHYAR_DOWNLOAD_DIR).
 - ریگرسیون بیلد fresh-cache (turbopackIgnore) — اصلاح شد.
-- wipe پلتفرم: artifacts/vault/download از بین رفتند؛ DB از نو seed و شواهد از نو تولید شد — همهٔ شواهد فعلی تازه و بازتولیدپذیرند.
+- یافتهٔ JVM: در runner بدون-Gradle، android.jar استاب اگر قبل از json واقعی بیاید، خطاها با false/−۱ پوشانده می‌شد — ترتیب classpath اصلاح و در android-jvm-tests.sh مستند شد.
 ## صوت
-STT (Web Speech + بومی اندروید) و TTS کامل؛ wake-word نه (مستند). در سندباکس بدون میکروفون، آزمون زندهٔ STT ممکن نبود — صریحاً ثبت می‌شود.
+چرخهٔ صوتی واقعی: TTS واقعی (fa+en) → ASR: en دقیق/کلمه‌به‌کلمه PASS؛ موتور ASR میزبان fa را پشتیبانی نمی‌کند — صادقانه ثبت شد (VOICE_EVIDENCE.txt + فایل‌های wav/json پیوست). wake-word نه (مستند)؛ Push-to-Talk موجود.
 EOF
 
 # ── 08: امنیت ──
 cp artifacts/rahyar-audit/F2_SECURITY_SCANS.txt "$ROOT/08_SECURITY_REPORT/secret-scans-source-vs-history.txt" 2>/dev/null || true
+cp artifacts/rahyar-audit/P06R_SECRET_TESTS.txt "$ROOT/08_SECURITY_REPORT/p06r-secret-tests.log" 2>/dev/null || true
 cat > "$ROOT/08_SECURITY_REPORT/SECURITY_STATUS_FA.md" << EOF
 # وضعیت امنیتی — $TODAY (commit $HASH) — مأموریت تکمیلی F2 §۲
-- چرخش اعتبارنامه: رمز افشاشدهٔ گزارش قبلی منقضی تلقی شد؛ حساب با اعتبارنامهٔ جدید تصادفی بازسازی شد (رمز فقط در پیام چت — در هیچ فایلی نیست)؛ همهٔ نشست‌ها/توکن‌ها ابطال شدند
-- اسکن جداگانهٔ سورس و تاریخچه (پیوست: secret-scans-source-vs-history.txt):
-  - سورس: ۸۱۰ فایل — یافته‌ها فقط placeholderهای REDACTED_C1..C10 / هش CSP / مسیر — بدون رمز واقعی
-  - تاریخچه: ۱۵۱ کامیت / ۱۰۲۷ blob یکتا — همان کلاس‌ها — بدون رمز واقعی
+- چرخش اعتبارنامه: رمز افشاشدهٔ گزارش قبلی منقضی تلقی شد؛ حساب با اعتبارنامهٔ جدید تصادفی بازسازی شد (رمز فقط در پیام چت — در هیچ فایلی نیست)؛ همهٔ نشست‌ها/توکن‌ها ابطال شدند (Session = ۰)
+- یافته و اصلاح: توکن نشست قدیمی در scripts/cleanup-redesign-demo.ts hardcode بود → حذف شد (env/فایل 0600 با fail-closed)
+- اسکن جداگانهٔ سورس و تاریخچه (پیوست: secret-scans-source-vs-history.txt) با طبقه‌بندی تک‌تک یافته‌ها + اثبات مرگ روی DB زنده:
+  - سورس: ۹۳۷ فایل — CLEAN (یافته‌ها فقط placeholder/مسیر/SRI/الفبا)
+  - تاریخچه: ۱۵۲ کامیت / ۱۰۳۸ blob یکتا — CLEAN (رمزهای نمایشی قدیمی + یک توکن مرده — verify روی هش فعلی → NO-MATCH)
   - الگوها: کلید خصوصی، AWS، Google/Slack، bearer، رمز-انتساب، توکن high-entropy
-- C1..C10 بازبینی شد: رجیستر LOCAL_CLEAN / BACKUP_VERIFIED / STRUCTURALLY_UNPUBLISHABLE به قوت خود؛ هیچ secret در بسته (اسکن + p06r ALL-PASS پیش از بسته‌بندی)
-- keystore: قبلی در wipe از دست رفت → keystore release جدید (PKCS12 RSA-4096، CN=RahyAr، ۱۰۰۰۰ روز) در backups/ (بیرون از گیت/بسته، رمز 0600)
+- C1..C10 بازبینی شد: p06r secret tests ALL-PASS (پیوست: p06r-secret-tests.log)؛ رجیستر LOCAL_CLEAN / BACKUP_VERIFIED / STRUCTURALLY_UNPUBLISHABLE به قوت خود؛ هیچ secret در بسته
+- keystore: release جدید (PKCS12 RSA-4096، CN=RahyAr، ۱۰۰۰۰ روز) در backups/ (بیرون از گیت/بسته، رمزها فایل 0600 کنارش)
 - CSP nonce + strict-dynamic؛ frame-ancestors فقط دامنه‌های رسمی؛ گاردهای عاملیت حالا با ماشین-وضعیت تأیید صریح؛ claim-first idempotency؛ رضایت دومرحله‌ای پارس پیامک
 - سرویس بیرونی بدون توکن: .z-ai-config سندباکس، خارج از گیت و بسته (تایید git ls-files + اسکن)
 EOF
 
 # ── 09: آزمون‌ها ──
+cp artifacts/reports/grand-e2e.json "$ROOT/09_TEST_RESULTS/grand-e2e-results.json" 2>/dev/null || true
+cp artifacts/daemon.log "$ROOT/09_TEST_RESULTS/daemon.log" 2>/dev/null || true
 cat > "$ROOT/09_TEST_RESULTS/TEST_RESULTS_FA.md" << EOF
 # نتایج آزمون روی commit تحویلی $HASH ($TODAY)
 | آزمون | نتیجه |
