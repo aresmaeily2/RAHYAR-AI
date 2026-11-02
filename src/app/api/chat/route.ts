@@ -228,12 +228,15 @@ export async function POST(req: NextRequest) {
           .filter((f) => typeof f === 'string' && f.trim().length > 1)
           .slice(0, 3)
           .map((f) => f.trim().slice(0, 60))
-        // F-AG3: گارد پس از اجرا — ادعای مدل بدون اکشن را با فالبک قطعی جبران می‌کند
+      } else {
+        // مدل JSON برننگرداند (در S3 زنده دیدیم) — گارد پایین باز هم اثر واقعی را تضمین می‌کند
+        reply = raw.text.trim().slice(0, 4000) || replyFallback(lang)
+      }
+      // F-AG3: گارد پس از اجرا — خارج از if/else تا شاخهٔ بدون-JSON هم پوشش داده شود
+      {
         const guarded = await applyMissionGuard(message, reply, actions, user.id, idempotencyKey, lang)
         actions = guarded.actions
         reply = guarded.reply
-      } else {
-        reply = raw.text.trim().slice(0, 4000) || replyFallback(lang)
       }
     } catch (e) {
       const { GatewayDisabledError, GatewayQuotaError, quotaMessage } = await import('@/lib/ai/gateway')
