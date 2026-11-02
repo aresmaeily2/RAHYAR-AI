@@ -28,9 +28,11 @@ function hashPassword(password: string): string {
 let owner = await db.user.findUnique({ where: { username: USERNAME } })
 if (!owner) {
   owner = await db.user.create({
-    data: { username: USERNAME, displayName: DISPLAY_NAME, passwordHash: hashPassword(PASSWORD) },
+    // نقش OWNER از ابتدا — پیش‌تر پیش‌فرض USER می‌ماند و بخش مدیریت کاربران
+    // برای مالک قفل می‌شد (باگ واقعی کشف‌شده در ممیزی مأموریت نهایی)
+    data: { username: USERNAME, displayName: DISPLAY_NAME, passwordHash: hashPassword(PASSWORD), role: 'OWNER' },
   })
-  console.log('owner created')
+  console.log('owner created (role=OWNER)')
 } else {
   console.log('owner already exists — reusing')
 }
