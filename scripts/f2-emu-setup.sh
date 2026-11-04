@@ -30,8 +30,18 @@ mkdir -p "$T/bt/android-14" "$T/plat/android-34"
 cp "$SDK/platforms/android-34/android.jar" "$T/plat/android-34/android.jar"
 for t in aapt2 d8 zipalign apksigner; do cp "$SDK/build-tools/34.0.0/$t" "$T/bt/android-14/$t"; done
 cp -r "$SDK/build-tools/34.0.0/lib" "$T/bt/android-14/lib" 2>/dev/null || true
-[ -f "$T/ecj.jar" ] || curl -4 -sSLo "$T/ecj.jar" https://repo1.maven.org/maven2/org/eclipse/jdt/ecj/3.33.0/ecj-3.33.0.jar
-ls -la "$T/bt/android-14/aapt2" "$T/plat/android-34/android.jar" "$T/ecj.jar"
+cp -r "$SDK/build-tools/34.0.0/lib64" "$T/bt/android-14/lib64" 2>/dev/null || true
+# ECJ — با اعتبارسنجی حجم (نسخهٔ خراب 96 بایتی قبلاً رخ داده)
+if [ ! -s "$T/ecj.jar" ] || [ "$(stat -c%s "$T/ecj.jar" 2>/dev/null || echo 0)" -lt 1000000 ]; then
+  curl -4 -fsSLo "$T/ecj.jar" https://repo1.maven.org/maven2/org/eclipse/jdt/ecj/3.33.0/ecj-3.33.0.jar
+fi
+# androidx.webkit 1.11.0 (WebViewAssetLoader) — از Google Maven
+mkdir -p "$T/webkit"
+if [ ! -s "$T/webkit/webkit-classes.jar" ]; then
+  curl -4 -fsSLo /tmp/webkit.aar https://dl.google.com/dl/android/maven2/androidx/webkit/webkit/1.11.0/webkit-1.11.0.aar
+  (cd "$T/webkit" && unzip -qo -j /tmp/webkit.aar classes.jar && mv classes.jar webkit-classes.jar)
+fi
+ls -la "$T/bt/android-14/aapt2" "$T/plat/android-34/android.jar" "$T/ecj.jar" "$T/webkit/webkit-classes.jar"
 
 echo "== [$(date -u +%H:%M:%S)] step 4: emulator + system-image (biggest download) =="
 "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root=$SDK "emulator" "system-images;android-30;default;x86_64" 2>&1 | tail -2

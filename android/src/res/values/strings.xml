@@ -38,4 +38,9 @@
     <string name="retry">تلاش دوباره</string>
     <string name="logout">خروج</string>
     <string name="security_note">نشست شما با کلید سخت‌افزاری Android Keystore رمزنگاری و فقط در فضای خصوصی اپ ذخیره می‌شود.</string>
+    <!-- F2-VOICE: دستیار صوتی — اجازه/شفافیت -->
+    <string name="wake_channel">گوش دادن به «سلام رهیار»</string>
+    <string name="wake_title">رهیار — گوش دادن به «سلام رهیار»</string>
+    <string name="wake_body">شنیدن فعال است؛ هیچ صدایی ذخیره یا ارسال نمی‌شود. خاموش‌کردن: تنظیمات رهیار.</string>
+    <string name="wake_desc">کانال سرویس اختیاری بیدارباش صوتی رهیار</string>
 </resources>

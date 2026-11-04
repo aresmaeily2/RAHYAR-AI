@@ -3,15 +3,18 @@ package com.rahyarai.app;
 import android.webkit.JavascriptInterface;
 
 /**
- * پل JS ↔ بومی برای رابط کاربری محلی (appassets).
+ * پل JS ↔ بومی برای رابط محلی (appassets).
  *
  * امنیت:
  *  - فقط برای WebView ای ثبت می‌شود که فقط از مبدأ appassets.androidplatform.net
  *    بارگذاری می‌کند (قفل ناوبری در HomeActivity) — صفحات خارجی به آن راه ندارند.
  *  - همهٔ ورودی/خروجی رشتهٔ JSON است؛ منطق واقعی در RahyarCore (تست‌پذیر روی JVM).
  *  - هیچ API اندرویدی حساس، مسیر فایل یا توکنی از این پل در دسترس JS نیست.
- *  - دو «کنش میزبان» کنترل‌شده وجود دارد (اشتراک پشتیبان، ورود سرور اختیاری)
- *    که هر دو باRunnable از HomeActivity تزریق می‌شوند و کار دیگری نمی‌کنند.
+ *  - کنش‌های میزبان (اشتراک پشتیبان، ورود سرور اختیاری، مجوز میکروفون، سرویس Wake Word)
+ *    هر کدام فقط یک کار مشخص می‌کنند و با HostAction از HomeActivity تزریق می‌شوند.
+ *
+ * F2-VOICE: مسیرهای صوتی — تشخیص گفتار/TTS در VoiceHelper (سیستم‌عامل)،
+ * تحلیل فرمان در VoiceCommandParser (JVM-خالص). صدا هیچ‌گاه ذخیره یا ارسال نمی‌شود.
  */
 public final class RahyarBridge {
     private final RahyarCore core;
@@ -19,16 +22,28 @@ public final class RahyarBridge {
     private final HostAction shareBackupAction;
     /** کنش میزبان: بازکردن صفحهٔ اختیاری ورود به سرور (LoginActivity) */
     private final HostAction openServerLoginAction;
+    /** کنش میزبان: روشن/خاموش کردن سرویس اختیاری Wake Word */
+    private final HostAction wakeServiceAction;
 
     /** کنش کنترل‌شدهٔ میزبان — پیاده‌سازی توسط Activity؛ محدود به یک کار مشخص. */
     public interface HostAction {
         void run(String arg);
     }
 
-    public RahyarBridge(RahyarCore core, HostAction shareBackupAction, HostAction openServerLoginAction) {
+    public RahyarBridge(RahyarCore core,
+                        HostAction shareBackupAction,
+                        HostAction openServerLoginAction) {
+        this(core, shareBackupAction, openServerLoginAction, null);
+    }
+
+    public RahyarBridge(RahyarCore core,
+                        HostAction shareBackupAction,
+                        HostAction openServerLoginAction,
+                        HostAction wakeServiceAction) {
         this.core = core;
         this.shareBackupAction = shareBackupAction;
         this.openServerLoginAction = openServerLoginAction;
+        this.wakeServiceAction = wakeServiceAction;
     }
 
     // ─── دادهٔ محلی (منطق در RahyarCore) ───
@@ -77,5 +92,86 @@ public final class RahyarBridge {
     @JavascriptInterface
     public void openServerLogin() {
         if (openServerLoginAction != null) openServerLoginAction.run("");
+    }
+
+    // ─── F2-VOICE: مسیرهای صوتی ───
+
+    /** مجوز میکروفون: granted | denied | need_request */
+    @JavascriptInterface
+    public String voiceMicState() {
+        return voiceDelegate() == null ? "need_request" : voiceDelegate().micState();
+    }
+
+    /** درخواست مجوز میکروفون — دیالوگ سیستمی فقط با اقدام کاربر */
+    @JavascriptInterface
+    public void requestMicPermission() {
+        if (voiceDelegate() != null) voiceDelegate().requestMic();
+    }
+
+    /** آیا سرویس تشخیص گفتار روی دستگاه هست؟ true|false */
+    @JavascriptInterface
+    public String voiceAvailable() {
+        return voiceDelegate() == null ? "false" : voiceDelegate().recognitionAvailable() ? "true" : "false";
+    }
+
+    /** شروع شنود — lang به شکل fa-IR یا en-US */
+    @JavascriptInterface
+    public void voiceStart(String langBcp47) {
+        if (voiceDelegate() != null) voiceDelegate().startListening(langBcp47);
+    }
+
+    /** توقف شنود */
+    @JavascriptInterface
+    public void voiceStop() {
+        if (voiceDelegate() != null) voiceDelegate().stopListening();
+    }
+
+    /** خواندن پاسخ با TTS سیستم */
+    @JavascriptInterface
+    public void ttsSpeak(String text, String langBcp47) {
+        if (voiceDelegate() != null) voiceDelegate().speak(text == null ? "" : text, langBcp47);
+    }
+
+    /** قطع خواندن */
+    @JavascriptInterface
+    public void ttsStop() {
+        if (voiceDelegate() != null) voiceDelegate().stopSpeaking();
+    }
+
+    /** تحلیل فرمان صوتی → کنش JSON (منطق JVM-خالص در VoiceCommandParser) */
+    @JavascriptInterface
+    public String parseVoiceCommand(String text, String lang) {
+        return VoiceCommandParser.parse(text, lang).toString();
+    }
+
+    /** سرویس اختیاری Wake Word — on=true با اطلاع‌رسانی و اعلان ماندگار */
+    @JavascriptInterface
+    public void setWakeService(boolean on) {
+        if (wakeServiceAction != null) wakeServiceAction.run(on ? "on" : "off");
+    }
+
+    // ─── داخلی ───
+
+    /** منبع صوت — یا در HomeActivity ست شده یا غایب (حالت تست/بدون صوت) */
+    private VoiceDelegate voiceDelegate() {
+        return voiceDelegateRef;
+    }
+
+    private volatile VoiceDelegate voiceDelegateRef;
+
+    /** ثبت منبع صوت — از HomeActivity پس از ساخت WebView فراخوانی می‌شود */
+    public void attachVoiceDelegate(VoiceDelegate d) {
+        this.voiceDelegateRef = d;
+    }
+
+    /** قرارداد صوت — VoiceHelper این را پیاده می‌کند (جداکردن از WebView) */
+    public interface VoiceDelegate {
+        String micState();
+        void requestMic();
+        boolean recognitionAvailable();
+        void startListening(String langBcp47);
+        void stopListening();
+        void speak(String text, String langBcp47);
+        void stopSpeaking();
     }
 }

@@ -90,7 +90,7 @@ public class MainActivity extends Activity {
         });
 
         // ── پل بومی v2 — قابلیت‌های دستگاه برای محصول کامل وب ──
-        voice = new VoiceHelper(web);
+        voice = new VoiceHelper(web, this);
         RahyarNativeBridge bridge = new RahyarNativeBridge(
                 new RahyarNativeBridge.HostAction() { // شروع شنود
                     @Override public void run(String arg) { voice.startListening(arg); }

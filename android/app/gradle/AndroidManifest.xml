@@ -17,6 +17,22 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- لرزش اعلان یادآور -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- F2-VOICE: میکروفون — فقط برای تشخیص گفتار با رضایت صریح کاربر (دکمهٔ میکروفون).
+         صدا به سرویس گفتار سیستم می‌رود؛ هیچ‌گاه ذخیره یا ارسال نمی‌شود. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- F2-VOICE: سرویس پیش‌زمینهٔ اختیاری Wake Word (فقط با رضایت کاربر + اعلان ماندگار) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+
+    <!-- F2-VOICE: دید پکیج — سرویس‌های تشخیص گفتار و TTS سیستم (اندروید ۱۱+) -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
 
     <application
         android:label="@string/app_name"
@@ -56,6 +72,12 @@
         <receiver
             android:name=".ReminderReceiver"
             android:exported="false" />
+
+        <!-- F2-VOICE: سرویس اختیاری Wake Word — پیش‌زمینه با اعلان ماندگار شفاف -->
+        <service
+            android:name=".VoiceWakeService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
 
         <!-- باززمان‌بندی پس از بوت (از ذخیرهٔ محلی آخرین همگام‌سازی) -->
         <receiver

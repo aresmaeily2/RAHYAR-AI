@@ -22,15 +22,19 @@ fi
 AVD_DIR=$HOME/.android/avd/rahyar.avd
 rm -f "$AVD_DIR"/*.lock 2>/dev/null || true
 
-# F2-EMU: داده و کشِ از پیش ساخته‌شده (رفع محدودیت Disk-Space — لانچر v37 برای
-# تصاویر dynamic-partition اندازهٔ 6GB خودخوان می‌سازد؛ ما ext4 یک‌باره با mkfs.ext4
-# ساخته‌ایم و با -data تحویل می‌دهیم؛ بوت اول اندروید خودش skeleton را می‌سازد)
-if [ ! -f "$ROOT/artifacts/emu/userdata-qemu.img" ]; then
+# F2-EMU: دادهٔ از پیش ساخته‌شده — رفع محدودیت Disk-Space (لانچر v37 برای
+# تصاویر dynamic-partition اندازهٔ 6GB خودخوان می‌سازد و از disk.dataPartition.size
+# نمی‌پذیرد). ما ext4 1.2GB با mkfs.ext4 خودِ SDK می‌سازیم، داخل AVD dir می‌گذاریم
+# و config.ini را به آن نشان می‌دهیم؛ qcow2-همپوشانی روی همین فایل ساخته می‌شود.
+EMU_IMG=$ROOT/artifacts/emu/userdata-qemu.img
+if [ ! -s "$EMU_IMG" ]; then
   mkdir -p "$ROOT/artifacts/emu"
   "$SDK/emulator/bin64/mkfs.ext4" -F -q -O ^has_journal,^resize_inode -b 4096 -I 256 -L userdata \
-    "$ROOT/artifacts/emu/userdata-qemu.img" 1200M
-  "$SDK/emulator/bin64/mkfs.ext4" -F -q -O ^has_journal -b 4096 "$ROOT/artifacts/emu/cache.img" 64M
+    "$EMU_IMG" 1200M
 fi
+cp -f "$EMU_IMG" "$AVD_DIR/userdata-qemu.img"
+sed -i 's|^disk.dataPartition.path.*|disk.dataPartition.path = userdata-qemu.img|' "$AVD_DIR/config.ini"
+rm -f "$AVD_DIR"/*.qcow2 2>/dev/null || true   # بوت سرد هر بار — بازسازی همپوشانی
 
 "$ADB" start-server 2>/dev/null || true
 

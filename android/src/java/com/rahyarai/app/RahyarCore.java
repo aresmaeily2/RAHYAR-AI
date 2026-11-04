@@ -11,7 +11,7 @@ import org.json.JSONObject;
  */
 public final class RahyarCore {
     /** کلیدهای مجاز — توسعهٔ آینده فقط با بازبینی امنیتی */
-    public static final String[] ALLOWED_KEYS = {"profile", "tasks", "reminders"};
+    public static final String[] ALLOWED_KEYS = {"profile", "tasks", "reminders", "finance"};
     public static final int MAX_IMPORT_BYTES = 8 * 1024 * 1024;
 
     private final LocalStore store;

@@ -1,7 +1,10 @@
 package com.rahyarai.app;
 
+import android.Manifest;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
@@ -18,17 +21,23 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * صوت بومی — تشخیص گفتار اندروید (fa-IR/en-US) و خواندن پاسخ با TTS سیستم.
  *
  * قرارداد رویدادها (اندروید → وب، با تزریق به WebView):
- *   rahyar-voice-partial {text}   متن موقت
- *   rahyar-voice-final   {text}   نتیجهٔ قطعی
- *   rahyar-voice-error   {code}   no_match | busy | denied | unavailable | error
- *   rahyar-voice-end              پایان شنود
- *   rahyar-tts-done      {id}     پایان خواندن
+ *   rahyar-voice-partial {text}     متن موقت
+ *   rahyar-voice-final   {text}     نتیجهٔ قطعی
+ *   rahyar-voice-error   {code}     no_match | busy | denied | unavailable | error
+ *   rahyar-voice-end                پایان شنود
+ *   rahyar-voice-perm    {state}    granted | denied   (پس از دیالوگ مجوز)
+ *   rahyar-tts-done                 پایان خواندن
+ *
+ * حریم خصوصی (مأموریت — بند ۲/۱۲): شنود فقط با لمس دکمهٔ میکروفون آغاز می‌شود؛
+ * صدا مستقیماً به سرویس گفتار سیستم‌عامل می‌رود، هیچ‌گاه ذخیره یا به هیچ سروری
+ * ارسال نمی‌شود. شنود پس از پایان جمله یا لغو کاربر فوراً تمام می‌شود.
  *
  * یادداشت مجوز: SpeechRecognizer به RECORD_AUDIO نیاز ندارد — فرایند تشخیص
- * توسط سرویس گفتار سیستم انجام می‌شود (قرارداد پلتفرم)؛ صدا هیچ‌گاه به سرور
- * رهیار ارسال یا ذخیره نمی‌شود.
+ * توسط سرویس گفتار سیستم انجام می‌شود (قرارداد پلتفرم)؛ ما با این حال مجوز را
+ * صریح می‌گیریم تا سرویس‌هایی که باطن آن‌ها در همین فرایند است بدون خطا کار کنند
+ * و نمایش وضعیت مجوز در UI ممکن باشد.
  */
-public final class VoiceHelper {
+public final class VoiceHelper implements RahyarBridge.VoiceDelegate {
 
     /** JS رویداد — خالص و تست‌پذیر (خروجی باید evaluateJavascript-safe باشد) */
     static String eventJs(String name, String detailJson) {
@@ -53,18 +62,49 @@ public final class VoiceHelper {
     }
 
     private final WebView web;
+    private final Activity activity;
     private SpeechRecognizer recognizer;
     private TextToSpeech tts;
-    private boolean ttsReady = false;
+    private volatile boolean ttsReady = false;
     private final AtomicBoolean listening = new AtomicBoolean(false);
     private String lastLang = "fa-IR";
 
-    public VoiceHelper(WebView web) {
+    public VoiceHelper(WebView web, Activity activity) {
         this.web = web;
+        this.activity = activity;
+    }
+
+    // ── مجوز میکروفون (قرارداد VoiceDelegate) ──
+
+    @Override
+    public String micState() {
+        if (activity == null) return "granted";
+        int p = activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO);
+        return p == PackageManager.PERMISSION_GRANTED ? "granted"
+                : activity.shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO) ? "denied"
+                : "need_request";
+    }
+
+    @Override
+    public void requestMic() {
+        if (activity == null) return;
+        activity.requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, 4701);
+    }
+
+    /** پاسخ دیالوگ مجوز — از onRequestPermissions نتیجهٔ اکتیویتی */
+    public void onPermissionResult(boolean granted) {
+        web.evaluateJavascript(eventJs("rahyar-voice-perm",
+                "{\"state\":\"" + (granted ? "granted" : "denied") + "\"}"), null);
+    }
+
+    @Override
+    public boolean recognitionAvailable() {
+        return SpeechRecognizer.isRecognitionAvailable(web.getContext());
     }
 
     // ── تشخیص گفتار ──
 
+    @Override
     public void startListening(String langBcp47) {
         if (listening.get()) stopListening();
         if (!SpeechRecognizer.isRecognitionAvailable(web.getContext())) {
@@ -100,9 +140,6 @@ public final class VoiceHelper {
                         break;
                     case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
                         emitError("denied");
-                        break;
-                    case SpeechRecognizer.ERROR_CLIENT:
-                        emitError("error");
                         break;
                     default:
                         emitError("error");
@@ -141,10 +178,12 @@ public final class VoiceHelper {
         }
     }
 
+    @Override
     public void stopListening() {
         if (recognizer != null) {
             try { recognizer.stopListening(); } catch (Exception ignored) {}
         }
+        listening.set(false);
     }
 
     private void destroyRecognizer() {
@@ -180,7 +219,8 @@ public final class VoiceHelper {
         });
     }
 
-    /** خواندن متن — شناسهٔ گفته برای رویداد پایان */
+    /** خواندن متن — پایان با رویداد rahyar-tts-done */
+    @Override
     public void speak(String text, String langBcp47) {
         if (tts == null) initTts();
         if (tts == null || !ttsReady) {
@@ -209,6 +249,7 @@ public final class VoiceHelper {
         }
     }
 
+    @Override
     public void stopSpeaking() {
         if (tts != null) {
             try { tts.stop(); } catch (Exception ignored) {}

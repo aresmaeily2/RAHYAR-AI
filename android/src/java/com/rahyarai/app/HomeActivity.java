@@ -3,6 +3,7 @@ package com.rahyarai.app;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.graphics.Color;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
@@ -33,11 +34,14 @@ public class HomeActivity extends Activity {
     /** مبدأ امن دارایی‌های محلی — ثابت استاندارد AndroidX WebKit */
     public static final String APPASSETS_ORIGIN = "https://appassets.androidplatform.net";
     public static final String START_URL = APPASSETS_ORIGIN + "/assets/index.html";
+    /** کد درخواست مجوز میکروفون — مسیر صوتی */
+    static final int MIC_PERMISSION_REQUEST = 4701;
 
     private WebView web;
     private LocalStore store;
     private RahyarBridge bridge;
     private SplashView splash;
+    private VoiceHelper voice;
 
     @SuppressLint("SetJavaScriptEnabled") // رابط محلی ما به JS نیاز دارد؛ مبدأ بسته است
     @Override
@@ -79,7 +83,23 @@ public class HomeActivity extends Activity {
                             }
                         });
                     }
+                },
+                /* F2-VOICE: سرویس اختیاری Wake Word — فقط با رضایت صریح از تنظیمات */
+                new RahyarBridge.HostAction() {
+                    @Override public void run(String arg) {
+                        runOnUiThread(new Runnable() {
+                            @Override public void run() {
+                                Intent i = new Intent(HomeActivity.this, VoiceWakeService.class);
+                                if ("on".equals(arg)) startService(i);
+                                else stopService(i);
+                            }
+                        });
+                    }
                 });
+
+        // F2-VOICE: دستیار صوتی — فقط با لمس کاربر؛ صدا هرگز ذخیره/ارسال نمی‌شود
+        voice = new VoiceHelper(web, this);
+        bridge.attachVoiceDelegate(voice);
 
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
@@ -138,7 +158,16 @@ public class HomeActivity extends Activity {
     }
 
     @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == MIC_PERMISSION_REQUEST && voice != null && grantResults.length > 0) {
+            voice.onPermissionResult(grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED);
+        }
+    }
+
+    @Override
     protected void onDestroy() {
+        if (voice != null) voice.destroy();
         if (web != null) {
             web.loadUrl("about:blank");
             web.clearHistory();

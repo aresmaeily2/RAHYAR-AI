@@ -227,3 +227,332 @@
     if (typeof window.PAGE_INIT === 'function') window.PAGE_INIT();
   }
 })();
+
+/* ═══ F2-VOICE: دستیار صوتی — میکروفون/تشخیص/TTS/فرمان‌های واقعی ═══
+ * قواعد حریم خصوصی: شنود فقط با لمس؛ صدا به سرویس گفتار سیستم می‌رود؛
+ * هیچ ذخیره یا ارسال صدا انجام نمی‌شود؛ متن فرمان فقط در حافظه پردازش می‌شود. */
+(function () {
+  'use strict';
+
+  var R = window.RH;
+  if (!R) return;
+  var native = R.native;
+  if (!native) return;
+
+  var V = {
+    listening: false,
+    busyTts: false,
+    wakeOn: false,
+    bcp: function () { return R.lang() === 'en' ? 'en-US' : 'fa-IR'; }
+  };
+
+  var I18NV = {
+    fa: {
+      mic: 'میکروفون', micStart: 'گوش بده', micStop: 'قطع', listening: 'دارم گوش می‌دهم…',
+      transcript: 'متن گفتار', reply: 'پاسخ رهیار',
+      errUnavailable: 'سرویس تشخیص گفتار روی این دستگاه نصب نیست — از نسخهٔ وب یا دستگاه با سرویس گوگل استفاده کن.',
+      errNoMatch: 'چیزی شنیده نشد — دوباره تلاش کن.', errBusy: 'تشخیص گفتار مشغول است.',
+      errDenied: 'مجوز میکروفون داده نشد — از تنظیمات می‌توانی فعال کنی.', errGeneric: 'خطای تشخیص گفتار.',
+      needMic: 'برای شروع، اجازهٔ میکروفون لازم است.',
+      vTaskAdded: 'وظیفه اضافه شد:', vReminderAdded: 'یادآور ثبت شد:', vDeleted: 'حذف شد:',
+      vIncome: 'درآمد ثبت شد:', vExpense: 'هزینه ثبت شد:', vAmount: 'مبلغ',
+      vReport: 'گزارش مالی:', vIncomeSum: 'جمع درآمد', vExpenseSum: 'جمع هزینه',
+      vPlan: 'برنامه امروز:', vPlanEmpty: 'برای امروز کار بازی ثبت نشده.',
+      vDate: 'امروز', vUnknown: 'این فرمان را متوجه نشدم. بگو «چیکار می‌تونی».',
+      vHelp: 'می‌توانم وظیفه اضافه یا حذف کنم، یادآور بسازم، هزینه و درآمد ثبت کنم، گزارش مالی بدهم، برنامه امروز را بگویم و تاریخ امروز را بگویم.',
+      vCancel: 'قطع شد.', confirmDelete: 'حذف شود؟', yes: 'بله', no: 'نه',
+      voiceSec: 'دستیار صوتی', voiceLang: 'زبان صوت', wake: 'فعال‌سازی «سلام رهیار» (Wake Word)',
+      wakeDesc: 'با روشن‌کردن، سرویس پیش‌زمینه با اعلان ماندگار شفاف به عبارت «سلام رهیار» گوش می‌دهد و اپ را باز می‌کند. هیچ صدایی ذخیره یا ارسال نمی‌شود و هر زمان می‌توانی خاموش کنی.',
+      privacy: 'صدا فقط با لمس میکروفون و فقط به سرویس گفتار سیستم‌عامل می‌رود؛ ذخیره یا ارسال پنهان صدا وجود ندارد.',
+      wakeUnavailable: 'سرویس تشخیص گفتار روی این دستگاه نیست؛ Wake Word عملیاتی نمی‌شود.',
+      vDeletedConfirm: 'حذف انجام شد.'
+    },
+    en: {
+      mic: 'Microphone', micStart: 'Listen', micStop: 'Stop', listening: 'Listening…',
+      transcript: 'Transcript', reply: 'Rahyar reply',
+      errUnavailable: 'No speech recognition service on this device — use the web edition or a device with a speech service.',
+      errNoMatch: 'Nothing heard — try again.', errBusy: 'Recognizer busy.',
+      errDenied: 'Microphone permission denied — enable it from settings.', errGeneric: 'Speech recognition error.',
+      needMic: 'Microphone permission is required.',
+      vTaskAdded: 'Task added:', vReminderAdded: 'Reminder set:', vDeleted: 'Deleted:',
+      vIncome: 'Income recorded:', vExpense: 'Expense recorded:', vAmount: 'Amount',
+      vReport: 'Finance report:', vIncomeSum: 'Total income', vExpenseSum: 'Total expense',
+      vPlan: 'Today:', vPlanEmpty: 'No open work for today.',
+      vDate: 'Today is', vUnknown: 'I did not catch that. Say "what can you do".',
+      vHelp: 'I can add or delete tasks, set reminders, record income and expenses, give a finance report, read today\'s plan and today\'s date.',
+      vCancel: 'Stopped.', confirmDelete: 'Delete?', yes: 'Yes', no: 'No',
+      voiceSec: 'Voice assistant', voiceLang: 'Voice language', wake: 'Enable "Hey Rahyar" (Wake Word)',
+      wakeDesc: 'When enabled, a foreground service with a persistent, transparent notification listens for "Hey Rahyar" and opens the app. No audio is stored or sent; turn off anytime.',
+      privacy: 'Audio goes to the OS speech service only when you tap the mic; nothing is stored or silently sent.',
+      wakeUnavailable: 'No speech service on this device; Wake Word cannot operate.',
+      vDeletedConfirm: 'Deleted.'
+    }
+  };
+  function tv(k) { var d = I18NV[R.lang()] || I18NV.fa; return d[k] !== undefined ? d[k] : (I18NV.fa[k] || k); }
+
+  // ─── UI: دکمهٔ شناور + پنل گفت‌وگو (تزریق در همهٔ صفحات) ───
+  function injectUI() {
+    if (document.getElementById('voiceFab')) return;
+    var fab = document.createElement('button');
+    fab.id = 'voiceFab';
+    fab.setAttribute('aria-label', tv('mic'));
+    fab.innerHTML = '<svg viewBox="0 0 24 24" width="26" height="26"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M12 17.5V21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    fab.style.cssText = 'position:fixed;bottom:76px;inset-inline-end:14px;width:54px;height:54px;border-radius:50%;'
+      + 'border:none;background:#4f6ef7;color:#fff;display:flex;align-items:center;justify-content:center;'
+      + 'cursor:pointer;z-index:60;box-shadow:0 6px 18px rgba(0,0,0,.35);';
+    var panel = document.createElement('div');
+    panel.id = 'voicePanel';
+    panel.style.cssText = 'position:fixed;bottom:140px;inset-inline-end:14px;width:min(300px,86vw);'
+      + 'background:var(--card,#101a3a);border:1px solid #2a3c78;border-radius:14px;padding:12px;'
+      + 'display:none;z-index:60;color:inherit;font-size:13px;line-height:1.9;box-shadow:0 10px 30px rgba(0,0,0,.4);';
+    panel.innerHTML = '<div id="vStatus" style="font-weight:700"></div>'
+      + '<div id="vPartial" style="opacity:.8"></div>'
+      + '<div id="vFinal" style="margin-top:6px"></div>'
+      + '<div id="vReply" style="margin-top:6px;color:#8ab4ff"></div>';
+    document.body.appendChild(fab);
+    document.body.appendChild(panel);
+    fab.addEventListener('click', function () {
+      var st = native.voiceMicState ? native.voiceMicState() : 'granted';
+      if (st === 'need_request') {
+        setPanel(tv('needMic'), '', '');
+        native.requestMicPermission();
+        return; // پس از رویداد rahyar-voice-perm ادامه می‌دهیم
+      }
+      if (st === 'denied') { setPanel(tv('errDenied'), '', ''); return; }
+      toggleListen();
+    });
+  }
+
+  function setPanel(status, partial, reply) {
+    var panel = document.getElementById('voicePanel');
+    if (!panel) return;
+    panel.style.display = 'block';
+    document.getElementById('vStatus').textContent = status;
+    document.getElementById('vPartial').textContent = partial || '';
+    document.getElementById('vReply').textContent = reply || '';
+  }
+
+  function hidePanelSoon() {
+    setTimeout(function () {
+      var p = document.getElementById('voicePanel');
+      if (p && !V.listening) p.style.display = 'none';
+    }, 6000);
+  }
+
+  function toggleListen() {
+    if (V.listening) {
+      native.voiceStop();
+      V.listening = false;
+      fabIdle();
+      return;
+    }
+    if (native.voiceAvailable && native.voiceAvailable() !== 'true') {
+      setPanel(tv('errUnavailable'), '', '');
+      fabIdle();
+      hidePanelSoon();
+      return;
+    }
+    V.listening = true;
+    fabActive();
+    setPanel(tv('listening'), '', '');
+    native.voiceStart(V.bcp());
+  }
+
+  var fab = null;
+  function fabActive() {
+    fab = fab || document.getElementById('voiceFab');
+    if (fab) { fab.style.background = '#e5484d'; fab.style.boxShadow = '0 0 0 8px rgba(229,72,77,.25)'; }
+  }
+  function fabIdle() {
+    fab = fab || document.getElementById('voiceFab');
+    if (fab) { fab.style.background = '#4f6ef7'; fab.style.boxShadow = '0 6px 18px rgba(0,0,0,.35)'; }
+  }
+
+  function speak(text) {
+    if (!text) return;
+    V.busyTts = true;
+    setPanel(tv('reply'), '', text);
+    try { native.ttsSpeak(text, V.bcp()); } catch (e) { V.busyTts = false; }
+  }
+
+  // ─── اجرای واقعی کنش‌ها روی ماژول‌ها ───
+  function tasksArr() { var d = R.readDoc(R.KEYS.tasks, null); return Array.isArray(d) ? d : (d && Array.isArray(d.items) ? d.items : []); }
+  function saveTasks(arr) {
+    var cur = R.readDoc(R.KEYS.tasks, null);
+    if (cur && Array.isArray(cur.items)) cur.items = arr; else arr2doc('tasks', arr);
+    if (!(cur && Array.isArray(cur.items))) return;
+    R.putDoc(R.KEYS.tasks, cur);
+  }
+  function arr2doc(key, arr) {
+    // ساختار سند را از موجودی یاد بگیر؛ در نبود، آرایهٔ خام
+    var cur = R.readDoc(key, null);
+    if (cur && typeof cur === 'object' && !Array.isArray(cur) && Array.isArray(cur.items)) {
+      cur.items = arr; R.putDoc(key, cur);
+    } else {
+      R.putDoc(key, arr);
+    }
+  }
+
+  function runIntent(intent) {
+    var a = intent.action;
+    var reply = '';
+    if (a === 'add_task' && intent.title) {
+      var arr = tasksArr();
+      arr.push({ id: R.uid(), title: intent.title, note: '', priority: intent.priority || 'med', done: false, createdAt: new Date().toISOString() });
+      arr2doc(R.KEYS.tasks, arr);
+      reply = tv('vTaskAdded') + ' ' + intent.title;
+    } else if (a === 'delete_task') {
+      if (!intent.confirm) { reply = tv('confirmDelete'); speak(reply); return; }
+      askConfirm(tv('confirmDelete') + ' «' + (intent.title || '') + '»', function (yes) {
+        if (!yes) return;
+        var arr = tasksArr().filter(function (x) {
+          return !(intent.title && x.title && x.title.indexOf(intent.title) !== -1);
+        });
+        arr2doc(R.KEYS.tasks, arr);
+        var r = tv('vDeletedConfirm');
+        setPanel('', '', r); speak(r);
+      });
+      return;
+    } else if (a === 'add_reminder' && intent.title) {
+      var rem = R.readDoc(R.KEYS.reminders, null);
+      var rarr = Array.isArray(rem) ? rem : (rem && Array.isArray(rem.items) ? rem.items : []);
+      rarr.push({ id: R.uid(), title: intent.title, at: intent.timeHint || '', repeat: 'none', createdAt: new Date().toISOString() });
+      arr2doc(R.KEYS.reminders, rarr);
+      reply = tv('vReminderAdded') + ' ' + intent.title;
+    } else if ((a === 'add_income' || a === 'add_expense') && intent.amount) {
+      var fin = R.readDoc('finance', { items: [] });
+      var farr = Array.isArray(fin) ? fin : (fin && Array.isArray(fin.items) ? fin.items : []);
+      var host = (fin && !Array.isArray(fin) && fin.items) ? fin : { items: [] };
+      host.items.push({ id: R.uid(), kind: a === 'add_income' ? 'income' : 'expense', amount: intent.amount, title: intent.title || '', ts: new Date().toISOString() });
+      R.putDoc('finance', host);
+      reply = (a === 'add_income' ? tv('vIncome') : tv('vExpense')) + ' ' + intent.amount + (intent.title ? ' — ' + intent.title : '');
+    } else if (a === 'finance_report') {
+      var fin2 = R.readDoc('finance', { items: [] });
+      var items2 = Array.isArray(fin2) ? fin2 : (fin2 && fin2.items ? fin2.items : []);
+      var inc = 0, exp = 0;
+      for (var i = 0; i < items2.length; i++) {
+        var amt = Number(items2[i].amount) || 0;
+        if (items2[i].kind === 'income') inc += amt; else exp += amt;
+      }
+      reply = tv('vReport') + ' ' + tv('vIncomeSum') + ': ' + inc + ' — ' + tv('vExpenseSum') + ': ' + exp;
+    } else if (a === 'plan_query') {
+      var open = tasksArr().filter(function (x) { return !x.done; });
+      reply = open.length ? tv('vPlan') + ' ' + open.map(function (x) { return x.title; }).join('، ') : tv('vPlanEmpty');
+    } else if (a === 'date_query') {
+      var now = new Date();
+      var fa = R.lang() !== 'en';
+      try {
+        var j = new Intl.DateTimeFormat((fa ? 'fa-IR' : 'en') + '-u-ca-persian', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(now);
+        var g = new Intl.DateTimeFormat(fa ? 'fa-IR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).format(now);
+        reply = tv('vDate') + (fa ? '، ' : ': ') + j + (fa ? ' (میلادی: ' + g + ')' : ' (Gregorian: ' + g + ')');
+      } catch (e) { reply = tv('vDate') + ' ' + now.toLocaleDateString(fa ? 'fa-IR' : 'en-GB'); }
+    } else if (a === 'help') {
+      reply = tv('vHelp');
+    } else if (a === 'cancel') {
+      reply = tv('vCancel');
+    } else {
+      reply = tv('vUnknown');
+    }
+    setPanel(R.esc(intent.raw || ''), '', R.esc(reply));
+    var panel = document.getElementById('voicePanel');
+    if (panel) document.getElementById('vFinal').textContent = intent.raw || '';
+    speak(reply);
+    hidePanelSoon();
+  }
+
+  function askConfirm(text, cb) {
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:100;';
+    var box = document.createElement('div');
+    box.style.cssText = 'background:var(--card,#101a3a);border:1px solid #2a3c78;border-radius:14px;padding:18px;max-width:320px;color:inherit;font-size:14px;line-height:2;';
+    var yes = document.createElement('button'), no = document.createElement('button');
+    yes.textContent = tv('yes'); no.textContent = tv('no');
+    [yes, no].forEach(function (b, i) {
+      b.style.cssText = 'margin-inline-start:8px;padding:8px 16px;border-radius:10px;border:1px solid #2a3c78;cursor:pointer;font-size:13px;'
+        + (i === 0 ? 'background:#e5484d;color:#fff;' : 'background:transparent;color:inherit;');
+    });
+    box.textContent = text;
+    box.appendChild(document.createElement('br'));
+    box.appendChild(no); box.appendChild(yes);
+    wrap.appendChild(box); document.body.appendChild(wrap);
+    yes.addEventListener('click', function () { document.body.removeChild(wrap); cb(true); });
+    no.addEventListener('click', function () { document.body.removeChild(wrap); cb(false); });
+  }
+
+  // ─── رویدادهای بومی ───
+  window.addEventListener('rahyar-voice-partial', function (e) {
+    setPanel(tv('listening'), (e.detail && e.detail.text) || '', '');
+  });
+  window.addEventListener('rahyar-voice-final', function (e) {
+    var text = (e.detail && e.detail.text) || '';
+    setPanel(text, '', '');
+    try {
+      var intent = JSON.parse(native.parseVoiceCommand(text, R.lang()));
+      intent.raw = text;
+      runIntent(intent);
+    } catch (err) {
+      speak(tv('vUnknown'));
+    }
+  });
+  window.addEventListener('rahyar-voice-error', function (e) {
+    var code = (e.detail && e.detail.code) || 'error';
+    var map = { no_match: 'errNoMatch', busy: 'errBusy', denied: 'errDenied', unavailable: 'errUnavailable' };
+    setPanel(tv(map[code] || 'errGeneric'), '', '');
+    V.listening = false; fabIdle(); hidePanelSoon();
+  });
+  window.addEventListener('rahyar-voice-end', function () {
+    V.listening = false; fabIdle();
+  });
+  window.addEventListener('rahyar-voice-perm', function (e) {
+    var st = (e.detail && e.detail.state) || '';
+    if (st === 'granted') { toggleListen(); }
+    else { setPanel(tv('errDenied'), '', ''); }
+  });
+  window.addEventListener('rahyar-tts-done', function () {
+    V.busyTts = false;
+  });
+
+  // ─── بخش صوت در تنظیمات ───
+  function injectSettings() {
+    if (document.body.getAttribute('data-page') !== 'settings') return;
+    if (document.getElementById('voiceSection')) return;
+    var sec = document.createElement('section');
+    sec.id = 'voiceSection';
+    sec.className = 'card';
+    var wake = R.profile().wakeWord === true;
+    sec.innerHTML = '<h2>' + tv('voiceSec') + '</h2>'
+      + '<label style="display:flex;align-items:center;gap:8px;margin:8px 0">'
+      + '<span>' + tv('voiceLang') + '</span>'
+      + '<select id="vLang" style="background:inherit;color:inherit;border:1px solid #2a3c78;border-radius:8px;padding:4px 8px">'
+      + '<option value="fa"' + (R.lang() === 'fa' ? ' selected' : '') + '>فارسی</option>'
+      + '<option value="en"' + (R.lang() === 'en' ? ' selected' : '') + '>English</option>'
+      + '</select></label>'
+      + '<label style="display:flex;align-items:center;gap:8px;margin:8px 0">'
+      + '<input type="checkbox" id="vWake"' + (wake ? ' checked' : '') + '><span>' + tv('wake') + '</span></label>'
+      + '<p style="opacity:.8;font-size:12px">' + tv('wakeDesc') + '</p>'
+      + '<p style="opacity:.6;font-size:11px">' + tv('privacy') + '</p>'
+      + '<div id="vWakeState" style="font-size:12px;opacity:.8"></div>';
+    var main = document.querySelector('main');
+    if (main) main.appendChild(sec); else document.body.appendChild(sec);
+    document.getElementById('vLang').addEventListener('change', function (e2) {
+      R.saveProfile({ voiceLang: e2.target.value });
+    });
+    document.getElementById('vWake').addEventListener('change', function (e3) {
+      var on = e3.target.checked;
+      R.saveProfile({ wakeWord: on });
+      try { native.setWakeService(on); } catch (e4) { /* بدون پل — بی‌اثر */ }
+      if (on && native.voiceAvailable && native.voiceAvailable() !== 'true') {
+        document.getElementById('vWakeState').textContent = tv('wakeUnavailable');
+      } else {
+        document.getElementById('vWakeState').textContent = on ? 'ON' : 'OFF';
+      }
+    });
+  }
+
+  function boot() {
+    injectUI();
+    injectSettings();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
