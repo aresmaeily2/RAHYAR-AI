@@ -39,6 +39,8 @@ const PUBLIC_PREFIXES = [
   '/robots.txt',
   '/icon.svg',
   '/fonts/',
+  '/api/android/',     // F2-EMU: پخش زندهٔ شبیه‌ساز برای پنل مالک
+  '/emulator',         // F2-EMU: صفحهٔ پخش زندهٔ شبیه‌ساز
   '/ambient/',         // تصاویر صحنه محیطی — باید روی صفحه ورود هم دیده باشند
   '/appearance-boot.js', // بوت ظاهر پیش از paint — بدون آن تم اولیه اعمال نمی‌شود
 ]
