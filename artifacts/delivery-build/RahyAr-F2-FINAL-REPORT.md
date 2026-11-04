@@ -1,5 +1,5 @@
 # گزارش نهایی F2 — ممیزی قابلیت‌ها + دستیار صوتی + شبیه‌ساز در پنل مالک
-تاریخ: 2026-11-04 — Commit سرور: `91b043056fd7` — APK: v2.1.0-voice (vc22)
+تاریخ: 2026-11-04 — Commit سرور: `dac19d09d668` — APK: v2.1.0-voice (vc22)
 
 ## بخش اول — تکمیل‌شده و اثبات‌شده (با شواهد)
 
@@ -38,7 +38,7 @@
 - `Rahyar-Android-v2.1.0-release.apk` — 136,818 bytes — `00d9748a12f0743722df77782e5c9d7da81a85a104a59a644d4f92afd5565800`
 - `RahyAr_F2_Source.zip` — 2,533,368 bytes — `6afe52e99c8a71816c5be031f838478ce437ec1bb1dc9f6419e44e6f756a4cc9`
 - `RahyAr_F2_COMPLETE_SOURCE.txt` — 4,090,123 bytes — `0a5e49f6f45b52a2701d4bf053e574026c42b667052ba5537e765633c691c86f`
-- `RahyAr-F2-Test-Evidence.zip` — 8,223 bytes — `ae3391b1e134835eb5f5caad9711db6be983d4e807619ef963700da210e69cdb`
+- `RahyAr-F2-Test-Evidence.zip` — 428,240 bytes — `7fc1e817b613c634447da1ef92c71c18786314b0e2ec90f57b33143e4581f689`
 
 ## لینک‌های دانلود (نشست مستقل، SHA-256 تطبیق شد)
 - در `delivery/upload-links.txt` داخل ZIP شواهد + انتهای پیام نهایی.
