@@ -104,11 +104,10 @@ echo "== 5) align =="
 
 echo "== 6) sign debug =="
 DKS="$OUT/debug.keystore"
-if [ ! -f "$DKS" ]; then
-  keytool -genkeypair -keystore "$DKS" -alias androiddebugkey -keyalg RSA -keysize 2048 \
-    -validity 10000 -storepass ${RAHYAR_KS_STOREPASS:?RAHYAR_KS_STOREPASS is required (fail-closed)} -keypass ${RAHYAR_KS_STOREPASS:?RAHYAR_KS_STOREPASS is required (fail-closed)} \
-    -dname "CN=Android Debug,O=Android,C=US" >/dev/null 2>&1
-fi
+rm -f "$DKS"  # هر بار تازه — رمز در env همین اجراست (fail-closed)
+keytool -genkeypair -keystore "$DKS" -alias androiddebugkey -keyalg RSA -keysize 2048 \
+  -validity 10000 -storepass ${RAHYAR_KS_STOREPASS:?RAHYAR_KS_STOREPASS is required (fail-closed)} -keypass ${RAHYAR_KS_STOREPASS:?RAHYAR_KS_STOREPASS is required (fail-closed)} \
+  -dname "CN=Android Debug,O=Android,C=US" >/dev/null 2>&1
 "$BT/apksigner" sign --ks "$DKS" --ks-pass pass:${RAHYAR_KS_STOREPASS?RAHYAR_KS_STOREPASS-required} --key-pass pass:${RAHYAR_KS_KEYPASS?RAHYAR_KS_KEYPASS-required} \
   --out "$OUT/Rahyar-Android-v${VN}-debug.apk" "$OUT/aligned.apk"
 
