@@ -1,2 +1,2 @@
-ce47917f27ec0bcc41642f3f8be697c2a24aac3a88d608a7018c228b76075b23  Rahyar-Android-v2.1.0-debug.apk
-d52b43d67343e5cdecbe29092776a2fd7b121d75f39cb76b7a4ca5e1879ad659  Rahyar-Android-v2.1.0-release.apk
+2651d208083f1f5b4624be615ac0217e4dfe6e32fd95565e73fae65843a156fc  Rahyar-Android-v2.1.0-debug.apk
+00d9748a12f0743722df77782e5c9d7da81a85a104a59a644d4f92afd5565800  Rahyar-Android-v2.1.0-release.apk
