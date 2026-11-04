@@ -1,0 +1,337 @@
+== boot wrapper started Wed Nov  4 11:52:02 UTC 2026 ==
+qemu relaunched PID 1888 at 11:52:04
+== attempt 1: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 70:  1888 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu off -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -qemu -tb-size 67108864 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 11
+== killing leftovers, retrying ==
+qemu relaunched PID 2856 at 11:55:01
+== attempt 2: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 70:  2856 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu off -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -qemu -tb-size 67108864 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 11
+== killing leftovers, retrying ==
+qemu relaunched PID 3065 at 11:57:54
+== attempt 3: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 70:  3065 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu off -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -qemu -tb-size 67108864 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 10
+== killing leftovers, retrying ==
+qemu relaunched PID 3234 at 12:00:43
+== attempt 4: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 70:  3234 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu off -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -qemu -tb-size 67108864 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 10
+== killing leftovers, retrying ==
+qemu relaunched PID 3452 at 12:03:24
+== attempt 5: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 70:  3452 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu off -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -qemu -tb-size 67108864 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 9
+== killing leftovers, retrying ==
+qemu relaunched PID 3612 at 12:06:00
+== attempt 6: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+== boot wrapper started Wed Nov  4 12:08:07 UTC 2026 ==
+qemu relaunched PID 3833 at 12:08:09
+== attempt 1: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 70:  3833 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu swiftshader_indirect -memory 1024 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 9
+== killing leftovers, retrying ==
+qemu relaunched PID 3999 at 12:10:44
+== attempt 2: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 70:  3999 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu swiftshader_indirect -memory 1024 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 8
+== killing leftovers, retrying ==
+qemu relaunched PID 4157 at 12:13:07
+== attempt 3: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 70:  4157 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu swiftshader_indirect -memory 1024 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 9
+== killing leftovers, retrying ==
+qemu relaunched PID 4407 at 12:15:42
+== attempt 4: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 70:  4407 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu swiftshader_indirect -memory 1024 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 9
+== killing leftovers, retrying ==
+qemu relaunched PID 4668 at 12:18:19
+== attempt 5: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+tr: write error: Broken pipe
+== boot wrapper started Wed Nov  4 12:20:16 UTC 2026 ==
+qemu relaunched PID 4967 at 12:20:18
+== attempt 1: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74:  4967 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu swiftshader_indirect -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 9
+== killing leftovers, retrying ==
+qemu relaunched PID 5272 at 12:22:56
+== attempt 2: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74:  5272 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu swiftshader_indirect -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 9
+== killing leftovers, retrying ==
+qemu relaunched PID 5572 at 12:25:33
+== attempt 3: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74:  5572 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu swiftshader_indirect -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 8
+== killing leftovers, retrying ==
+qemu relaunched PID 5929 at 12:28:02
+== attempt 4: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74:  5929 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu swiftshader_indirect -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 6
+== killing leftovers, retrying ==
+qemu relaunched PID 6185 at 12:30:36
+== attempt 5: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74:  6185 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu swiftshader_indirect -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 4
+== killing leftovers, retrying ==
+qemu relaunched PID 6431 at 12:32:40
+== attempt 6: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74:  6431 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu swiftshader_indirect -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 4
+== killing leftovers, retrying ==
+BOOT_TIMEOUT_ALL_ATTEMPTS
+== boot wrapper started Wed Nov  4 12:39:54 UTC 2026 ==
+qemu relaunched PID 6877 at 12:39:56
+== attempt 1: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74:  6877 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu swiftshader_indirect -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 2
+== killing leftovers, retrying ==
+qemu relaunched PID 7010 at 12:41:31
+== attempt 2: waiting for device (10 min) ==
+== boot wrapper started Wed Nov  4 12:47:51 UTC 2026 ==
+qemu relaunched PID 7500 at 12:47:53
+== attempt 1: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74:  7500 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu swiftshader_indirect -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 10
+== killing leftovers, retrying ==
+qemu relaunched PID 7820 at 12:50:35
+== attempt 2: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 78: /proc/7820/oom_score_adj: Permission denied
+scripts/f2-emu-boot.sh: line 74:  7820 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu swiftshader_indirect -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 10
+== killing leftovers, retrying ==
+qemu relaunched PID 8200 at 12:53:17
+== attempt 3: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74:  8200 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu swiftshader_indirect -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 10
+== killing leftovers, retrying ==
+qemu relaunched PID 8567 at 12:55:59
+== attempt 4: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74:  8567 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu swiftshader_indirect -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 10
+== killing leftovers, retrying ==
+qemu relaunched PID 8904 at 12:58:41
+== attempt 5: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74:  8904 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu swiftshader_indirect -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 10
+== killing leftovers, retrying ==
+qemu relaunched PID 9296 at 13:01:31
+== attempt 6: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74:  9296 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu swiftshader_indirect -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 10
+== killing leftovers, retrying ==
+BOOT_TIMEOUT_ALL_ATTEMPTS
+== boot wrapper started Wed Nov  4 13:06:58 UTC 2026 ==
+qemu relaunched PID 9764 at 13:07:00
+== attempt 1: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74:  9764 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu off -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 11
+== killing leftovers, retrying ==
+qemu relaunched PID 10101 at 13:09:59
+== attempt 2: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74: 10101 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu off -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 11
+== killing leftovers, retrying ==
+qemu relaunched PID 10451 at 13:13:01
+== attempt 3: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74: 10451 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu off -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 11
+== killing leftovers, retrying ==
+qemu relaunched PID 10797 at 13:16:05
+== attempt 4: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74: 10797 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu off -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 11
+== killing leftovers, retrying ==
+qemu relaunched PID 11133 at 13:19:05
+== attempt 5: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74: 11133 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu off -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 11
+== killing leftovers, retrying ==
+qemu relaunched PID 11532 at 13:22:09
+== attempt 6: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74: 11532 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu off -memory 768 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 11
+== killing leftovers, retrying ==
+BOOT_TIMEOUT_ALL_ATTEMPTS
+== boot wrapper started Wed Nov  4 13:28:19 UTC 2026 ==
+qemu relaunched PID 11928 at 13:28:22
+== attempt 1: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74: 11928 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu off -memory 1024 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 11
+== killing leftovers, retrying ==
+qemu relaunched PID 12257 at 13:31:33
+== attempt 2: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74: 12257 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu off -memory 1024 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 11
+== killing leftovers, retrying ==
+qemu relaunched PID 12591 at 13:34:40
+== attempt 3: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74: 12591 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu off -memory 1024 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 11
+== killing leftovers, retrying ==
+qemu relaunched PID 12907 at 13:37:39
+== attempt 4: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74: 12907 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu off -memory 1024 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 10
+== killing leftovers, retrying ==
+qemu relaunched PID 13419 at 13:40:28
+== attempt 5: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74: 13419 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu off -memory 1024 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 8
+== killing leftovers, retrying ==
+qemu relaunched PID 13995 at 13:42:59
+== attempt 6: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 74: 13995 Killed                  nohup "$SDK/emulator/emulator" -avd rahyar -no-window -no-audio -no-boot-anim -no-accel -gpu off -memory 1024 -cores 1 -camera-back none -camera-front none -no-snapshot -no-metrics -prop ro.config.low_ram=true -prop dalvik.vm.dex2oat-threads=1 -qemu -tb-size 268435456 >> /tmp/emulator-qemu.log 2>&1
+qemu died at poll 11
+== killing leftovers, retrying ==
+BOOT_TIMEOUT_ALL_ATTEMPTS
+== boot wrapper started Wed Nov  4 13:53:33 UTC 2026 ==
+scripts/f2-emu-boot.sh: line 62: /proc/14795/oom_score_adj: No such file or directory
+qemu relaunched PID 14795 at 13:53:35
+== attempt 1: waiting for device (10 min) ==
+== boot wrapper started Wed Nov  4 13:58:26 UTC 2026 ==
+sed: can't read /home/z/.android/avd/rahyar24.avd/config.ini: No such file or directory
+rg: /home/z/.android/avd/rahyar24.avd/config.ini: IO error for operation on /home/z/.android/avd/rahyar24.avd/config.ini: No such file or directory (os error 2)
+scripts/f2-emu-boot.sh: line 35: /home/z/.android/avd/rahyar24.avd/config.ini: No such file or directory
+scripts/f2-emu-boot.sh: line 53: /proc/15002/oom_score_adj: No such file or directory
+qemu relaunched PID 15002 at 13:58:28
+== attempt 1: waiting for device (10 min) ==
+== boot wrapper started Wed Nov  4 14:00:24 UTC 2026 ==
+scripts/f2-emu-boot.sh: line 53: /proc/15188/oom_score_adj: No such file or directory
+qemu relaunched PID 15188 at 14:00:27
+== attempt 1: waiting for device (10 min) ==
+wait-for-device timeout attempt 1
+== killing leftovers, retrying ==
+scripts/f2-emu-boot.sh: line 62: /proc/15269/oom_score_adj: No such file or directory
+qemu relaunched PID 15269 at 14:03:42
+== attempt 2: waiting for device (10 min) ==
+== boot wrapper started Wed Nov  4 14:04:49 UTC 2026 ==
+scripts/f2-emu-boot.sh: line 53: /proc/15368/oom_score_adj: No such file or directory
+qemu relaunched PID 15368 at 14:04:51
+== attempt 1: waiting for device (10 min) ==
+== boot wrapper started Wed Nov  4 14:06:06 UTC 2026 ==
+scripts/f2-emu-boot.sh: line 53: /proc/15505/oom_score_adj: No such file or directory
+qemu relaunched PID 15505 at 14:06:08
+== attempt 1: waiting for device (10 min) ==
+== boot wrapper started Wed Nov  4 14:07:32 UTC 2026 ==
+qemu relaunched PID 15646 at 14:07:34
+== attempt 1: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+scripts/f2-emu-boot.sh: line 69: /proc/15754/oom_score_adj: No such file or directory
+== device online — polling sys.boot_completed (up to 30 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+boot completed at try 8
+boot completed at try 8
+boot completed at try 8
+scripts/f2-emu-boot.sh: line 92: syntax error near unexpected token `('
+scripts/f2-emu-boot.sh: line 92: `  echo "apk not ready yet ($i) — waiting 30s"; sleep 30'
+boot completed at try 8
+boot completed at try 8
+boot completed at try 8
+7.0
+boot completed at try 8
+scripts/f2-emu-boot.sh: line 81: break: only meaningful in a `for', `while', or `until' loop
+7.0
+boot completed at try 8
+scripts/f2-emu-boot.sh: line 81: break: only meaningful in a `for', `while', or `until' loop
+7.0
+x86
+== install RahyAr debug APK ==
+apk not ready yet (1) — waiting 30s
+x86
+== install RahyAr debug APK ==
+apk not ready yet (1) — waiting 30s
+x86
+== install RahyAr debug APK ==
+apk not ready yet (1) — waiting 30s
+scripts/f2-emu-boot.sh: line 83: syntax error near unexpected token `done'
+scripts/f2-emu-boot.sh: line 83: `    done'
+scripts/f2-emu-boot.sh: line 83: syntax error near unexpected token `done'
+scripts/f2-emu-boot.sh: line 83: `    done'
+apk not ready yet (2) — waiting 30s
+apk not ready yet (2) — waiting 30s
+apk not ready yet (2) — waiting 30s
+apk not ready yet (3) — waiting 30s
+apk not ready yet (3) — waiting 30s
+apk not ready yet (3) — waiting 30s
+apk not ready yet (4) — waiting 30s
+apk not ready yet (4) — waiting 30s
+apk not ready yet (4) — waiting 30s
+apk not ready yet (5) — waiting 30s
+apk not ready yet (5) — waiting 30s
+apk not ready yet (5) — waiting 30s
+apk not ready yet (6) — waiting 30s
+apk not ready yet (6) — waiting 30s
+apk not ready yet (6) — waiting 30s
+apk not ready yet (7) — waiting 30s
+apk not ready yet (7) — waiting 30s
+apk not ready yet (7) — waiting 30s
+apk not ready yet (8) — waiting 30s
+apk not ready yet (8) — waiting 30s
+apk not ready yet (8) — waiting 30s
+Performing Streamed Install
+Success
+== launch HomeActivity ==
+Starting: Intent { cmp=com.rahyarai.app/.HomeActivity }
+Performing Streamed Install
+Success
+== launch HomeActivity ==
+    mFocusedApp=Token{70922e1 ActivityRecord{8aff448 u0 com.android.launcher3/.Launcher t3}}
+  mCurrentFocus=Window{d78c49 u0 com.android.launcher3/com.android.launcher3.Launcher}
+== EMU_BOOT_DONE Wed Nov  4 14:13:14 UTC 2026 ==
+Starting: Intent { cmp=com.rahyarai.app/.HomeActivity }
+Performing Streamed Install
+Success
+== launch HomeActivity ==
+    mFocusedApp=Token{70922e1 ActivityRecord{8aff448 u0 com.android.launcher3/.Launcher t3}}
+  mCurrentFocus=Window{d78c49 u0 com.android.launcher3/com.android.launcher3.Launcher}
+== EMU_BOOT_DONE Wed Nov  4 14:13:22 UTC 2026 ==
+Starting: Intent { cmp=com.rahyarai.app/.HomeActivity }
+  mCurrentFocus=Window{ddf67fc u0 Application Error: com.rahyarai.app}
+  mFocusedApp=AppWindowToken{9f8bec7 token=Token{70922e1 ActivityRecord{8aff448 u0 com.android.launcher3/.Launcher t3}}}
+== EMU_BOOT_DONE Wed Nov  4 14:13:30 UTC 2026 ==
+== boot wrapper started Wed Nov  4 14:17:59 UTC 2026 ==
+qemu relaunched PID 16652 at 14:18:01
+== attempt 1: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==

@@ -13,44 +13,49 @@ exec >> "$LOG" 2>&1
 echo "== boot wrapper started $(date -u) =="
 
 # AVD تضمین‌شده (اگر setup هنوز نساخته باشد)
-if ! "$SDK/emulator/emulator" -list-avds 2>/dev/null | grep -q rahyar; then
+if ! "$SDK/emulator/emulator" -list-avds 2>/dev/null | grep -q rahyar24; then
   echo no | "$SDK/cmdline-tools/latest/bin/avdmanager" create avd \
-    -n rahyar -k "system-images;android-24;default;x86" -d pixel_5 --force
+    -n rahyar24 -k "system-images;android-24;default;x86" -d pixel_5 --force
 fi
 
 # پیکربندی سبک پس از ساخت AVD — ضد-OOM (مهمان ۷۶۸MB، نمایشگر ۷۲۰p)
-AVDCFG=$HOME/.android/avd/rahyar.avd/config.ini
-[ -f "$AVDCFG" ] && sed -i 's|^hw.ramSize=.*|hw.ramSize=768M|; s|^hw.lcd.width=.*|hw.lcd.width = 720|; s|^hw.lcd.height=.*|hw.lcd.height = 1520|; s|^hw.lcd.density=.*|hw.lcd.density = 280|' "$AVDCFG"
+AVDCFG=$HOME/.android/avd/rahyar24.avd/config.ini
+[ -f "$AVDCFG" ] && sed -i 's|^hw.ramSize=.*|hw.ramSize=768|; s|^hw.lcd.width=.*|hw.lcd.width = 720|; s|^hw.lcd.height=.*|hw.lcd.height = 1520|; s|^hw.lcd.density=.*|hw.lcd.density = 280|' "$AVDCFG"
 
 # پاک‌سازی قفل‌های قبلی
-AVD_DIR=$HOME/.android/avd/rahyar.avd
+AVD_DIR=$HOME/.android/avd/rahyar24.avd
 rm -f "$AVD_DIR"/*.lock 2>/dev/null || true
 
 # F2-EMU: دادهٔ از پیش ساخته‌شده — رفع محدودیت Disk-Space (لانچر v37 برای
 # تصاویر dynamic-partition اندازهٔ 6GB خودخوان می‌سازد و از disk.dataPartition.size
 # نمی‌پذیرد). ما ext4 1.2GB با mkfs.ext4 خودِ SDK می‌سازیم، داخل AVD dir می‌گذاریم
 # و config.ini را به آن نشان می‌دهیم؛ qcow2-همپوشانی روی همین فایل ساخته می‌شود.
-EMU_IMG=$ROOT/artifacts/emu/userdata-qemu.img
+# F2-EMU-API24: لانچر v37 حتی برای API24 حجم 6G خودخوان می‌خواهد (بازنویسی config).
+# راه‌حل اثبات‌شده: فایل ext4 از پیش ساخته + dataPartition.path به آن — مرحلهٔ
+# «create userdata» و چک فضای لانچر کلاً می‌پرد.
+EMU_IMG=$ROOT/artifacts/emu/userdata24.img
 if [ ! -s "$EMU_IMG" ]; then
   mkdir -p "$ROOT/artifacts/emu"
   "$SDK/emulator/bin64/mkfs.ext4" -F -q -O ^has_journal,^resize_inode -b 4096 -I 256 -L userdata \
-    "$EMU_IMG" 1200M
+    "$EMU_IMG" 1100M
 fi
-cp -f "$EMU_IMG" "$AVD_DIR/userdata-qemu.img"
+if [ ! -s "$AVD_DIR/userdata-qemu.img" ]; then
+  cp --sparse=always -f "$EMU_IMG" "$AVD_DIR/userdata-qemu.img"
+fi
 sed -i 's|^disk.dataPartition.path.*|disk.dataPartition.path = userdata-qemu.img|' "$AVD_DIR/config.ini"
-# qcow2 cache kept — each attempt advances on accumulated AOT work
 
 "$ADB" start-server 2>/dev/null || true
 
 # ── F2-EMU WATCHDOG: TCG boot is fragile (OOM kills) — relaunch qemu until success ──
 launch_qemu() {
   rm -f "$AVD_DIR"/*.lock 2>/dev/null || true
-  nohup "$SDK/emulator/emulator" -avd rahyar \
+  nohup "$SDK/emulator/emulator" -avd rahyar24 \
     -no-window -no-audio -no-boot-anim -no-accel \
-    -gpu off -memory 768 -cores 1 \
+    -gpu swiftshader_indirect -memory 768 -cores 1 \
     -camera-back none -camera-front none \
     -no-snapshot -no-metrics \
-    -qemu -tb-size 67108864 \
+   \
+    -qemu -tb-size 268435456 \
     \
     >> /tmp/emulator-qemu.log 2>&1 &
   QPID=$!
