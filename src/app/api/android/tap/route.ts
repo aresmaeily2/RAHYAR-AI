@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { execFile } from 'child_process'
+import { guardEmuApi } from '@/lib/emu-guard'
 
 /**
- * F2-EMU: تعامل لمسی با شبیه‌ساز از پنل مالک — tap / swipe / back / home.
- * ورودی JSON: { action: 'tap'|'swipe'|'back'|'home', x?, y?, x2?, y2? }
+ * F2-EMU: تعامل لمسی با شبیه‌ساز — فقط مالک (نشست + نقش + Same-Origin + نرخ).
+ * ورودی JSON: { action: 'tap'|'swipe'|'back'|'home'|'rotate', x?, y?, x2?, y2? }
  * فقط روی شبیه‌ساز محلی اجرا می‌شود (بدون دسترسی به دستگاه واقعی).
  */
 export const runtime = 'nodejs'
@@ -23,6 +24,9 @@ function run(args: string[]): Promise<string> {
 const num = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 30000
 
 export async function POST(req: NextRequest) {
+  const g = await guardEmuApi(req, { write: true })
+  if (!g.ok) return g.response
+
   let body: Record<string, unknown>
   try {
     body = await req.json()
@@ -44,6 +48,9 @@ export async function POST(req: NextRequest) {
       await run(['shell', 'input', 'keyevent', '4'])
     } else if (action === 'home') {
       await run(['shell', 'input', 'keyevent', '3'])
+    } else if (action === 'rotate') {
+      // چرخش ۹۰ درجه — کنسول شبیه‌ساز: rotate
+      await run(['emu', 'rotate'])
     } else {
       return NextResponse.json({ error: 'unsupported action or bad coords' }, { status: 400 })
     }

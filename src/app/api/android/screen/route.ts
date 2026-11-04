@@ -1,10 +1,11 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { execFile } from 'child_process'
+import { guardEmuApi } from '@/lib/emu-guard'
 
 /**
- * F2-EMU: پخش زندهٔ صفحهٔ شبیه‌ساز اندروید برای پنل سمت راست مالک.
+ * F2-EMU: پخش زندهٔ صفحهٔ شبیه‌ساز اندروید — فقط مالک (گارد emu-guard).
  * خروجی: PNG خام از «screencap» از طریق adb (فقط خواندن، بدون ذخیره).
- * مسیر عمومی (PUBLIC_PREFIXES در src/proxy.ts) — شبیه‌ساز فقط اپ دموی محلی را اجرا می‌کند.
+ * بدون نشست معتبر → ۴۰۱؛ غیرمالک → ۴۰۳؛ مصرف بی‌رویه → ۴۲۹.
  */
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -12,7 +13,10 @@ export const dynamic = 'force-dynamic'
 const ADB = '/home/z/my-project/artifacts/android-sdk/platform-tools/adb'
 const SERIAL = process.env.RAHYAR_EMU_SERIAL || 'emulator-5554'
 
-export async function GET() {
+export async function GET(req: Request) {
+  const g = await guardEmuApi(req as unknown as NextRequest, { limit: 6, windowMs: 10_000 })
+  if (!g.ok) return g.response
+
   try {
     const png = await new Promise<Buffer>((resolve, reject) => {
       execFile(
