@@ -22,27 +22,50 @@ fi
 AVD_DIR=$HOME/.android/avd/rahyar.avd
 rm -f "$AVD_DIR"/*.lock 2>/dev/null || true
 
-nohup "$SDK/emulator/emulator" -avd rahyar \
-  -no-window -no-audio -no-boot-anim -no-accel \
-  -gpu swiftshader_indirect -memory 2048 -cores 2 \
-  -camera-back none -camera-front none \
-  -no-snapshot -wipe-data \
-  > /tmp/emulator-qemu.log 2>&1 &
+# F2-EMU: داده و کشِ از پیش ساخته‌شده (رفع محدودیت Disk-Space — لانچر v37 برای
+# تصاویر dynamic-partition اندازهٔ 6GB خودخوان می‌سازد؛ ما ext4 یک‌باره با mkfs.ext4
+# ساخته‌ایم و با -data تحویل می‌دهیم؛ بوت اول اندروید خودش skeleton را می‌سازد)
+if [ ! -f "$ROOT/artifacts/emu/userdata-qemu.img" ]; then
+  mkdir -p "$ROOT/artifacts/emu"
+  "$SDK/emulator/bin64/mkfs.ext4" -F -q -O ^has_journal,^resize_inode -b 4096 -I 256 -L userdata \
+    "$ROOT/artifacts/emu/userdata-qemu.img" 1200M
+  "$SDK/emulator/bin64/mkfs.ext4" -F -q -O ^has_journal -b 4096 "$ROOT/artifacts/emu/cache.img" 64M
+fi
 
-echo "emulator PID $!"
 "$ADB" start-server 2>/dev/null || true
 
-echo "== waiting for device =="
-timeout 900 "$ADB" wait-for-device || { echo "WAIT_TIMEOUT"; exit 1; }
+# ── F2-EMU WATCHDOG: TCG boot is fragile (OOM kills) — relaunch qemu until success ──
+launch_qemu() {
+  rm -f "$AVD_DIR"/*.lock 2>/dev/null || true
+  nohup "$SDK/emulator/emulator" -avd rahyar \
+    -no-window -no-audio -no-boot-anim -no-accel \
+    -gpu swiftshader_indirect -memory 1024 -cores 2 \
+    -camera-back none -camera-front none \
+    -no-snapshot -no-metrics \
+    -qemu -tb-size 268435456 \
+    \
+    >> /tmp/emulator-qemu.log 2>&1 &
+  echo "qemu relaunched PID $! at $(date -u +%H:%M:%S)"
+}
 
-echo "== polling sys.boot_completed (up to 40 min, TCG is slow) =="
 BOOTED=""
-for i in $(seq 1 240); do
-  B=$("$ADB" -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
-  if [ "$B" = "1" ]; then BOOTED=yes; echo "boot completed at try $i"; break; fi
-  sleep 10
+for ATTEMPT in 1 2 3 4 5 6; do
+  launch_qemu
+  echo "== attempt $ATTEMPT: waiting for device (10 min) =="
+  timeout 600 "$ADB" wait-for-device && {
+    echo "== device online — polling sys.boot_completed (up to 30 min) =="
+    for i in $(seq 1 180); do
+      pgrep -f qemu-system >/dev/null || { echo "qemu died at poll $i"; break; }
+      B=$("$ADB" -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
+      if [ "$B" = "1" ]; then BOOTED=yes; echo "boot completed at try $i"; break; fi
+      sleep 10
+    done
+  } || echo "wait-for-device timeout attempt $ATTEMPT"
+  [ -n "$BOOTED" ] && break
+  echo "== killing leftovers, retrying =="
+  pkill -f qemu-system 2>/dev/null; sleep 5
 done
-[ -n "$BOOTED" ] || { echo "BOOT_TIMEOUT"; exit 1; }
+[ -n "$BOOTED" ] || { echo "BOOT_TIMEOUT_ALL_ATTEMPTS"; exit 1; }
 
 "$ADB" -s emulator-5554 shell getprop ro.build.version.release
 "$ADB" -s emulator-5554 shell getprop ro.product.cpu.abi
