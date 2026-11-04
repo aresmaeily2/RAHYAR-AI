@@ -14,9 +14,13 @@ echo "== boot wrapper started $(date -u) =="
 
 # AVD تضمین‌شده (اگر setup هنوز نساخته باشد)
 if ! "$SDK/emulator/emulator" -list-avds 2>/dev/null | grep -q rahyar; then
-  echo no | "$SDK/cmdline-tools/latest/bin/avdmanager" --sdk_root=$SDK create avd \
-    -n rahyar -k "system-images;android-30;default;x86_64" -d pixel_5 --force
+  echo no | "$SDK/cmdline-tools/latest/bin/avdmanager" create avd \
+    -n rahyar -k "system-images;android-24;default;x86" -d pixel_5 --force
 fi
+
+# پیکربندی سبک پس از ساخت AVD — ضد-OOM (مهمان ۷۶۸MB، نمایشگر ۷۲۰p)
+AVDCFG=$HOME/.android/avd/rahyar.avd/config.ini
+[ -f "$AVDCFG" ] && sed -i 's|^hw.ramSize=.*|hw.ramSize=768M|; s|^hw.lcd.width=.*|hw.lcd.width = 720|; s|^hw.lcd.height=.*|hw.lcd.height = 1520|; s|^hw.lcd.density=.*|hw.lcd.density = 280|' "$AVDCFG"
 
 # پاک‌سازی قفل‌های قبلی
 AVD_DIR=$HOME/.android/avd/rahyar.avd
@@ -34,7 +38,7 @@ if [ ! -s "$EMU_IMG" ]; then
 fi
 cp -f "$EMU_IMG" "$AVD_DIR/userdata-qemu.img"
 sed -i 's|^disk.dataPartition.path.*|disk.dataPartition.path = userdata-qemu.img|' "$AVD_DIR/config.ini"
-rm -f "$AVD_DIR"/*.qcow2 2>/dev/null || true   # بوت سرد هر بار — بازسازی همپوشانی
+# qcow2 cache kept — each attempt advances on accumulated AOT work
 
 "$ADB" start-server 2>/dev/null || true
 
@@ -43,13 +47,18 @@ launch_qemu() {
   rm -f "$AVD_DIR"/*.lock 2>/dev/null || true
   nohup "$SDK/emulator/emulator" -avd rahyar \
     -no-window -no-audio -no-boot-anim -no-accel \
-    -gpu swiftshader_indirect -memory 1024 -cores 2 \
+    -gpu off -memory 768 -cores 1 \
     -camera-back none -camera-front none \
     -no-snapshot -no-metrics \
-    -qemu -tb-size 268435456 \
+    -qemu -tb-size 67108864 \
     \
     >> /tmp/emulator-qemu.log 2>&1 &
-  echo "qemu relaunched PID $! at $(date -u +%H:%M:%S)"
+  QPID=$!
+  sleep 2
+  echo -300 > /proc/$QPID/oom_score_adj 2>/dev/null || true
+  # فرزند واقعی qemu (launcher → qemu-system) هم محافظت شود
+  for CH in $(pgrep -P $QPID 2>/dev/null); do echo -300 > /proc/$CH/oom_score_adj 2>/dev/null || true; done
+  echo "qemu relaunched PID $QPID at $(date -u +%H:%M:%S)"
 }
 
 BOOTED=""
@@ -60,6 +69,10 @@ for ATTEMPT in 1 2 3 4 5 6; do
     echo "== device online — polling sys.boot_completed (up to 30 min) =="
     for i in $(seq 1 180); do
       pgrep -f qemu-system >/dev/null || { echo "qemu died at poll $i"; break; }
+      # محافظت OOM بر فرایند واقعی qemu — هر دورهٔ ۱۰ثانیه‌ای تجدید می‌شود
+      for QP in $(pgrep -f qemu-system-x86 2>/dev/null); do
+        echo -300 > /proc/$QP/oom_score_adj 2>/dev/null || true
+      done
       B=$("$ADB" -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
       if [ "$B" = "1" ]; then BOOTED=yes; echo "boot completed at try $i"; break; fi
       sleep 10
