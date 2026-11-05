@@ -5,6 +5,7 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.util.AttributeSet;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.LinearGradient;
@@ -92,7 +93,17 @@ public final class SplashView extends View {
     private final boolean reducedMotion;
 
     public SplashView(Context c) {
-        super(c);
+        this(c, null);
+    }
+
+    /**
+     * سازندهٔ استاندارد LayoutInflater — بدون آن، inflate از XML با
+     * NoSuchMethodException کرش می‌کند (کرش اولین اجرای Android 7 —
+     * ریشه‌یابی‌شده از logcat واقعی: InflateException ← SplashView ←
+     * NoSuchMethodException init[Context, AttributeSet] در HomeActivity.onCreate).
+     */
+    public SplashView(Context c, AttributeSet attrs) {
+        super(c, attrs);
         // کاهش حرکت سیستم → نمایش ثابت و سریع
         float scale = 1f;
         try {

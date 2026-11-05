@@ -101,6 +101,20 @@ public class HomeActivity extends Activity {
         voice = new VoiceHelper(web, this);
         bridge.attachVoiceDelegate(voice);
 
+        // F2-TEST-HOOK: فقط بیلد دیباگ — فرمان متنی آزمون از adb (--es rahyar_command "…")
+        // همان رویداد نهایی شنیدار تزریق می‌شود؛ پارسر و اجرای ماژول‌ها واقعی‌اند.
+        // در بیلد Release (FLAG_DEBUGGABLE ناموجود) این مسیر کلاً حذف است.
+        if ((getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+            final String testCmd = getIntent() != null ? getIntent().getStringExtra("rahyar_command") : null;
+            if (testCmd != null && testCmd.trim().length() > 0) {
+                web.postDelayed(new Runnable() {
+                    @Override public void run() {
+                        web.evaluateJavascript(VoiceHelper.debugFinalEvent(testCmd.trim()), null);
+                    }
+                }, 5000L);
+            }
+        }
+
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);            // حالت دوم ذخیره (کش UI)

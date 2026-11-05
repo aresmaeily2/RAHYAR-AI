@@ -526,6 +526,27 @@ function AiEngineCard() {
 
       {st?.engine === 'openai_compatible' && (
         <div className="space-y-2 rounded-xl bg-secondary/40 p-3">
+          <div className="flex flex-wrap gap-1.5" dir="ltr">
+            {([
+              ['OpenAI', 'https://api.openai.com/v1', 'gpt-4o-mini'],
+              ['DeepSeek', 'https://api.deepseek.com/v1', 'deepseek-chat'],
+              ['OpenRouter', 'https://openrouter.ai/api/v1', 'openrouter/auto'],
+              ['Ollama', 'http://localhost:11434/v1', 'llama3'],
+              ['LM Studio', 'http://localhost:1234/v1', 'local-model'],
+              ['Claude', 'https://api.anthropic.com/v1', 'cla-3-5-haiku-latest'],
+              ['Gemini', 'https://generativelanguage.googleapis.com/v1beta/openai', 'gemini-2.0-flash'],
+            ] as const).map(([n, u, m]) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => { setUrl(u); setModel(m) }}
+                className="rounded-full border bg-background/60 px-2.5 py-1 text-[9.5px] font-medium hover:bg-secondary"
+                title={u}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
           <input
             value={url}
             onChange={(e) => setUrl(e.target.value)}

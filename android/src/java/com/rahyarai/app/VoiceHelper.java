@@ -40,6 +40,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class VoiceHelper implements RahyarBridge.VoiceDelegate {
 
     /** JS رویداد — خالص و تست‌پذیر (خروجی باید evaluateJavascript-safe باشد) */
+    /**
+     * F2-TEST-HOOK (فقط دیباگ): ساخت همین رویداد «نتیجهٔ قطعی شنیدار» برای تزریق
+     * فرمان متنی از adb روی شبیه‌ساز بدون میکروفون. مسیر اجرا (پارسر + موتور اجرای
+     * app.js) کاملاً واقعی است؛ تنها مرحلهٔ STT کنار گذاشته می‌شود. در بیلد Release
+     * هیچ مسیر تزریقی وجود ندارد.
+     */
+    public static String debugFinalEvent(String text) {
+        return eventJs("rahyar-voice-final", "{\"text\":\"" + jsString(text) + "\"}");
+    }
+
     static String eventJs(String name, String detailJson) {
         String d = detailJson == null || detailJson.isEmpty() ? "{}" : detailJson;
         return "try{window.dispatchEvent(new CustomEvent('" + name + "',{detail:" + d + "}))}catch(e){}";
