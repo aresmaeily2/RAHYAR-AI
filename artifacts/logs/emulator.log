@@ -335,3 +335,35 @@ Starting: Intent { cmp=com.rahyarai.app/.HomeActivity }
 qemu relaunched PID 16652 at 14:18:01
 == attempt 1: waiting for device (10 min) ==
 == device online — polling sys.boot_completed (up to 30 min) ==
+== boot wrapper started Thu Nov  5 04:10:00 UTC 2026 ==
+Error: Package path is not valid. Valid system image paths are:
+system-images;android-30;default;x86_64
+null
+cp: cannot create regular file '/home/z/.android/avd/rahyar24.avd/userdata-qemu.img': No such file or directory
+sed: can't read /home/z/.android/avd/rahyar24.avd/config.ini: No such file or directory
+/home/z/my-project/scripts/f2-emu-boot.sh: line 63: /proc/2332/oom_score_adj: No such file or directory
+qemu relaunched PID 2332 at 04:10:03
+== attempt 1: waiting for device (10 min) ==
+== boot wrapper started Thu Nov  5 04:10:56 UTC 2026 ==
+qemu relaunched PID 2551 at 04:10:58
+== attempt 1: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+== boot wrapper started Thu Nov  5 04:11:38 UTC 2026 ==
+qemu relaunched PID 2741 at 04:11:40
+== attempt 1: waiting for device (10 min) ==
+== device online — polling sys.boot_completed (up to 30 min) ==
+boot completed at try 9
+7.0
+x86
+== install RahyAr debug APK ==
+apk not ready yet (1) — waiting 30s
+apk not ready yet (2) — waiting 30s
+apk not ready yet (3) — waiting 30s
+Performing Streamed Install
+Success
+== launch HomeActivity ==
+Starting: Intent { cmp=com.rahyarai.app/.HomeActivity }
+  mCurrentFocus=Window{e78d7a7 u0 Application Error: com.rahyarai.app}
+  mFocusedApp=AppWindowToken{b18aa8e token=Token{b46d190 ActivityRecord{2d78453 u0 com.android.launcher3/.Launcher t3}}}
+== EMU_BOOT_DONE Thu Nov  5 04:14:57 UTC 2026 ==

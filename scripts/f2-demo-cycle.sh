@@ -6,7 +6,7 @@ ROOT=/home/z/my-project
 LOG=$ROOT/artifacts/logs/demo-cycle.log
 log() { echo "[$(date -u +%F' '%T)] $*" >> "$LOG"; }
 
-for ATTEMPT in 1 2 3 4 5 6 7 8; do
+for ATTEMPT in $(seq 1 60); do
   log "=== demo attempt $ATTEMPT ==="
   bash "$ROOT/scripts/f2-device-demo.sh" >> "$ROOT/artifacts/logs/demo-run.log" 2>&1
   RC=$?
