@@ -103,15 +103,24 @@ public class HomeActivity extends Activity {
 
         // F2-TEST-HOOK: فقط بیلد دیباگ — فرمان متنی آزمون از adb (--es rahyar_command "…")
         // همان رویداد نهایی شنیدار تزریق می‌شود؛ پارسر و اجرای ماژول‌ها واقعی‌اند.
-        // در بیلد Release (FLAG_DEBUGGABLE ناموجود) این مسیر کلاً حذف است.
+        // --es rahyar_js "…" هم فقط برای آزمون (مثلاً تعویض زبان) — در بیلد Release
+        // (FLAG_DEBUGGABLE ناموجود) هیچ‌کدام از این مسیرها کلاً حذف‌اند.
         if ((getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
             final String testCmd = getIntent() != null ? getIntent().getStringExtra("rahyar_command") : null;
+            final String testJs = getIntent() != null ? getIntent().getStringExtra("rahyar_js") : null;
             if (testCmd != null && testCmd.trim().length() > 0) {
                 web.postDelayed(new Runnable() {
                     @Override public void run() {
                         web.evaluateJavascript(VoiceHelper.debugFinalEvent(testCmd.trim()), null);
                     }
                 }, 5000L);
+            }
+            if (testJs != null && testJs.trim().length() > 0) {
+                web.postDelayed(new Runnable() {
+                    @Override public void run() {
+                        web.evaluateJavascript(testJs.trim(), null);
+                    }
+                }, 3500L);
             }
         }
 
