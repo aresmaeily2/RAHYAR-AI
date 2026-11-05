@@ -1,0 +1,29 @@
+== APK inspection Thu Nov  5 05:29:06 UTC 2026 ==
+--- debug signature:
+Signer #1 certificate DN: CN=Android Debug, O=Android, C=US
+Signer #1 certificate SHA-256 digest: 5483283296a59d0c3d9ba27df20970445e861f77ed5f5400e7b53e3247b40c38
+Signer #1 certificate SHA-1 digest: 36335ae08fd5050034edd391ea0896c232171f8a
+--- release signature:
+Signer #1 certificate DN: CN=RahyAr, O=RahyAr, C=IR
+Signer #1 certificate SHA-256 digest: ec12d47a1baa541f7bfa64503ebe9af174e282e2d3dd68f69978921350368f20
+Signer #1 certificate SHA-1 digest: 606661c04c082b58b23670cbcb9ed1618b183247
+--- badging:
+package: name='com.rahyarai.app' versionCode='22' versionName='2.1.0' platformBuildVersionName='14' platformBuildVersionCode='34' compileSdkVersion='34' compileSdkVersionCodename='14'
+sdkVersion:'24'
+targetSdkVersion:'34'
+uses-permission: name='android.permission.INTERNET'
+uses-permission: name='android.permission.POST_NOTIFICATIONS'
+uses-permission: name='android.permission.SCHEDULE_EXACT_ALARM'
+uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'
+uses-permission: name='android.permission.VIBRATE'
+uses-permission: name='android.permission.RECORD_AUDIO'
+uses-permission: name='android.permission.FOREGROUND_SERVICE'
+uses-permission: name='android.permission.FOREGROUND_SERVICE_MICROPHONE'
+application-label:'رهیار'
+application-label-en:'رهیار'
+--- contents:
+     1954  2026-11-05 04:35   META-INF/MANIFEST.MF
+---------                     -------
+   287449                     23 files
+--- dex classes count:
+D8 8.2.2-dev (build facedf41bbd28b563d1e9e09c5f72d7c5ca598d5 from go/r8bot (luci-r8-custom-ci-focal-14-zjz7))

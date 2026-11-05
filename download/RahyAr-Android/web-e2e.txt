@@ -1,0 +1,13 @@
+F2-WEB-E2E 2026-11-05 05:28:38 UTC
+T1 login owner => {"ok":true,"user":{"username":"admin","displayName":"مالک (admin)","role":"O
+T2 create task => {"task":{"id":"cmw33usi5000rqu2vn90418wm","title":"E2E آزمون وظیفه","notes":null,"priority":2,"status":"todo",
+T3 list tasks count => 4
+T4 complete task => {"task":{"id":"cmw33usi5000rqu2vn90418wm","title":"E2E آزمون وظیفه","n
+T5a create account => {"account":{"id":"cmw33usl2000tqu2vwqgmuj31","userId":"cmw33p2lf0000qu2gnh6q3d20","name":"E2E بانک","kind":"bank","o
+T5b finance income => {"transaction":{"id":"cmw33usm0000vqu2v4vhkgunh","userId":"cmw33p2lf0000qu2gnh6q3d20","type":"income","amount":150000,"accountId":"cmw33usl2
+T6 finance list => {"transactions":[{"id":"cmw33usm0000vqu2v4vhkgunh","userId":"cmw33p2lf0000qu2gnh6q3d20","type":"inco
+T7 sms parse preview => {"preview":[{"index":0,"bank":"ملت","type":"expense","amount":350000,"balance":2500000,"cardLast4":"6789","occurredAt":null,"raw":"بانک ملت خرید 3
+T8 ai chat => {"userMessage":{"id":"cmw33usol000xqu2vjn5x4it7","role":"user","content":"سلام، یک وظیفه
+T9 health => {"status":"ok","database":"ok","latencyMs":2,"time":"2026-11-05T05:28:40.438Z"}
+T10 logout => {"ok":true}
+E2E_DONE

@@ -1,0 +1,14 @@
+F2-EMU-SECURITY-MATRIX — live rerun 2026-11-05 05:24:16 UTC
+endpoint base: http://127.0.0.1:3000  (daemon: next standalone, auth via session cookie)
+T1 no-session GET /api/android/screen => 401 (expect 401)
+T2 no-session POST /api/android/tap => 401 (expect 401)
+T3 no-session GET /emulator => 307 (expect 307 redirect to /login)
+T4 owner login (admin) => {"ok":true,"user":{"username":"admin","displayName":"مالک (a
+T5 nonowner login (user) => {"ok":true,"user":{"username":"user","displayName":"کاربر آز
+T6 nonowner GET /api/android/screen => 403 (expect 403)
+T7 nonowner GET /emulator => 200 (200=page shell with 403-forbid message rendered, panel code not rendered)
+T8 owner cross-origin POST /api/android/tap => 403 (expect 403)
+T9 owner GET /api/android/screen => 503 size=32 magic='{"er' (expect 200 PNG or 503-json when emulator down)
+T10 owner 10x rapid GET /api/android/status => 200 200 200 429 429 429 429 429 429 429 (expect 200s then 429)
+T11 owner GET /emulator => 200 (expect 200)
+MATRIX_DONE

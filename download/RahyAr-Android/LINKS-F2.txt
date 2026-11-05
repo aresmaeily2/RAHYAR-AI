@@ -1,26 +1,12 @@
-# لینک‌های تحویل F2 — تازه‌سازی‌شده 2026-11-04 12:4x UTC (پس از انقضای tmpfiles قبلی)
-# همهٔ لینک‌های tmpfiles در نشست مستقل دانلود و با SHA-256 بایت‌به‌بایت تأیید شدند (verify-links-f2.txt)
-# gofile: بارگذاری ok؛ بازخوانی صفحهٔ دانلود از این شبکه ممکن نیست (محدودیت مستند)
-gofile Rahyar-Android-v2.1.0-debug.apk => https://gofile.io/d/Il4HNI4D
-tmpfiles Rahyar-Android-v2.1.0-debug.apk => https://tmpfiles.org/w8AgoVszN9NA/rahyar-android-v2.1.0-debug.apk
-gofile Rahyar-Android-v2.1.0-release.apk => https://gofile.io/d/ETRVla6q
-tmpfiles Rahyar-Android-v2.1.0-release.apk => https://tmpfiles.org/wWAgorsiNEx3/rahyar-android-v2.1.0-release.apk
-gofile RahyAr-Android-CAPABILITY-AUDIT.md => https://gofile.io/d/Fi9g1i2p
-tmpfiles RahyAr-Android-CAPABILITY-AUDIT.md => https://tmpfiles.org/wBA9oPs0x3fE/rahyar-android-capability-audit.md
-gofile RahyAr_F2_Source.zip => https://gofile.io/d/DCWvUBzp
-tmpfiles RahyAr_F2_Source.zip => https://tmpfiles.org/wUA7oRsexrUs/rahyar_f2_source.zip
-gofile RahyAr_F2_COMPLETE_SOURCE.txt => https://gofile.io/d/b0GMQl4U
-tmpfiles RahyAr_F2_COMPLETE_SOURCE.txt => https://tmpfiles.org/wGAfoBsDxzo3/rahyar_f2_complete_source.txt
-=== SHA-256 تأییدشده در نشست مستقل ===
-[tmpfiles/Rahyar-Android-v2.1.0-debug.apk] MATCH 128630B 2651d208...
-[tmpfiles/Rahyar-Android-v2.1.0-release.apk] MATCH 136818B 00d9748a...
-[tmpfiles/RahyAr-Android-CAPABILITY-AUDIT.md] MATCH 8012B 3a646556...
-[tmpfiles/RahyAr_F2_Source.zip] MATCH 3394433B
-[tmpfiles/RahyAr_F2_COMPLETE_SOURCE.txt] MATCH 4116372B
-tmpfiles RahyAr-F2-Test-Evidence.zip => https://tmpfiles.org/wuA1oD4xxsWb/rahyar-f2-test-evidence.zip
-gofile RahyAr-F2-Test-Evidence.zip => https://gofile.io/d/7lhiEIle
-tmpfiles RahyAr-F2-FINAL-REPORT.md => https://tmpfiles.org/wlA3oY4lxVXE/rahyar-f2-final-report.md
-gofile RahyAr-F2-FINAL-REPORT.md => https://gofile.io/d/cAoQ2YCy
-=== تأیید نشست مستقل (دور دوم 13:5x-14:2x UTC) ===
-[RahyAr-F2-Test-Evidence.zip] MATCH 428710B bab49cf4...
-[RahyAr-F2-FINAL-REPORT.md] MATCH 7980B 77aaf9bd...
+لینک‌های نهایی تحویل RahyAr — 2026-11-05 (tmpfiles: ۶۰ دقیقه اعتبار از زمان ساخت؛ راستی‌آزمایی مستقل: verify-links-final.txt)
+gofile: بارگذاری ok — صفحهٔ دانلود از شبکهٔ سندباکس باز نمی‌شود (SPA)؛ tmpfiles مرجع راستی‌آزمایی بایت‌به‌بایت است.
+هر فایل با دانلود در نشست مستقل (بدون کوکی، UA مجزا) و تطبیق SHA-256 تأیید شد — 8/8.
+
+Rahyar-Android-v2.1.0-debug.apk [راستی‌آزمایی MATCH]: https://tmpfiles.org/wZASJ5M5P1mQ/rahyar-android-v2.1.0-debug.apk
+Rahyar-Android-v2.1.0-release.apk [راستی‌آزمایی MATCH]: https://tmpfiles.org/wPAIJbMmqhwr/rahyar-android-v2.1.0-release.apk
+RahyAr_Full_Source.zip [راستی‌آزمایی MATCH]: https://tmpfiles.org/w3APJHMvqYg0/rahyar_full_source.zip
+RahyAr_COMPLETE_SOURCE.txt [راستی‌آزمایی MATCH]: https://tmpfiles.org/wUAUJQMBqkHY/rahyar_complete_source.txt
+RahyAr-F2-FINAL-REPORT.md [راستی‌آزمایی MATCH]: https://tmpfiles.org/wfAhJrMupUYr/rahyar-f2-final-report.md
+web-live-fa-en.mp4 [راستی‌آزمایی MATCH]: https://tmpfiles.org/wjA3JhMlqC7n/web-live-fa-en.mp4
+emulator-panel-owner-90s.mp4 [راستی‌آزمایی MATCH]: https://tmpfiles.org/wUAjJsMtqcbz/emulator-panel-owner-90s.mp4
+RahyAr-F2-Test-Evidence.zip [راستی‌آزمایی MATCH]: https://tmpfiles.org/wUAXJfMDpm9C/rahyar-f2-test-evidence.zip

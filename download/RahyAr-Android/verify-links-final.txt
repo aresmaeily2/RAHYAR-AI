@@ -1,0 +1,25 @@
+F2 independent link verification — 2026-11-05 06:38:41 UTC
+session: fresh curl (no cookies, distinct UA) — byte-to-byte SHA-256 vs local deliverable
+
+gofile    Rahyar-Android-v2.1.0-debug.apk            GOFILE-PAGE-UNRESOLVABLE-FROM-THIS-NETWORK (upload ok; page is a JS app) -
+tmpfiles  Rahyar-Android-v2.1.0-debug.apk            MATCH                  ca3d796d5f9f4d5d
+gofile    Rahyar-Android-v2.1.0-release.apk          GOFILE-PAGE-UNRESOLVABLE-FROM-THIS-NETWORK (upload ok; page is a JS app) -
+tmpfiles  Rahyar-Android-v2.1.0-release.apk          MATCH                  d73392e45e134714
+gofile    RahyAr_Full_Source.zip                     GOFILE-PAGE-UNRESOLVABLE-FROM-THIS-NETWORK (upload ok; page is a JS app) -
+tmpfiles  RahyAr_Full_Source.zip                     MATCH                  185c2112925e1fc3
+gofile    RahyAr_COMPLETE_SOURCE.txt                 GOFILE-PAGE-UNRESOLVABLE-FROM-THIS-NETWORK (upload ok; page is a JS app) -
+tmpfiles  RahyAr_COMPLETE_SOURCE.txt                 MATCH                  6cc3fa7296d9b351
+gofile    RahyAr-F2-FINAL-REPORT.md                  GOFILE-PAGE-UNRESOLVABLE-FROM-THIS-NETWORK (upload ok; page is a JS app) -
+tmpfiles  RahyAr-F2-FINAL-REPORT.md                  SHA-MISMATCH           c15de189d679b79b
+gofile    web-live-fa-en.mp4                         GOFILE-PAGE-UNRESOLVABLE-FROM-THIS-NETWORK (upload ok; page is a JS app) -
+tmpfiles  web-live-fa-en.mp4                         MATCH                  34500bbaf85b41ab
+gofile    emulator-panel-owner-90s.mp4               GOFILE-PAGE-UNRESOLVABLE-FROM-THIS-NETWORK (upload ok; page is a JS app) -
+tmpfiles  emulator-panel-owner-90s.mp4               MATCH                  7c51fb9bd9b38e39
+gofile    RahyAr-F2-Test-Evidence.zip                GOFILE-PAGE-UNRESOLVABLE-FROM-THIS-NETWORK (upload ok; page is a JS app) -
+tmpfiles  RahyAr-F2-Test-Evidence.zip                SIZE-MISMATCH local=378878 dl=377552 -
+tmpfiles-refreshed RahyAr-F2-FINAL-REPORT.md                  MATCH                  5d6ee5e65d95ee2e
+gofile-refreshed RahyAr-F2-FINAL-REPORT.md                  GOFILE-PAGE-UNRESOLVABLE-FROM-THIS-NETWORK (upload ok; page is a JS app) -
+tmpfiles-refreshed RahyAr-F2-Test-Evidence.zip                MATCH                  343b3ecef66e442a
+gofile-refreshed RahyAr-F2-Test-Evidence.zip                GOFILE-PAGE-UNRESOLVABLE-FROM-THIS-NETWORK (upload ok; page is a JS app) -
+
+TOTAL: 8/20 MATCH (byte-to-byte SHA-256)
