@@ -1,6 +1,6 @@
 # گزارش نهایی مأموریت تکمیل RahyAr — 2026-11-05
 
-**Commit:** `ee64717d0647` — **APK:** v2.1.0 (vc22) — **زبان گزارش:** فارسی
+**Commit:** `ee64717d0647` → بازبینی پس‌آزمایی 2026-11-05 12:00 UTC — **APK:** v2.1.0 (vc22) — **زبان گزارش:** فارسی
 
 روش: هر مورد فقط با فایل مدرکِ اجرای واقعی «اثبات‌شده» ثبت شده؛ بقیه صادقانه «محدود» یا «مسدود» است.
 
@@ -43,13 +43,27 @@
 
 - `Rahyar-Android-v2.1.0-debug.apk` — 132,726 bytes — `ca3d796d5f9f4d5d1d17edabf0fa6e0a61fbcd227306915c3f505658c36594bf`
 - `Rahyar-Android-v2.1.0-release.apk` — 136,818 bytes — `d73392e45e134714bd22c982323bd25a5c25d47d89d60459830f2e2c4999ed79`
-- `RahyAr_Full_Source.zip` — 0 bytes — `MISSING`
-- `RahyAr_COMPLETE_SOURCE.txt` — 0 bytes — `MISSING`
+- `RahyAr_Full_Source.zip` — 2,310,876 bytes — `185c2112925e1fc3d1823096854c3595b0143a830e7893cb6a254648bb088c0d`
+- `RahyAr_COMPLETE_SOURCE.txt` — 4,178,873 bytes — `6cc3fa7296d9b3514bbd6ea418d96a1cecab35645b66942fe65b7400c15bdeb5`
 - `RahyAr-Android-CAPABILITY-AUDIT.md` — 11,227 bytes — `6f53c16eadec21f788e5fecc5803d7e5f7a00627ee2b0ffae18e222143bfbfc2`
 - `videos/web-live-fa-en.mp4` — 2,084,876 bytes — `34500bbaf85b41ab83f2791c350495d81ffd90a14c13ae3787a4856fb2d75797`
 - `videos/emulator-panel-owner-90s.mp4` — 501,956 bytes — `7c51fb9bd9b38e39b06483888c600eba130fce69bb67cd6928555cc4ae7dd372`
 
 - لینک‌های دانلود: `delivery/upload-links.txt` داخل ZIP شواهد (tmpfiles + gofile، هر فایل با دانلود در نشست مستقل و تطبیق SHA-256).
+
+---
+
+
+## بخش ۱-الف — پس‌آزمایی کامل پس از بازیابی سندباکس (2026-11-05 09:00–12:00 UTC)
+
+پس از بازیابی محیط، کل زنجیره از صفر بازسازی و همهٔ ادعاهای کلیدی زنده راستی‌آزمایی شد:
+
+1. **بازسازی زیرساخت شبیه‌ساز از صفر** — cmdline-tools + platform-tools(adb) + emulator + system-image API24 x86 + AVD rahyar24 (اسکریپت `scripts/f2-emu-recover.sh`؛ لاگ `artifacts/logs/emu-recover.log`).
+2. **بوت مجدد Android 7.0 (API24)** — حداقل ۵ بوت موفق امروز (لحظه‌های BOOT_COMPLETED در `reports/emu-release-install.txt`).
+3. **نصب واقعی RELEASE APK روی شبیه‌ساز — `[Success]` در 11:09:19 UTC** — همان بند بازِ «نصب release» بسته شد. تکنیک: نصب در حین بوت (پیش از اوج RSS میزبان) با `pm install` از `adb push`؛ مدرک: `reports/emu-release-install.txt` + لاگ `emulator-mission.log`.
+4. **E2E وب 10/10** — تکرار کامل امروز: ورود مالک، ساخت/تکمیل وظیفه (شناسهٔ واقعی DB)، حساب+تراکنش مالی ۱۵۰٬۰۰۰، پارس پیامک ملت، چت AI، سلامت، خروج (`reports/web-e2e.txt`).
+5. **ماتریس امنیتی 11/11** — تکرار کامل امروز: 401/307 بدون نشست، 403 غیرمالک، 403 CSRF متقاطع، 429 پس از ۳ درخواست، 200 مالک (`reports/emu-security-tests.txt`). مسیرهای /api/android/screen و /api/android/tap عمومی نیستند — گارد emu-guard (نشست+نقش+هم‌مبدأ+نرخ) فعال.
+6. **محدودیت بجامانده (بیرونی و مستند):** پس از بوت، RSS میزبان qemu در ۱۵–۲۵ ثانیه به ~۳GB می‌رسد و OOM سراسری (oom_score_adj منفی در این سندباکس ممنوع است — dmesg: adj=0) او را می‌کشد؛ اجرای release + اسکرین‌شات در همین نشست میسر نشد (۴ استراتژی: طعمهٔ OOM با adj=1000، نصب-حین-بوت، GPU none، مهمان ۵۱۲MB). اجرای debug + اسکرین‌شات‌ها در نشست‌های قبلی اثبات و در ZIP شواهد موجود است؛ نصب release امروز مدرک‌دار شد.
 
 ---
 
