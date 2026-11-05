@@ -31,7 +31,7 @@ du -sh "$SDK/system-images/android-24/default/x86" 2>/dev/null
 
 echo "== [$(date -u +%H:%M:%S)] step 4: AVD rahyar24 =="
 echo no | "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root=$SDK "emulator" >/dev/null 2>&1
-echo no | "$SDK/cmdline-tools/latest/bin/avdmanager" create avd --sdk_root=$SDK -n rahyar24 -k "system-images;android-24;default;x86" -d pixel_5 --force 2>&1 | tail -2
+echo no | "$SDK/cmdline-tools/latest/bin/avdmanager" create avd -n rahyar24 -k "system-images;android-24;default;x86" --force 2>&1 | tail -2
 "$SDK/emulator/emulator" -list-avds 2>/dev/null
 
 echo "== [$(date -u +%H:%M:%S)] step 5: APK به مسیر مورد انتظار بوت =="
