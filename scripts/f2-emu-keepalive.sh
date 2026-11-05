@@ -8,7 +8,8 @@ ROOT=/home/z/my-project
 SDK=$ROOT/artifacts/android-sdk
 ADB=$SDK/platform-tools/adb
 APK=$ROOT/artifacts/android-build/out/Rahyar-Android-v2.1.0-debug.apk
-AVD_DIR=$HOME/.android/avd/rahyar24.avd
+AVD_DIR=$HOME/.android/avd/rahyar.avd
+AVD_NAME=rahyar
 LOG=$ROOT/artifacts/logs/keepalive.log
 QLOG=/tmp/emulator-qemu.log
 SERIAL=emulator-5554
@@ -18,12 +19,12 @@ log() { echo "[$(date -u +%F' '%T)] $*" >> "$LOG"; }
 
 launch_qemu() {
   rm -f "$AVD_DIR"/*.lock 2>/dev/null || true
-  nohup "$SDK/emulator/emulator" -avd rahyar24 \
+  nohup "$SDK/emulator/emulator" -avd $AVD_NAME \
     -no-window -no-audio -no-boot-anim -no-accel \
-    -gpu swiftshader_indirect -memory 640 -cores 1 \
+    -gpu off -memory 768 -cores 1 \
     -camera-back none -camera-front none \
-    -no-snapshot -no-metrics \
-    -qemu -tb-size 134217728 >> "$QLOG" 2>&1 &
+    -no-snapshot -no-metrics -prop ro.config.low_ram=true \
+    -qemu -tb-size 67108864 >> "$QLOG" 2>&1 &
   log "qemu launched (parent $!)"
 }
 
@@ -41,7 +42,7 @@ while true; do
   CYCLE=$((CYCLE+1))
   # محافظت OOM — روی همهٔ فرایندهای واقعی qemu-system هر ۵ ثانیه
   for QP in $(pgrep -f qemu-system); do
-    [ -w "/proc/$QP/oom_score_adj" ] && echo -300 > "/proc/$QP/oom_score_adj" 2>/dev/null
+    [ -w "/proc/$QP/oom_score_adj" ] && echo -1000 > "/proc/$QP/oom_score_adj" 2>/dev/null
   done
 
   if ! pgrep -f qemu-system >/dev/null; then

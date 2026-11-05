@@ -22,7 +22,7 @@ export type DeterministicIntent =
 
 // ── الگوهای نیت (فارسی محاوره‌ای + رسمی + انگلیسی) ───────────
 const ADD_VERBS =
-  /(?:بذار|بزار|اضافه\s*کن|اضافهش\s*کن|ثبت\s*کن|یادداشت\s*کن|بنویس|بگم\s*که|بگو\s*که|درج\s*کن|\badd\b|\bcreate\b|\bnew task\b|\bremind me to add\b)/i
+  /(?:بذار|بزار|بساز|بسازم|بسازید|ایجاد\s*کن|اضافه\s*کن|اضافهش\s*کن|ثبت\s*کن|یادداشت\s*کن|بنویس|بگم\s*که|بگو\s*که|درج\s*کن|(?:وظیفه|کار)\s*جدید|\badd\b|\bcreate\b|\bnew task\b|\btask\s*:|\bremind me to add\b)/i
 const REMINDER_VERBS = /(?:یادم\s*بنداز|یادآوری\s*کن|یادت\s*باشه|یادت\s*باشه\s*که)/
 export { REMINDER_VERBS }
 const REPORT_PATTERNS =

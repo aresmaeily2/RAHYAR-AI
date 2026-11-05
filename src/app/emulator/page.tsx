@@ -77,9 +77,13 @@ export default function EmulatorPage() {
   }, [])
 
   useEffect(() => {
-    void pollStatus()
+    // F2-LINT: setState همزمان در اثر مجاز نیست — فراخوانی نخست با تایمر به‌تعویق می‌افتد
+    const t0 = setTimeout(() => void pollStatus(), 0)
     const id = setInterval(() => void pollStatus(), 4000)
-    return () => clearInterval(id)
+    return () => {
+      clearTimeout(t0)
+      clearInterval(id)
+    }
   }, [pollStatus])
 
   const send = useCallback(

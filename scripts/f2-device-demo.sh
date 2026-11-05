@@ -25,7 +25,7 @@ focus() { "$ADB" -s $SERIAL shell dumpsys window 2>/dev/null | grep mCurrentFocu
 
 # ── ۰) انتظار برای بوت کامل ──
 log "waiting for boot_completed…"
-for i in $(seq 1 90); do
+for i in $(seq 1 120); do
   B=$("$ADB" -s $SERIAL shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
   [ "$B" = "1" ] && { log "BOOT OK (try $i)"; break; }
   pgrep -f qemu-system >/dev/null || { log "QEMU DIED during wait"; exit 2; }

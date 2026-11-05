@@ -731,6 +731,33 @@ function defaultDraft(lang: AppLang): string {
  * اکشن اجراشده‌ای که آن نیاز را برآورده کند وجود نداشته باشد، فالبک قطعی
  * همان اثر واقعی را می‌سازد (کار + یادآور متصل / پیش‌نویس / برنامهٔ روز).
  */
+// F2-HALL: ضد توهم مدل — اگر reply مدل ادعای «نوشتن» دارد ولی هیچ اکشن نوشتاری
+// موفقی اجرا نشده، یادداشت صادقانه به پاسخ اضافه می‌شود (ادعای بدون اثر
+// هرگز بی‌پاسخ نمی‌ماند — قاعدهٔ مأموریت: هیچ موفقیت ظاهری).
+const CLAIMS_WRITE =
+  /(ثبت\s*(شد|کردم)|ساخته\s*شد|اضافه\s*(شد|کردم)|ذخیره\s*شد|یادآور(ی)?\s*(ثبت|گذاشتم|گذاشته)|به\s*کارها\s*(اضافه|ثبت)|created|added|saved|recorded|remind(er)? (set|added))/i
+const WRITE_TYPES = new Set([
+  'add_task', 'complete_task', 'delete_task', 'update_task', 'star_task',
+  'snooze_task', 'add_reminder', 'breakdown_task', 'remember',
+])
+export function guardUnbackedClaim(reply: string, actions: ChatAction[], lang: AppLang): string {
+  const anyWriteOk = actions.some(
+    (a) => WRITE_TYPES.has(a.type) && 'ok' in a && (a as { ok?: boolean }).ok === true,
+  )
+  if (!anyWriteOk && CLAIMS_WRITE.test(reply)) {
+    return (
+      reply +
+      '\n' +
+      pick(
+        lang,
+        '⚠️ راستی‌آزمایی صادقانه: هیچ تغییری واقعاً ذخیره نشد — لطفاً درخواست را با عبارت روشن‌تر تکرار کن (مثل «کار جدید: ...»).',
+        '⚠️ Honest verification: nothing was actually saved — please rephrase (e.g. "New task: ...").',
+      )
+    )
+  }
+  return reply
+}
+
 export async function applyMissionGuard(
   userMessage: string,
   reply: string,
