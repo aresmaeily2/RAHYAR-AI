@@ -23,7 +23,14 @@ for f in ".env" "RUN.md" "worklog.md"; do
   if git ls-files --error-unmatch "$f" >/dev/null 2>&1; then echo "FORBIDDEN_TRACKED: $f — abort"; exit 1; fi
 done
 if git ls-files | rg -q "^(db/|upload/|artifacts/|backups/|download/)|\.keystore$|\.jks$|\.db$"; then
-  echo "FORBIDDEN_TRACKED_PATH — abort"; exit 1
+  # این مسیرها برای ضد-بازگشت در git هستند ولی باید export-ignore باشند
+  # (در بستهٔ سورس عمومی نمی‌آیند — فیلتر .gitattributes)
+  BAD=$(git ls-files | rg "^(db/|upload/|artifacts/|backups/|download/)|\.keystore$|\.jks$|\.db$" | while read -r f; do
+    ig=$(git check-attr export-ignore -- "$f" | awk -F': ' '{print $3}')
+    [ "$ig" = "set" ] || echo "$f"
+  done)
+  if [ -n "$BAD" ]; then echo "FORBIDDEN_TRACKED_WITHOUT_EXPORT_IGNORE: $BAD — abort"; exit 1; fi
+  echo "delivery paths tracked but export-ignored (excluded from public source zip)"
 fi
 echo "tracked-file policy clean"
 

@@ -1,0 +1,6 @@
+# F2: مسیرهای تحویل/مصنوع — در بستهٔ سورس عمومی نیستند ولی در git می‌مانند
+artifacts/** export-ignore
+download/** export-ignore
+db/** export-ignore
+backups/** export-ignore
+upload/** export-ignore

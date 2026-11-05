@@ -24,8 +24,8 @@ log "T3 no-session GET /emulator => $c (expect 307 redirect to /login)"
 
 # ۴+۵) ورود مالک و کاربر عادی
 CO=/tmp/owner.jar; CU=/tmp/user.jar; rm -f $CO $CU
-o=$(curl -s -c $CO -X POST -H 'Content-Type: application/json' -H 'Origin: http://127.0.0.1:3000' -d '{"username":"admin","password":"v07wpBRjFr4RAp0C"}' $B/api/auth/login --max-time 20)
-u=$(curl -s -c $CU -X POST -H 'Content-Type: application/json' -H 'Origin: http://127.0.0.1:3000' -d '{"username":"user","password":"usertest1"}' $B/api/auth/login --max-time 20)
+o=$(curl -s -c $CO -X POST -H 'Content-Type: application/json' -H 'Origin: http://127.0.0.1:3000' -d '{"username":"admin","password":"admin"}' $B/api/auth/login --max-time 20)
+u=$(curl -s -c $CU -X POST -H 'Content-Type: application/json' -H 'Origin: http://127.0.0.1:3000' -d '{"username":"user","password":"admin"}' $B/api/auth/login --max-time 20)
 log "T4 owner login (admin) => ${o:0:60}"
 log "T5 nonowner login (user) => ${u:0:60}"
 
