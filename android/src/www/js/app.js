@@ -265,7 +265,9 @@
       wakeDesc: 'با روشن‌کردن، سرویس پیش‌زمینه با اعلان ماندگار شفاف به عبارت «سلام رهیار» گوش می‌دهد و اپ را باز می‌کند. هیچ صدایی ذخیره یا ارسال نمی‌شود و هر زمان می‌توانی خاموش کنی.',
       privacy: 'صدا فقط با لمس میکروفون و فقط به سرویس گفتار سیستم‌عامل می‌رود؛ ذخیره یا ارسال پنهان صدا وجود ندارد.',
       wakeUnavailable: 'سرویس تشخیص گفتار روی این دستگاه نیست؛ Wake Word عملیاتی نمی‌شود.',
-      vDeletedConfirm: 'حذف انجام شد.'
+      vDeletedConfirm: 'حذف انجام شد.',
+      vTypeHint: 'یا دستور را تایپ کن…', vSend: 'اجرا',
+      vMicOffHint: 'شنیدن صوتی روی این دستگاه در دسترس نیست — فرمان را تایپ کن.'
     },
     en: {
       mic: 'Microphone', micStart: 'Listen', micStop: 'Stop', listening: 'Listening…',
@@ -285,7 +287,9 @@
       wakeDesc: 'When enabled, a foreground service with a persistent, transparent notification listens for "Hey Rahyar" and opens the app. No audio is stored or sent; turn off anytime.',
       privacy: 'Audio goes to the OS speech service only when you tap the mic; nothing is stored or silently sent.',
       wakeUnavailable: 'No speech service on this device; Wake Word cannot operate.',
-      vDeletedConfirm: 'Deleted.'
+      vDeletedConfirm: 'Deleted.',
+      vTypeHint: 'or type a command…', vSend: 'Run',
+      vMicOffHint: 'Voice listening is unavailable on this device — type your command.'
     }
   };
   function tv(k) { var d = I18NV[R.lang()] || I18NV.fa; return d[k] !== undefined ? d[k] : (I18NV.fa[k] || k); }
@@ -308,7 +312,11 @@
     panel.innerHTML = '<div id="vStatus" style="font-weight:700"></div>'
       + '<div id="vPartial" style="opacity:.8"></div>'
       + '<div id="vFinal" style="margin-top:6px"></div>'
-      + '<div id="vReply" style="margin-top:6px;color:#8ab4ff"></div>';
+      + '<div id="vReply" style="margin-top:6px;color:#8ab4ff"></div>'
+      + '<div style="margin-top:8px;display:flex;gap:6px">'
+      + '<input id="vTypeBox" placeholder="' + tv('vTypeHint') + '" style="flex:1;min-width:0;padding:7px 9px;border-radius:9px;border:1px solid #2a3c78;background:rgba(255,255,255,.07);color:inherit;font:inherit;font-size:12px;">'
+      + '<button id="vTypeGo" style="padding:7px 12px;border-radius:9px;border:none;background:#4f6ef7;color:#fff;cursor:pointer;font:inherit;font-size:12px;">' + tv('vSend') + '</button>'
+      + '</div>';
     document.body.appendChild(fab);
     document.body.appendChild(panel);
     fab.addEventListener('click', function () {
@@ -321,6 +329,29 @@
       if (st === 'denied') { setPanel(tv('errDenied'), '', ''); return; }
       toggleListen();
     });
+    // مسیر متنی همان مسیر صوتی است: یک پارسر، یک موتور اجرا — بدون مسیر نمایشی
+    setTimeout(function () {
+      var go = document.getElementById('vTypeGo');
+      var box = document.getElementById('vTypeBox');
+      if (go) go.addEventListener('click', function () { runTextCommand(box ? box.value : ''); });
+      if (box) box.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); runTextCommand(box.value); } });
+    }, 0);
+  }
+
+  function runTextCommand(text) {
+    text = (text || '').trim();
+    if (!text) return;
+    setPanel(tv('transcript'), text, '');
+    try {
+      var intent = JSON.parse(native.parseVoiceCommand(text, R.lang()));
+      intent.raw = text;
+      runIntent(intent);
+    } catch (err) {
+      setPanel('', '', tv('vUnknown'));
+      speak(tv('vUnknown'));
+    }
+    var box = document.getElementById('vTypeBox');
+    if (box) box.value = '';
   }
 
   function setPanel(status, partial, reply) {
@@ -347,9 +378,11 @@
       return;
     }
     if (native.voiceAvailable && native.voiceAvailable() !== 'true') {
-      setPanel(tv('errUnavailable'), '', '');
+      // بدون سرویس گفتار: پنل با پیام صادقانه و ورودی متنی باز می‌ماند
+      setPanel(tv('vMicOffHint'), '', '');
+      var box0 = document.getElementById('vTypeBox');
+      if (box0) box0.focus();
       fabIdle();
-      hidePanelSoon();
       return;
     }
     V.listening = true;
