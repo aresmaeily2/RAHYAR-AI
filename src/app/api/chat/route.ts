@@ -7,7 +7,7 @@ import { shouldSearch, performWebSearch } from '@/lib/server-search'
 import { detectIntent } from '@/lib/assistant/router'
 import { logAction } from '@/lib/assistant/action-log'
 import { claimIdempotencyKey } from '@/lib/assistant/action-log'
-import { getPendingAction, clearPendingAction, executePendingAction, CONFIRM_RE, CANCEL_RE } from '@/lib/assistant/pending-action'
+import { getPendingAction, clearPendingAction, executePendingAction, setPendingAction, CONFIRM_RE, CANCEL_RE } from '@/lib/assistant/pending-action'
 import { getUserLang } from '@/lib/server-settings'
 import { pick } from '@/lib/server-lang'
 import {
@@ -122,6 +122,32 @@ export async function POST(req: NextRequest) {
         await logAction({ userId: user.id, actionType: pendingOp.type, status: r.ok ? 'success' : 'failed', detail: 'executed after explicit user confirmation' })
         text = pick(lang, r.fa, r.en)
       }
+      const assistantMsg = await db.chatMessage.create({ data: { userId: user.id, role: 'assistant', content: text, actions: null } })
+      return NextResponse.json({ userMessage: serializeMessage(userMsg), assistantMessage: serializeMessage(assistantMsg), actions: [], mode: 'deterministic' })
+    }
+
+    // F4-QA (یافتهٔ ممیزی مستقل): مسیر قطعی فراموشی — عملیات حساس هرگز نباید به
+    // انطباق مدل وابسته باشد (یافتهٔ آزمون: مدل اکشن forget را ساطع نکرد و در تأیید بعدی
+    // حذف را «ادعا» کرد بدون اثر واقعی). اکنون: «...» را فراموش کن → pending-action +
+    // درخواست تأیید صریح؛ اجرا فقط توسط ماشین-وضعیت بالا و روی ردیف واقعی DB.
+    const FORGET_NEG_RE = /فراموش\s*نک/i
+    const FORGET_VERB_RE = /(فراموش\s*(?:بشه|شو|کن)|forget)/i
+    const qm = !FORGET_NEG_RE.test(message) ? message.match(/[«“"]([^«»“”"]{2,100})[»”"]/) : null
+    if (!pendingOp && qm && FORGET_VERB_RE.test(message)) {
+      const frag = qm[1].trim().slice(0, 100)
+      await setPendingAction(user.id, { type: 'forget', factContains: frag })
+      const userMsg = await db.chatMessage.create({ data: { userId: user.id, role: 'user', content: message } })
+      await logAction({
+        userId: user.id,
+        actionType: 'forget',
+        status: 'needs_confirmation',
+        detail: pick(lang, 'مسیر قطعی فراموشی — در انتظار تأیید صریح کاربر', 'Deterministic forget lane — awaiting explicit confirmation'),
+      })
+      const text = pick(
+        lang,
+        `حذف حافظه‌های دارای «${frag}» به تأیید شما نیاز دارد. اگر مطمئنید بنویسید «تأیید»، در غیر این صورت «انصراف».`,
+        `Deleting memories containing “${frag}” needs your confirmation. Reply “confirm” or “cancel”.`,
+      )
       const assistantMsg = await db.chatMessage.create({ data: { userId: user.id, role: 'assistant', content: text, actions: null } })
       return NextResponse.json({ userMessage: serializeMessage(userMsg), assistantMessage: serializeMessage(assistantMsg), actions: [], mode: 'deterministic' })
     }
