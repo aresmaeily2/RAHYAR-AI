@@ -5,3 +5,4 @@ app/build/
 
 keystore.properties
 keystore/
+*.keystore
