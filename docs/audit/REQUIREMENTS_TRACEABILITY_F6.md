@@ -142,8 +142,8 @@
 | QA-5 | رگرسیون پس از تغییر کد | دوباره اجرا | qa | VERIFIED | build+unit+E2E+sec-matrix پس از هر تغییر با کد نهایی دوباره اجرا شد؛ F6: رگرسیون پس از فیکس WX — tsc صفر، 267/267، E2E 11/11 |
 | QA-6 | Performance/Offline | اندازه‌گیری | qa | PARTIAL | offline local-rules مسیر + E2E بدون overflow؛ بنچمارک رسمی اجرا نشد؛ F6: کد تغییر نکرده — F5 پابرجا |
 | DL-1 | APK نهایی user + owner | امضا + SHA | delivery | VERIFIED | `download/RahyAr-F5/` ۴ APK (2 debug + 2 release CN=RahyAr)؛ F6: همان چهار APK + اثبات بازساخت بایت‌به‌بایت + SHA256 تازه |
-| DL-2 | سورس کامل + Source ZIP منطبق با HEAD | از یک commit | delivery | VERIFIED | ZIP از HEAD نهایی در بسته تحویل؛ F6: Source ZIP با git archive از 57aefdb |
-| DL-3 | Evidence ZIP + SHA256SUMS | بسته کامل | delivery | VERIFIED | `RahyAr-F5-Evidence.zip` + SHA256SUMS؛ F6: Evidence ZIP + SHA256SUMS تازه (۱۶۲+ مدخل) — همه OK |
+| DL-2 | سورس کامل + Source ZIP منطبق با HEAD | از یک commit | delivery | VERIFIED | ZIP از HEAD نهایی در بسته تحویل؛ F6: Source ZIP با git archive از HEAD بسته (هش قطعی: SOURCE-HEAD.txt بسته) |
+| DL-3 | Evidence ZIP + SHA256SUMS | بسته کامل | delivery | VERIFIED | `RahyAr-F5-Evidence.zip` + SHA256SUMS؛ F6: Evidence ZIP (28 فایل) + SHA256SUMS تازه (۱۱۲ مدخل در بستهٔ F6) — همهٔ مدخل‌ها OK |
 | DL-4 | RTM + Parity + گزارش‌ها + راهنماها | اسناد | delivery | VERIFIED | `docs/audit/` + `download/RahyAr-F5/`؛ F6: RTM F6 + Parity F6 + گزارش فارسی/انگلیسی + راهنماها از 57aefdb |
 | DL-5 | ویدئوی اجرای واقعی + لینک دانلود ثابت | بیرونی مستقل | delivery | PARTIAL | ویدئوی وب ثبت شد؛ ویدئوی دستگاه فیزیکی و لینک ثابت بیرونی BLOCKED (tmpfiles موقت + bundle جایگزین)؛ F6: لینک‌ها از چرخه‌های قبل معتبر؛ بستهٔ F6 برای انتشار با SHA — اقدام مالک (push) باقی است |
 
