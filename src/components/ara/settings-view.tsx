@@ -381,7 +381,25 @@ interface AiStatus {
   keyMasked: string
   killSwitch: boolean
   hostedAvailable?: boolean
+  providers?: Array<{
+    id: string
+    label: string
+    configured: boolean
+    hasKey: boolean
+    keyMasked: string
+    preset?: {
+      baseUrl: string
+      defaultModel: string
+      keyRequired: boolean
+      desc: string
+      effectiveUrl: string
+      effectiveModel: string
+    }
+  }>
 }
+
+// F5: هفت Provider نام‌دار (مأموریت ۳)
+const PRESET_IDS = ['openai', 'claude', 'gemini', 'deepseek', 'openrouter', 'ollama', 'lmstudio']
 
 function AiEngineCard() {
   const { t, lang } = useI18n()
@@ -389,6 +407,10 @@ function AiEngineCard() {
   const [url, setUrl] = useState('')
   const [model, setModel] = useState('')
   const [key, setKey] = useState('')
+  // F5: فیلدهای Provider نام‌دار
+  const [pKey, setPKey] = useState('')
+  const [pModel, setPModel] = useState('')
+  const [pUrl, setPUrl] = useState('')
   const [busy, setBusy] = useState(false)
   const [test, setTest] = useState<{ ok: boolean; message: string } | null>(null)
 
@@ -399,6 +421,12 @@ function AiEngineCard() {
       setSt(d)
       setUrl(d.endpointUrl ?? '')
       setModel(d.endpointModel ?? '')
+      // همگام‌سازی فرم Provider نام‌دار فعال
+      const info = d?.providers?.find((x: { id: string }) => x.id === d.engine)
+      if (info?.preset) {
+        setPModel(info.preset.effectiveModel)
+        setPUrl(info.preset.effectiveUrl === info.preset.baseUrl ? '' : info.preset.effectiveUrl)
+      }
     } catch {
       /* بی‌صدا */
     }
@@ -408,23 +436,43 @@ function AiEngineCard() {
     void load()
   }, [load])
 
+  function isPresetEng(id?: string): boolean {
+    return Boolean(id && (PRESET_IDS as string[]).includes(id))
+  }
+
   async function save(engine?: string) {
     setBusy(true)
     try {
+      const eng = engine ?? st?.engine
+      // F5: Provider نام‌دار → کلید/مدل/URL «به ازای همان Provider» ذخیره می‌شود
+      const body = isPresetEng(eng)
+        ? {
+            ...(engine ? { engine } : {}),
+            model: pModel.trim(),
+            ...(pUrl.trim() ? { url: pUrl.trim() } : {}),
+            ...(pKey.trim() ? { key: pKey.trim() } : {}),
+          }
+        : {
+            ...(engine ? { engine } : {}),
+            endpointUrl: url,
+            endpointModel: model,
+            ...(key.trim() ? { endpointKey: key.trim() } : {}),
+          }
       const res = await fetch('/api/settings/ai', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...(engine ? { engine } : {}),
-          endpointUrl: url,
-          endpointModel: model,
-          ...(key.trim() ? { endpointKey: key.trim() } : {}),
-        }),
+        body: JSON.stringify(body),
       })
       const d = await res.json()
       if (!res.ok) throw new Error(d?.error || 'خطا')
       setSt(d)
       setKey('')
+      setPKey('')
+      const info = isPresetEng(eng) ? d?.providers?.find((x: { id: string }) => x.id === eng) : null
+      if (info?.preset) {
+        setPModel(info.preset.effectiveModel)
+        setPUrl(info.preset.effectiveUrl === info.preset.baseUrl ? '' : info.preset.effectiveUrl)
+      }
       toast.success(t('ذخیره شد'))
     } catch (e) {
       toast.error(e instanceof Error && e.message !== 'خطا' ? t(e.message) : t('ذخیره تنظیمات ناموفق بود'))
@@ -437,10 +485,14 @@ function AiEngineCard() {
     setBusy(true)
     setTest(null)
     try {
+      // F5: تست واقعی برای هر Provider — آداپتور خودش سمت سرور صدا زده می‌شود
+      const body = isPresetEng(st?.engine)
+        ? { engine: st?.engine, key: pKey.trim(), model: pModel.trim(), url: pUrl.trim(), useSavedKey: !pKey.trim() }
+        : { endpointUrl: url, endpointModel: model, endpointKey: key.trim(), useSavedKey: !key.trim() }
       const res = await fetch('/api/settings/ai/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ endpointUrl: url, endpointModel: model, endpointKey: key.trim(), useSavedKey: !key.trim() }),
+        body: JSON.stringify(body),
       })
       const d = await res.json()
       setTest(
@@ -455,10 +507,21 @@ function AiEngineCard() {
     }
   }
 
+  // F5: ده موتور — سه موتور پایه + هفت Provider نام‌دار
+  const presetMeta: Array<{ id: string; label: string; desc: string }> = [
+    { id: 'openai', label: 'OpenAI', desc: t('سرویس ابری OpenAI — نیازمند کلید API') },
+    { id: 'claude', label: 'Claude', desc: t('آداپتور بومی Anthropic — نیازمند کلید API') },
+    { id: 'gemini', label: 'Gemini', desc: t('آداپتور بومی Google Gemini — نیازمند کلید API') },
+    { id: 'deepseek', label: 'DeepSeek', desc: t('سرویس ابری DeepSeek — نیازمند کلید API') },
+    { id: 'openrouter', label: 'OpenRouter', desc: t('مسیریاب چندمدلی — نیازمند کلید API') },
+    { id: 'ollama', label: 'Ollama', desc: t('موتور محلی روی سرور/دستگاه خودت — بدون کلید ابری') },
+    { id: 'lmstudio', label: 'LM Studio', desc: t('سرور محلی LM Studio — بدون کلید ابری') },
+  ]
   const engines: Array<{ id: string; label: string; desc: string; disabled?: boolean }> = [
     { id: 'zai', label: t('مدل میزبان رهیار'), desc: st?.hostedAvailable ? t('مدل زبانی ابریِ سرور — بدون کلید، آماده گفتگو') : t('روی این سرور پیکربندی نشده است'), disabled: !st?.hostedAvailable },
     { id: 'local_rules', label: t('موتور قواعد محلی'), desc: t('بدون مدل، بدون هزینه، بدون اینترنت') },
     { id: 'openai_compatible', label: t('Endpoint سازگار با OpenAI'), desc: 'Ollama · LM Studio · DeepSeek · OpenRouter · …' },
+    ...presetMeta,
   ]
 
   return (
@@ -523,6 +586,69 @@ function AiEngineCard() {
           )}
         </div>
       )}
+
+      {/* F5: کارت پیکربندی Provider نام‌دار فعال */}
+      {st?.engine && isPresetEng(st.engine) && (() => {
+        const info = st.providers?.find((x) => x.id === st.engine)
+        const p = info?.preset
+        return (
+          <div className="space-y-2 rounded-xl bg-secondary/40 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[11px] font-bold" dir="ltr">{info?.label ?? st.engine}</p>
+              <span className={cn(
+                'rounded-full px-2 py-0.5 text-[9px] font-medium',
+                info?.configured ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+              )}>
+                {info?.configured ? t('پیکربندی شده') : t('پیکربندی نشده')}
+              </span>
+            </div>
+            <p className="text-[9.5px] leading-4 text-muted-foreground">{p?.desc}</p>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                value={pModel}
+                onChange={(e) => setPModel(e.target.value)}
+                dir="ltr"
+                placeholder={p?.defaultModel ?? 'model'}
+                aria-label={t('نام مدل')}
+                className="w-full rounded-lg border bg-background/60 px-3 py-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              />
+              <input
+                value={pKey}
+                onChange={(e) => setPKey(e.target.value)}
+                dir="ltr"
+                type="password"
+                placeholder={info?.hasKey ? `${t('کلید API')} (${info.keyMasked})` : t('کلید API')}
+                aria-label={t('کلید API')}
+                className="w-full rounded-lg border bg-background/60 px-3 py-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              />
+            </div>
+            <input
+              value={pUrl}
+              onChange={(e) => setPUrl(e.target.value)}
+              dir="ltr"
+              placeholder={p ? `${t('آدرس Endpoint')} — ${p.baseUrl}` : 'https://…'}
+              aria-label={t('آدرس Endpoint')}
+              className="w-full rounded-lg border bg-background/60 px-3 py-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            />
+            <div className="flex gap-2">
+              <button onClick={() => save()} disabled={busy} className="flex-1 rounded-lg bg-primary px-3 py-2 text-[11px] font-bold text-primary-foreground disabled:opacity-50">
+                {busy ? '…' : t('ذخیره‌سازی')}
+              </button>
+              <button onClick={runTest} disabled={busy} className="rounded-lg border px-3 py-2 text-[11px] font-medium disabled:opacity-50">
+                {t('تست اتصال')}
+              </button>
+            </div>
+            {test && (
+              <p className={cn('text-[10px]', test.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')} dir="ltr">
+                {test.message}
+              </p>
+            )}
+            <p className="text-[9.5px] leading-4 text-muted-foreground">
+              {t('کلید فقط روی سرور محلی خودت ذخیره می‌شود و هرگز نمایش داده نمی‌شود.')}
+            </p>
+          </div>
+        )
+      })()}
 
       {st?.engine === 'openai_compatible' && (
         <div className="space-y-2 rounded-xl bg-secondary/40 p-3">

@@ -40,11 +40,34 @@ public final class RahyarBridge {
                         HostAction shareBackupAction,
                         HostAction openServerLoginAction,
                         HostAction wakeServiceAction) {
+        this(core, shareBackupAction, openServerLoginAction, wakeServiceAction, null);
+    }
+
+    public RahyarBridge(RahyarCore core,
+                        HostAction shareBackupAction,
+                        HostAction openServerLoginAction,
+                        HostAction wakeServiceAction,
+                        SmsDelegate smsDelegate) {
         this.core = core;
         this.shareBackupAction = shareBackupAction;
         this.openServerLoginAction = openServerLoginAction;
         this.wakeServiceAction = wakeServiceAction;
+        this.smsDelegate = smsDelegate;
     }
+
+    /** F5-مأموریت ۷: واگذاری پیامک بانکی — پیاده‌سازی توسط Activity میزبان */
+    public interface SmsDelegate {
+        /** وضعیت رضایت/مجوز/تعداد صف — JSON */
+        String smsState();
+        /** درخواست مجوز RECEIVE_SMS با دیالوگ سیستم (فقط با اقدام کاربر) */
+        void requestConsent();
+        /** لغو رضایت + پاک‌کردن صف پیش‌نمایش */
+        void revokeConsent();
+        /** صف پیش‌نمایش پیامک بانکی — JSON */
+        String pendingQueue();
+    }
+
+    private final SmsDelegate smsDelegate;
 
     // ─── دادهٔ محلی (منطق در RahyarCore) ───
 
@@ -148,6 +171,32 @@ public final class RahyarBridge {
     @JavascriptInterface
     public void setWakeService(boolean on) {
         if (wakeServiceAction != null) wakeServiceAction.run(on ? "on" : "off");
+    }
+
+    // ─── F5-مأموریت ۷: پیامک بانکی (رضایت + صف پیش‌نمایش) ───
+
+    /** وضعیت رضایت پیامک بانکی + تعداد صف — JSON (بدون متن پیامک‌ها) */
+    @JavascriptInterface
+    public String smsState() {
+        return smsDelegate == null ? "{\"consent\":false,\"permission\":\"unavailable\",\"pending\":0,\"supported\":false}" : smsDelegate.smsState();
+    }
+
+    /** درخواست رضایت = دیالوگ مجوز سیستم RECEIVE_SMS — فقط با اقدام کاربر */
+    @JavascriptInterface
+    public void smsRequestConsent() {
+        if (smsDelegate != null) smsDelegate.requestConsent();
+    }
+
+    /** لغو رضایت — پردازش پیامک بلافاصله متوقف و صف پیش‌نمایش پاک می‌شود */
+    @JavascriptInterface
+    public void smsRevokeConsent() {
+        if (smsDelegate != null) smsDelegate.revokeConsent();
+    }
+
+    /** صف پیش‌نمایش پیامک بانکی — JSON (مبلغ/نوع/بانک/متن خام برای بازبینی کاربر) */
+    @JavascriptInterface
+    public String smsPending() {
+        return smsDelegate == null ? "[]" : smsDelegate.pendingQueue();
     }
 
     // ─── داخلی ───

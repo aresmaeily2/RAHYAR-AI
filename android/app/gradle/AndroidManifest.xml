@@ -24,6 +24,12 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 
+    <!-- F5-مأموریت ۷: دریافت پیامک بانکی — فقط با رضایت صریح کاربر درون اپ.
+         گیرنده بدون رضایت هیچ پردازشی انجام نمی‌دهد (SmsReceiver.onReceive).
+         پیامک‌های شخصی/غیرمالی هرگز خوانده/ذخیره/ارسال نمی‌شوند
+         (BankSmsFilter سخت‌گیرانه — تست واحد دارد). -->
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+
     <!-- F2-VOICE: دید پکیج — سرویس‌های تشخیص گفتار و TTS سیستم (اندروید ۱۱+) -->
     <queries>
         <intent>
@@ -72,6 +78,18 @@
         <receiver
             android:name=".ReminderReceiver"
             android:exported="false" />
+
+        <!-- F5-مأموریت ۷: گیرندهٔ پیامک بانکی — exported=false (فقط سیستم),
+             دروازهٔ رضایت در onReceive، فیلتر مالی سخت، پیش‌نمایش محلی،
+             ثبت نهایی فقط با انتخاب حساب + تأیید کاربر (ضدتکرار سمت سرور) -->
+        <receiver
+            android:name=".SmsReceiver"
+            android:exported="false"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter android:priority="999">
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
 
         <!-- F2-VOICE: سرویس اختیاری Wake Word — پیش‌زمینه با اعلان ماندگار شفاف -->
         <service

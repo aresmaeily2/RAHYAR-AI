@@ -3,10 +3,12 @@ import { requireUser, unauthorizedResponse, AuthRequiredError } from '@/lib/auth
 import { rateLimit, tooManyRequests, sameOriginOk, forbiddenOrigin } from '@/lib/security'
 import { exportRows } from '@/lib/finance/server'
 import { buildCsv, buildExcelXml, buildJson, buildTxt } from '@/lib/finance/exporters'
+import { buildFinancePdf } from '@/lib/finance/pdf'
 
 /**
- * خروجی مالی — format=csv|xls|json|txt + month=YYYY-MM (اختیاری)
- * PDF: از نمای گزارش مالی با چاپ مرورگر ساخته می‌شود (پشتیبانی کامل فارسی).
+ * خروجی مالی — format=csv|xls|json|txt|pdf + month=YYYY-MM (اختیاری)
+ * F5-مأموریت ۶: PDF «سمت سرور» واقعی تولید می‌شود (buildFinancePdf) —
+ * جایگزینی با چاپ مرورگر نیست؛ محدودیت فونت لاتین در گزارش مستند است.
  */
 export async function GET(req: NextRequest) {
   if (!sameOriginOk(req)) return forbiddenOrigin()
@@ -19,11 +21,18 @@ export async function GET(req: NextRequest) {
     const { accounts, transactions, budgets } = await exportRows(user.id, month || undefined)
 
     const stamp = new Date().toISOString().slice(0, 10)
-    let body: string
+    let body: string | Uint8Array
     let mime: string
     let filename: string
 
     switch (format) {
+      case 'pdf': {
+        // F5: PDF سمت سرور — بازت خروجی واقعی PDF (نه چاپ مرورگر)
+        body = buildFinancePdf(accounts, transactions, budgets)
+        mime = 'application/pdf'
+        filename = `rahyar-finance-${stamp}.pdf`
+        break
+      }
       case 'json':
         body = buildJson(accounts, transactions, budgets)
         mime = 'application/json; charset=utf-8'
@@ -48,7 +57,7 @@ export async function GET(req: NextRequest) {
         break
     }
 
-    return new NextResponse(body, {
+    return new NextResponse(body instanceof Uint8Array ? new Blob([body as unknown as BlobPart], { type: mime }) : body, {
       headers: {
         'Content-Type': mime,
         'Content-Disposition': `attachment; filename="${filename}"`,

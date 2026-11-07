@@ -17,10 +17,32 @@
 
 import type { LlmMessage } from '@/lib/ai'
 
-/** شناسه موتور فعال — ذخیره در تنظیمات کاربر (Setting: ai_engine) */
-export type AiEngineId = 'local_rules' | 'openai_compatible' | 'zai'
+/** شناسه موتور فعال — ذخیره در تنظیمات کاربر (Setting: ai_engine)
+ *  F5: ده موتور — سه موتور پایه + هفت Provider نام‌دار (مأموریت ۳) */
+export type AiEngineId =
+  | 'local_rules'
+  | 'openai_compatible'
+  | 'zai'
+  | 'openai'
+  | 'claude'
+  | 'gemini'
+  | 'deepseek'
+  | 'openrouter'
+  | 'ollama'
+  | 'lmstudio'
 
-export const AI_ENGINE_IDS: AiEngineId[] = ['local_rules', 'openai_compatible', 'zai']
+export const AI_ENGINE_IDS: AiEngineId[] = [
+  'local_rules',
+  'openai_compatible',
+  'zai',
+  'openai',
+  'claude',
+  'gemini',
+  'deepseek',
+  'openrouter',
+  'ollama',
+  'lmstudio',
+]
 
 export function isAiEngineId(v: unknown): v is AiEngineId {
   return typeof v === 'string' && (AI_ENGINE_IDS as string[]).includes(v)

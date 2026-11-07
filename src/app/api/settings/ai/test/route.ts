@@ -1,15 +1,24 @@
-// POST /api/settings/ai/test — GRAND-F5: دکمهٔ «تست اتصال» تنظیمات
-// UI (settings-view.tsx) از ابتدا این مسیر را صدا می‌زد ولی مسیر وجود نداشت
-// (یافتهٔ ممیزی GRAND-F5/2-b#1). پیاده‌سازی روی testEndpoint() موجود.
-// گارد SSRF همان مسیر ذخیره: کاربر عادی فقط Endpoint عمومی (SEC-F1).
+// POST /api/settings/ai/test — F5: دکمهٔ «تست اتصال» برای هر ده موتور
+// تست واقعی سمت سرور: برای zai مدل میزبان؛ برای openai_compatible endpoint کاربر؛
+// برای هفت Provider نام‌دار آداپتور خودشان (OpenAI/DeepSeek/OpenRouter/Ollama/LM
+// Studio پروتکل OpenAI — Claude بومی — Gemini بومی).
+// نتیجهٔ هر Provider چه موفق چه ناموفق، صادقانه برمی‌گردد؛ «Provider غیرقابل
+// آزمایش هرگز VERIFIED نمی‌شود» — این مسیر همان مدرک آزمون است.
 import { NextRequest, NextResponse } from 'next/server'
 import { requireUser, unauthorizedResponse, AuthRequiredError } from '@/lib/auth'
 import { rateLimit, tooManyRequests, sameOriginOk, forbiddenOrigin, readJsonSafe } from '@/lib/security'
 import { testEndpoint } from '@/lib/ai/providers/openai-compatible'
 import { testHostedModel } from '@/lib/ai/providers/zai'
-import { validateEndpointUrl, endpointHostAllowed } from '@/lib/ai/providers/types'
+import { testClaude } from '@/lib/ai/providers/claude'
+import { testGemini } from '@/lib/ai/providers/gemini'
+import { isAiEngineId, validateEndpointUrl, endpointHostAllowed, type ProviderCallContext } from '@/lib/ai/providers/types'
+import { isPresetEngine, providerSettingKey } from '@/lib/ai/providers/presets'
+import { getProvider, loadPresetCtx } from '@/lib/ai/providers/registry'
+import { testOpenAiLike } from '@/lib/ai/providers/openai-like'
 import { getUserSetting, SETTING_KEYS } from '@/lib/server-settings'
 import { lookup } from 'node:dns/promises'
+
+export type TestResult = { ok: boolean; model: string; latencyMs: number; sample: string; error?: string }
 
 export async function POST(req: NextRequest) {
   if (!sameOriginOk(req)) return forbiddenOrigin()
@@ -22,6 +31,9 @@ export async function POST(req: NextRequest) {
       endpointUrl?: unknown
       endpointModel?: unknown
       endpointKey?: unknown
+      key?: unknown
+      model?: unknown
+      url?: unknown
       useSavedKey?: unknown
     } | null
 
@@ -31,7 +43,45 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(result)
     }
 
-    // اولویت: مقدار فرم → مقدار ذخیره‌شده
+    // ── Providerهای نام‌دار (F5) ──
+    if (isPresetEngine(body?.engine)) {
+      const id = body.engine
+      const presetCtx = await loadPresetCtx(user.id, id)
+      // اولویت: مقدار فرم → مقدار ذخیره‌شده
+      const formKey = typeof (body?.key ?? body?.endpointKey) === 'string' ? String(body.key ?? body.endpointKey).trim() : ''
+      const formModel = typeof (body?.model ?? body?.endpointModel) === 'string' ? String(body.model ?? body.endpointModel).trim() : ''
+      const formUrl = typeof (body?.url ?? body?.endpointUrl) === 'string' ? String(body.url ?? body.endpointUrl).trim() : ''
+      const ctx: ProviderCallContext = {
+        userId: user.id,
+        endpointUrl: formUrl || presetCtx.endpointUrl,
+        endpointKey: formKey || presetCtx.endpointKey,
+        endpointModel: formModel || presetCtx.endpointModel,
+      }
+      // SEC-F1: کاربر عادی فقط Endpoint عمومی (URL override هم‌سیاست ذخیره)
+      if (user.role !== 'OWNER' && formUrl) {
+        try {
+          const u = validateEndpointUrl(formUrl)
+          if (!u) return NextResponse.json({ ok: false, error: 'آدرس Endpoint نامعتبر است' })
+          const host = new URL(u).hostname.replace(/^\[|\]$/g, '')
+          const ips = await lookup(host, { all: true }).then((r) => r.map((x) => x.address)).catch(() => [] as string[])
+          if (!endpointHostAllowed(host, ips, false)) {
+            return NextResponse.json({ ok: false, error: 'آدرس خصوصی/داخلی فقط برای مالک مجاز است' })
+          }
+        } catch {
+          return NextResponse.json({ ok: false, error: 'آدرس Endpoint نامعتبر است' })
+        }
+      }
+      const provider = getProvider(id)
+      if (provider.id === 'claude') {
+        return NextResponse.json(await testClaude(ctx))
+      }
+      if (provider.id === 'gemini') {
+        return NextResponse.json(await testGemini(ctx))
+      }
+      return NextResponse.json(await testOpenAiLike(provider, ctx, id))
+    }
+
+    // ── openai_compatible (مسیر قبلی) ──
     const formUrl = typeof body?.endpointUrl === 'string' ? body.endpointUrl.trim() : ''
     const savedUrl = (await getUserSetting(user.id, SETTING_KEYS.aiEndpointUrl)) ?? ''
     const rawUrl = formUrl || savedUrl

@@ -42,6 +42,8 @@ public class HomeActivity extends Activity {
     private RahyarBridge bridge;
     private SplashView splash;
     private VoiceHelper voice;
+    /** F5: کد درخواست مجوز RECEIVE_SMS (مأموریت ۷) */
+    private static final int REQ_SMS = 4071;
 
     @SuppressLint("SetJavaScriptEnabled") // رابط محلی ما به JS نیاز دارد؛ مبدأ بسته است
     @Override
@@ -94,6 +96,40 @@ public class HomeActivity extends Activity {
                                 else stopService(i);
                             }
                         });
+                    }
+                },
+                /* F5-مأموریت ۷: واگذاری پیامک بانکی — رضایت/مجوز/صف پیش‌نمایش */
+                new RahyarBridge.SmsDelegate() {
+                    @Override public String smsState() {
+                        boolean consent = getSharedPreferences("rahyar_consents", MODE_PRIVATE)
+                                .getBoolean(SmsReceiver.KEY_CONSENT, false);
+                        boolean granted = checkSelfPermission(android.Manifest.permission.RECEIVE_SMS)
+                                == android.content.pm.PackageManager.PERMISSION_GRANTED;
+                        boolean asked = getSharedPreferences("rahyar_consents", MODE_PRIVATE)
+                                .getBoolean("sms_asked", false);
+                        String permission = granted ? "granted" : (asked ? "denied" : "never_asked");
+                        int pending = 0;
+                        try { pending = SmsReceiver.pendingQueue(HomeActivity.this).length(); } catch (Exception ignored) { }
+                        return "{\"supported\":true,\"consent\":" + consent
+                                + ",\"permission\":\"" + permission + "\",\"pending\":" + pending + "}";
+                    }
+                    @Override public void requestConsent() {
+                        runOnUiThread(new Runnable() {
+                            @Override public void run() {
+                                getSharedPreferences("rahyar_consents", MODE_PRIVATE)
+                                        .edit().putBoolean("sms_asked", true).apply();
+                                // رضایت فقط پس از granted در onSmsPermissionResult ثبت می‌شود
+                                requestPermissions(new String[]{android.Manifest.permission.RECEIVE_SMS}, REQ_SMS);
+                            }
+                        });
+                    }
+                    @Override public void revokeConsent() {
+                        getSharedPreferences("rahyar_consents", MODE_PRIVATE)
+                                .edit().putBoolean(SmsReceiver.KEY_CONSENT, false).apply();
+                        SmsReceiver.clearQueue(HomeActivity.this);
+                    }
+                    @Override public String pendingQueue() {
+                        return SmsReceiver.pendingQueue(HomeActivity.this).toString();
                     }
                 });
 
@@ -185,6 +221,16 @@ public class HomeActivity extends Activity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == MIC_PERMISSION_REQUEST && voice != null && grantResults.length > 0) {
             voice.onPermissionResult(grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED);
+        }
+        // F5-مأموریت ۷: رضایت پیامک بانکی فقط با granted واقعی ثبت می‌شود؛
+        // رد شدن = بدون رضایت (گیرنده هیچ پردازشی نمی‌کند)
+        if (requestCode == REQ_SMS && grantResults.length > 0) {
+            boolean granted = grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED;
+            getSharedPreferences("rahyar_consents", MODE_PRIVATE)
+                    .edit().putBoolean(SmsReceiver.KEY_CONSENT, granted).apply();
+            if (!granted) SmsReceiver.clearQueue(this);
+            if (web != null) web.evaluateJavascript(
+                    "window.dispatchEvent(new CustomEvent('rahyar_sms_state'))", null);
         }
     }
 

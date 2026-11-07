@@ -86,6 +86,24 @@ android {
         }
     }
 
+    // F5-مأموریت ۹ (fail-closed): خروجی unsigned هرگز با عنوان Release تحویل
+    // نمی‌شود — هر تسک Release بدون keystore معتبر با خطا متوقف می‌شود.
+    tasks.matching { it.name.startsWith('assemble') && it.name.contains('Release') }.configureEach {
+        it.doFirst {
+            if (!ksFile.exists()) {
+                throw new GradleException(
+                    'FAIL-CLOSED: keystore.properties not found — refusing to produce an UNSIGNED release APK. ' +
+                    'Provide android/keystore.properties (storeFile/storePassword/keyAlias/keyPassword) outside git, ' +
+                    'or build the debug variant for testing.'
+                )
+            }
+            def sf = rootProject.file(ksProps['storeFile'] ?: '')
+            if (!sf.exists()) {
+                throw new GradleException("FAIL-CLOSED: keystore file missing: ${ksProps['storeFile']}")
+            }
+        }
+    }
+
     lint {
         abortOnError false
         checkReleaseBuilds false

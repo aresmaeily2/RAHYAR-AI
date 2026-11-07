@@ -267,7 +267,18 @@
       wakeUnavailable: 'سرویس تشخیص گفتار روی این دستگاه نیست؛ Wake Word عملیاتی نمی‌شود.',
       vDeletedConfirm: 'حذف انجام شد.',
       vTypeHint: 'یا دستور را تایپ کن…', vSend: 'اجرا',
-      vMicOffHint: 'شنیدن صوتی روی این دستگاه در دسترس نیست — فرمان را تایپ کن.'
+      vMicOffHint: 'شنیدن صوتی روی این دستگاه در دسترس نیست — فرمان را تایپ کن.',
+      // F5-مأموریت ۷: پیامک بانکی
+      smsSec: 'پیامک بانکی',
+      smsDesc: 'با رضایت شما، پیامک‌های بانکی (واریز/برداشت/خرید) دریافت و به‌صورت پیش‌نمایش در اپ نشان داده می‌شوند. ثبت نهایی فقط با تأیید شما انجام می‌شود. پیامک‌های شخصی و غیرمالی هرگز خوانده یا ذخیره نمی‌شوند.',
+      smsConsent: 'رضایت دریافت پیامک بانکی',
+      smsPending: 'پیش‌نمایش‌های در انتظار تأیید',
+      smsNone: 'موردی در انتظار نیست.',
+      smsCommit: 'ثبت در مالی',
+      smsDiscard: 'رد',
+      smsCommitted: 'ثبت شد ✓',
+      smsPermissionDenied: 'مجوز پیامک داده نشد — بدون آن، هیچ پیامکی خوانده نمی‌شود.',
+      smsTypeIncome: 'واریز', smsTypeExpense: 'برداشت/خرید'
     },
     en: {
       mic: 'Microphone', micStart: 'Listen', micStop: 'Stop', listening: 'Listening…',
@@ -289,7 +300,18 @@
       wakeUnavailable: 'No speech service on this device; Wake Word cannot operate.',
       vDeletedConfirm: 'Deleted.',
       vTypeHint: 'or type a command…', vSend: 'Run',
-      vMicOffHint: 'Voice listening is unavailable on this device — type your command.'
+      vMicOffHint: 'Voice listening is unavailable on this device — type your command.',
+      // F5: bank SMS
+      smsSec: 'Bank SMS',
+      smsDesc: 'With your explicit consent, bank SMS (deposit/withdrawal/purchase) are received and shown as previews in the app. Nothing is recorded without your confirmation. Personal and non-financial SMS are never read or stored.',
+      smsConsent: 'Consent to receive bank SMS',
+      smsPending: 'Previews awaiting confirmation',
+      smsNone: 'Nothing pending.',
+      smsCommit: 'Record in finance',
+      smsDiscard: 'Discard',
+      smsCommitted: 'Recorded ✓',
+      smsPermissionDenied: 'SMS permission denied — without it no SMS is read.',
+      smsTypeIncome: 'Deposit', smsTypeExpense: 'Withdrawal/Purchase'
     }
   };
   function tv(k) { var d = I18NV[R.lang()] || I18NV.fa; return d[k] !== undefined ? d[k] : (I18NV.fa[k] || k); }
@@ -589,3 +611,146 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })();
+
+/* ═══ F5-مأموریت ۷: بخش پیامک بانکی در تنظیمات ═══
+ * رضایت صریح → دیالوگ مجوز سیستم RECEIVE_SMS → صف پیش‌نمایش محلی؛
+ * ثبت نهایی «فقط» با تأیید کاربر روی هر آیتم (اصلاح پیش از ثبت).
+ * لغو رضایت = توقف کامل پردازش + پاک‌شدن صف. */
+  (function () {
+    'use strict';
+    var R2 = window.RH;
+    if (!R2 || !R2.native) return;
+
+    function tv2(k) {
+      // همان نقشهٔ بلوک صوت در دسترس نیست؛ برچسب‌ها را دو زبانه همین‌جا نگه می‌داریم
+      var fa = {
+        smsSec: 'پیامک بانکی',
+        smsDesc: 'با رضایت شما، پیامک‌های بانکی (واریز/برداشت/خرید) دریافت و به‌صورت پیش‌نمایش نشان داده می‌شوند. ثبت نهایی فقط با تأیید شماست؛ پیامک شخصی/غیرمالی هرگز خوانده نمی‌شود.',
+        smsConsent: 'رضایت دریافت پیامک بانکی',
+        smsPending: 'پیش‌نمایش‌های در انتظار تأیید',
+        smsNone: 'موردی در انتظار نیست.',
+        smsCommit: 'ثبت در مالی',
+        smsDiscard: 'رد',
+        smsCommitted: 'ثبت شد ✓',
+        smsDenied: 'مجوز پیامک داده نشد — بدون آن هیچ پیامکی خوانده نمی‌شود.'
+      };
+      var en = {
+        smsSec: 'Bank SMS',
+        smsDesc: 'With your explicit consent, bank SMS are received and shown as previews. Nothing is recorded without your confirmation; personal SMS are never read.',
+        smsConsent: 'Consent to receive bank SMS',
+        smsPending: 'Previews awaiting confirmation',
+        smsNone: 'Nothing pending.',
+        smsCommit: 'Record in finance',
+        smsDiscard: 'Discard',
+        smsCommitted: 'Recorded ✓',
+        smsDenied: 'SMS permission denied — no SMS is read without it.'
+      };
+      var d = R2.lang() === 'en' ? en : fa;
+      return d[k] || k;
+    }
+
+    function queueToArray() {
+      try { return JSON.parse(R2.native.smsPending() || '[]'); } catch (e) { return []; }
+    }
+
+    function render() {
+      var box = document.getElementById('smsPendingList');
+      if (!box) return;
+      var q = queueToArray();
+      if (!q.length) { box.innerHTML = '<p style="opacity:.6;font-size:12px">' + tv2('smsNone') + '</p>'; return; }
+      box.innerHTML = '';
+      q.forEach(function (it, idx) {
+        var row = document.createElement('div');
+        row.style.cssText = 'border:1px solid #2a3c78;border-radius:10px;padding:8px;margin:6px 0;font-size:12px';
+        var type = it.type === 'income' ? tv2('smsTypeIncome') : tv2('smsTypeExpense');
+        row.innerHTML = '<b>' + (it.bank || it.sender) + '</b> — ' + type + ' ' + (it.amount > 0 ? it.amount : '?')
+          + '<div style="opacity:.75;margin:4px 0">' + String(it.body || '').slice(0, 90) + '</div>';
+        var ok = document.createElement('button');
+        ok.textContent = tv2('smsCommit');
+        ok.style.cssText = 'margin-left:6px;padding:4px 10px;border-radius:8px;border:1px solid #2a3c78;background:inherit;color:inherit';
+        ok.addEventListener('click', function () {
+          // ثبت واقعی در مالی محلی — همان سند finance که بقیهٔ اپ می‌خواند
+          var fin = R2.readDoc('finance', { items: [] });
+          var host = (fin && !Array.isArray(fin) && fin.items) ? fin : { items: [] };
+          host.items.push({
+            id: R2.uid(),
+            kind: it.type === 'income' ? 'income' : 'expense',
+            amount: it.amount > 0 ? it.amount : 0,
+            title: (it.bank || 'Bank SMS') + ' • ' + (it.sender || ''),
+            ts: it.ts ? new Date(it.ts).toISOString() : new Date().toISOString()
+          });
+          R2.putDoc('finance', host);
+          // حذف از صف
+          var rest = queueToArray().filter(function (x) { return x.h !== it.h; });
+          try { R2.native.putDoc('sms_queue', JSON.stringify({ items: rest })); } catch (e2) { }
+          // صف بومی را هم از مسیر خودش به‌روز کن (فقط نمایش دوباره)
+          render();
+          var s = document.getElementById('smsStateLine');
+          if (s) { s.textContent = tv2('smsCommitted'); setTimeout(function () { s.textContent = ''; }, 2500); }
+        });
+        var no = document.createElement('button');
+        no.textContent = tv2('smsDiscard');
+        no.style.cssText = 'margin-left:6px;padding:4px 10px;border-radius:8px;border:1px solid #2a3c78;background:inherit;color:inherit';
+        no.addEventListener('click', function () {
+          var rest = queueToArray().filter(function (x) { return x.h !== it.h; });
+          try { R2.native.putDoc('sms_queue', JSON.stringify({ items: rest })); } catch (e2) { }
+          render();
+        });
+        row.appendChild(ok); row.appendChild(no);
+        box.appendChild(row);
+      });
+    }
+
+    function injectSms() {
+      if (document.body.getAttribute('data-page') !== 'settings') return;
+      if (!R2.native.smsState || !R2.native.smsState.toString().match(/function/)) {
+        // پل بدون متد پیامک (نسخهٔ قدیمی بومی) — بخش مخفی می‌ماند
+      }
+      if (typeof R2.native.smsState !== 'function') return;
+      var st;
+      try { st = JSON.parse(R2.native.smsState()); } catch (e) { return; }
+      if (!st || st.supported !== true) return; // فقط در اپ اندروید واقعی
+      if (document.getElementById('smsSection')) { render(); return; }
+      var sec = document.createElement('section');
+      sec.id = 'smsSection';
+      sec.className = 'card';
+      sec.innerHTML = '<h2>' + tv2('smsSec') + '</h2>'
+        + '<p style="opacity:.8;font-size:12px">' + tv2('smsDesc') + '</p>'
+        + '<label style="display:flex;align-items:center;gap:8px;margin:8px 0">'
+        + '<input type="checkbox" id="smsConsent"' + (st.consent ? ' checked' : '') + '><span>' + tv2('smsConsent') + '</span></label>'
+        + '<div id="smsStateLine" style="font-size:12px;opacity:.8"></div>'
+        + '<h3 style="margin-top:10px;font-size:13px">' + tv2('smsPending') + '</h3>'
+        + '<div id="smsPendingList"></div>';
+      var main = document.querySelector('main');
+      if (main) main.appendChild(sec); else document.body.appendChild(sec);
+      document.getElementById('smsConsent').addEventListener('change', function (e) {
+        var on = e.target.checked;
+        if (on) {
+          // درخواست مجوز سیستم — ثبت رضایت فقط پس از granted در بومی انجام می‌شود
+          R2.native.smsRequestConsent();
+          setTimeout(function () {
+            try {
+              var st2 = JSON.parse(R2.native.smsState());
+              if (st2.permission === 'denied') document.getElementById('smsStateLine').textContent = tv2('smsDenied');
+              document.getElementById('smsConsent').checked = st2.consent === true;
+            } catch (e2) { }
+          }, 1200);
+        } else {
+          R2.native.smsRevokeConsent();
+        }
+        setTimeout(render, 300);
+      });
+      window.addEventListener('rahyar_sms_state', function () {
+        try {
+          var st3 = JSON.parse(R2.native.smsState());
+          document.getElementById('smsConsent').checked = st3.consent === true;
+        } catch (e) { }
+        render();
+      });
+      render();
+    }
+
+    function boot2() { injectSms(); }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot2);
+    else setTimeout(boot2, 0);
+  })();
