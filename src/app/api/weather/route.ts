@@ -41,22 +41,27 @@ async function geocode(city: string): Promise<Coords | null> {
   const key = city.trim().toLowerCase()
   const hit = geoCache.get(key)
   if (hit) return hit
-  try {
-    const res = await fetch(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=fa&format=json`,
-      { signal: AbortSignal.timeout(OPEN_METEO_TIMEOUT) },
-    )
-    if (!res.ok) return null
-    const d = (await res.json()) as { results?: Array<{ latitude: number; longitude: number; name: string }> }
-    const r = d.results?.[0]
-    if (!r) return null
-    const c: Coords = { lat: r.latitude, lon: r.longitude, name: r.name }
-    setBounded(geoCache, key, c)
-    return c
-  } catch (e) {
-    console.error('weather geocode failed:', e instanceof Error ? e.message : e)
-    return null
+  // F5: دو تلاش — اول با زبان فارسی، سپس با زبان انگلیسی (نام‌های انگلیسی
+  // بهتر ایندکس شده‌اند؛ مثال واقعی: "Tehran" با language=fa در یک فراخوانی
+  // نتیجه خالی داد و همان شهر با language=en پیدا شد)
+  for (const lang of ['fa', 'en'] as const) {
+    try {
+      const res = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=${lang}&format=json`,
+        { signal: AbortSignal.timeout(OPEN_METEO_TIMEOUT) },
+      )
+      if (!res.ok) continue
+      const d = (await res.json()) as { results?: Array<{ latitude: number; longitude: number; name: string }> }
+      const r = d.results?.[0]
+      if (!r) continue
+      const c: Coords = { lat: r.latitude, lon: r.longitude, name: r.name }
+      setBounded(geoCache, key, c)
+      return c
+    } catch (e) {
+      console.error('weather geocode failed:', e instanceof Error ? e.message : e)
+    }
   }
+  return null
 }
 
 async function fetchWeather(c: Coords): Promise<WeatherData | null> {

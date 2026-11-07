@@ -9,7 +9,17 @@ import { rateLimit, tooManyRequests, sameOriginOk, forbiddenOrigin } from '@/lib
  * برای اشتراک‌گذاری/پشتیبان ارسال کند. کلید از خروجی حذف می‌شود.
  */
 // F-6 (R2): URL اندپوینت مدل هم پیکربندی شخصی است — از خروجی پرتابل حذف می‌شود
+/**
+ * RT-3 (اصلاح Red Team) + F5 (مأموریت ۱۳): همهٔ رازها/پیکربندی شخصی مدل از
+ * خروجی پرتابل حذف می‌شوند — کلید endpoint قدیمی + کلیدهای Providerهای نام‌دار
+ * جدید (ai_key:openai، ai_key:claude، …) + URLهای اختصاصی. F5Capabilities
+ * (G5) با آزمون واقعی نشت کلید جدید را یافته بود — این اصلاح همان است.
+ */
 const SECRET_SETTING_KEYS = new Set(['ai_endpoint_key', 'ai_endpoint_url'])
+
+function isSecretSetting(key: string): boolean {
+  return SECRET_SETTING_KEYS.has(key) || key.startsWith('ai_key:') || key.startsWith('ai_url:')
+}
 
 /**
  * خروجی داده کاربر — JSON خوانا از همه محتوای خودش:
@@ -42,7 +52,7 @@ export async function GET(req: NextRequest) {
       memories,
       chat,
       finance: { accounts, transactions },
-      settings: settings.filter((s) => !SECRET_SETTING_KEYS.has(s.key)),
+      settings: settings.filter((s) => !isSecretSetting(s.key)),
     }
 
     const stamp = new Date().toISOString().slice(0, 10)

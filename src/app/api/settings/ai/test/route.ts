@@ -43,6 +43,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(result)
     }
 
+    // F5: موتور قواعد محلی — بدون شبکه؛ همیشه آماده است (پاسخ فوری صادقانه)
+    if (body?.engine === 'local_rules') {
+      return NextResponse.json({ ok: true, model: 'local_rules', latencyMs: 0, sample: 'موتور قواعد محلی فعال است' })
+    }
+
     // ── Providerهای نام‌دار (F5) ──
     if (isPresetEngine(body?.engine)) {
       const id = body.engine
