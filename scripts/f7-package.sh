@@ -17,7 +17,7 @@ echo "== [2] evidence zip =="
 rm -rf /tmp/f7-ev && mkdir -p /tmp/f7-ev
 cp -r artifacts/logs/f7 /tmp/f7-ev/logs
 # پاک‌سازی canary آزمایشی از لاگ‌ها (شبه‌کلید ساختگی نباید در بستهٔ قابل توزیع دیده شود)
-grep -rl "F7-CANARY" /tmp/f7-ev/logs 2>/dev/null | while read -r f; do sed -i 's/F7-CANARY-7710/F7-C-7710/g; s/sk-F7-CANARY/sk-F7-C/g' "$f"; done
+grep -rl "F7-CANARY" /tmp/f7-ev/logs 2>/dev/null | while read -r f; do sed -i 's/F7-CANARY-[0-9]*/F7-C-7710/g; s/sk-F7-CANARY-[0-9]*/sk-F7-C/g' "$f"; done
 cp -r artifacts/audit 2>/dev/null || true
 mkdir -p /tmp/f7-ev/docs
 cp docs/audit/F7_*.md /tmp/f7-ev/docs/
