@@ -10,7 +10,7 @@ const fs = require('fs')
 const path = require('path')
 const AXE = require('axe-core')
 
-const BASE = 'http://localhost:3000'
+const BASE = 'http://127.0.0.1:3001'
 const SHOTS = '/home/z/my-project/download/screenshots/grand'
 const CRED = '/home/z/my-project/artifacts/gu2/owner-credentials.txt'
 fs.mkdirSync(SHOTS, { recursive: true })

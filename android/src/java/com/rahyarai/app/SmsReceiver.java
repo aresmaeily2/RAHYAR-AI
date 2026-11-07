@@ -40,12 +40,13 @@ public class SmsReceiver extends BroadcastReceiver {
     public void onReceive(Context ctx, Intent intent) {
         // 1) دروازهٔ رضایت — بدون رضایت هیچ، حتی خواندن
         if (!ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_CONSENT, false)) {
+            android.util.Log.i("RahyarSms", "consent=off — no processing");
             return;
         }
         if (!"android.provider.Telephony.SMS_RECEIVED".equals(intent.getAction())) return;
 
-        Object[] pdus = (Object[]) intent.getExtras() == null ? null
-                : (Object[]) intent.getExtras().get("pdus");
+        android.os.Bundle ext = intent.getExtras();
+        Object[] pdus = ext == null ? null : (Object[]) ext.get("pdus");
         if (pdus == null) return;
 
         for (Object pdu : pdus) {
@@ -63,10 +64,14 @@ public class SmsReceiver extends BroadcastReceiver {
 
     static void handleSms(Context ctx, String sender, String body, long tsMillis) {
         if (sender == null || body == null) return;
-        // 2) فیلتر مالی سخت — قبل از هر ذخیره/ارسالی
-        if (!BankSmsFilter.isCandidate(sender, body)) return;
-
+        // 2) فیلتر مالی سخت — قبل از هر ذخیره/ارسالی (لاگ فقط تصمیم، بدون متن)
+        if (!BankSmsFilter.isCandidate(sender, body)) {
+            android.util.Log.i("RahyarSms", "filtered: personal/non-financial (no storage, no send)");
+            return;
+        }
         BankSmsFilter.Parsed p = BankSmsFilter.parse(body);
+        android.util.Log.i("RahyarSms", "candidate accepted: bank=" + (p.bank == null ? "?" : p.bank)
+                + " type=" + p.type + " amountKnown=" + (p.amount > 0));
 
         // 3) ضدتکرار محلی — همان پیامک دوباره صف نمی‌شود
         String hash = String.valueOf((sender + "|" + body).hashCode());
@@ -100,6 +105,7 @@ public class SmsReceiver extends BroadcastReceiver {
 
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                 .edit().putString(KEY_PENDING, q.toString()).apply();
+        android.util.Log.i("RahyarSms", "queued preview, queue-size=" + q.length());
 
         // 4) اعلان پیش‌نمایش (بدون ثبت؛ ثبت فقط با تأیید کاربر)
         notifyPreview(ctx, p, body);

@@ -26,14 +26,14 @@ public final class BankSmsFilter {
         }
     }
 
-    /** شمارهٔ موبایل شخصی؟ (09… یا +989…) — همیشه کنار گذاشته می‌شود */
+    /** شمارهٔ موبایل شخصی؟ (09… یا +989…/00989… — صفر ملی در فرم بین‌المللی حذف می‌شود) */
     public static boolean isPersonalMobileSender(String sender) {
         if (sender == null) return false;
         String s = sender.trim().replace(" ", "");
         if (s.startsWith("+")) s = s.substring(1);
         if (s.startsWith("0098")) s = s.substring(4);
-        if (s.startsWith("98") && s.length() == 12) s = s.substring(2);
-        return s.matches("09\\d{9}");
+        else if (s.startsWith("98") && s.length() >= 11) s = s.substring(2);
+        return s.matches("09\\d{9}") || s.matches("9\\d{9}");
     }
 
     /**

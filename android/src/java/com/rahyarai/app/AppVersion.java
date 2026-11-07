@@ -10,8 +10,8 @@ package com.rahyarai.app;
  * هویت بصری رهیار و نشان دو‌تقویمی در همین نسخه اضافه شده‌اند.
  */
 public final class AppVersion {
-    public static final String NAME = "2.1.0";
-    public static final int CODE = 21;
+    public static final String NAME = "2.2.0";
+    public static final int CODE = 23;
     public static final String PACKAGE_ID = "com.rahyarai.app";
 
     private AppVersion() {}
