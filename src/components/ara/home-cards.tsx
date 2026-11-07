@@ -85,6 +85,8 @@ interface WeatherDataT {
   code: number
   city: string
   isDay: boolean
+  /** F6-WX-2: زمان آخرین به‌روزرسانی از سرور (ISO) */
+  updatedAt?: string
 }
 
 /** کش کلاینت — ۱۰ دقیقه؛ از واکشی مجدد در هر سوییچ نما جلوگیری می‌کند */
@@ -168,6 +170,15 @@ export function WeatherChip() {
       <WeatherIcon code={w.code} isDay={w.isDay} />
       <span className="tnum" data-num>{formatNum(w.temp, lang)}°</span>
       <span className="text-muted-foreground">{w.city}</span>
+      {w.updatedAt ? (
+        <span
+          className="text-muted-foreground tnum opacity-70"
+          data-num
+          title={t('آخرین به‌روزرسانی')}
+        >
+          · {new Date(w.updatedAt).toLocaleTimeString(lang === 'fa' ? 'fa-IR' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}
+        </span>
+      ) : null}
     </motion.span>
   )
 }

@@ -33,6 +33,8 @@ interface WeatherData {
   temp: number
   code: number
   isDay: boolean
+  /** F6: زمان آخرین به‌روزرسانی (ISO) — کش TTL ۳۰ دقیقه‌ای را برای کاربر شفاف می‌کند */
+  updatedAt?: string
 }
 
 const OPEN_METEO_TIMEOUT = 4000
@@ -61,6 +63,29 @@ async function geocode(city: string): Promise<Coords | null> {
       console.error('weather geocode failed:', e instanceof Error ? e.message : e)
     }
   }
+  // F6-WX-1: geocoder متاآب‌وهوا نام‌های غیرلاتین (مثل «تهران») را ایندکس نمی‌کند
+  // (یافتهٔ آزمون واقعی F6: شهر فارسی با کش سرد 404 می‌داد). Fallback صادقانه:
+  // wttr.in خودش مکان را حل می‌کند؛ اگر آن هم نشد، همان 404 صادقانه.
+  try {
+    const res = await fetch(`https://wttr.in/${encodeURIComponent(city.trim())}?format=j1`, {
+      signal: AbortSignal.timeout(OPEN_METEO_TIMEOUT + 2000),
+    })
+    if (res.ok) {
+      const d = (await res.json()) as {
+        nearest_area?: Array<{ latitude?: number | string; longitude?: number | string; areaName?: Array<{ value?: string }> }>
+      }
+      const a = d.nearest_area?.[0]
+      const lat = Number(a?.latitude)
+      const lon = Number(a?.longitude)
+      if (a && Number.isFinite(lat) && Number.isFinite(lon)) {
+        const c: Coords = { lat, lon, name: a.areaName?.[0]?.value ?? city.trim() }
+        setBounded(geoCache, key, c)
+        return c
+      }
+    }
+  } catch (e) {
+    console.error('weather wttr-geocode failed:', e instanceof Error ? e.message : e)
+  }
   return null
 }
 
@@ -82,6 +107,7 @@ async function fetchWeather(c: Coords): Promise<WeatherData | null> {
           temp: Math.round(d.current.temperature_2m),
           code: d.current.weather_code,
           isDay: d.current.is_day === 1,
+          updatedAt: new Date().toISOString(),
         }
         setBounded(weatherCache, wKey, { at: Date.now(), data })
         return data
@@ -104,6 +130,7 @@ async function fetchWeather(c: Coords): Promise<WeatherData | null> {
       if (cur && cur.temp_C !== undefined) {
         const data: WeatherData = {
           city: c.name,
+          updatedAt: new Date().toISOString(),
           temp: Math.round(Number(cur.temp_C)),
           code: wttrCodeToWmo(Number(cur.weatherCode ?? '113')),
           isDay: wttrIsDay(cur.observation_time, d.weather?.[0]?.astronomy?.[0]),
