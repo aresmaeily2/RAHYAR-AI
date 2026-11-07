@@ -125,7 +125,8 @@ ${activeTasksList(tasks)}
 - اطلاعات مهم و ماندگار درباره کاربر («من گیته خورم»، «جلسه‌هایم شنبه‌هاست») → remember با fact کوتاه. اگر کاربر خواست چیزی را فراموش کنی → forget با بخشی از همان متن. این کارها را بی‌سروصدا انجام بده و فقط اگر طبیعی بود به آن اشاره کن.
 - برای یادآوری («یادم بنداز...») → add_reminder با remindAt دقیق به شکل YYYY-MM-DDTHH:mm (به وقت تهران).
 - اگر برای رویداد/کارِ دارای ساعت خواست «X دقیقه/ساعت قبل یادآوری» → همان add_task را با remindBeforeMin (دقیقه، ۵ تا ۱۴۴۰) بفرست تا یادآور متصل خودکار ساخته شود؛ «یک ساعت قبل» یعنی remindBeforeMin: 60.
-- اگر کاربر درباره مخارج/درآمد سؤال آماری کرد («مخارج این هفته را جمع کن») → finance_summary با range: today|week|month (پیش‌فرض week). مالی فقط خواندنی است؛ ثبت تراکنش از چت انجام نمی‌شود.
+- اگر کاربر درباره مخارج/درآمد سؤال آماری کرد («مخارج این هفته را جمع کن») → finance_summary با range: today|week|month (پیش‌فرض week). گزارش مالی فقط خواندنی است.
+- اگر کاربر خواست هزینه/درآمدی ثبت شود («۷۰۰ هزار تومان هزینه خرید») → add_expense با dir و amount (تومان) و note. این اکشن هرگز مستقیم نمی‌نویسد؛ فقط پیشنهاد پندینگ می‌سازد و باید در reply از کاربر تأیید بگیری («تأیید می‌کنی؟»). تا قبل از «بله» هیچ ادعای ثبت‌شدن نکن.
 - اگر کاربر خواست پیامی آماده شود («یک پیام آماده کن و قبل از ارسال نشانم بده») → draft_message با recipient اختیاری و body کامل. این اکشن هرگز ارسال نمی‌کند — فقط پیش‌نویس نشان داده می‌شود؛ در reply هم صریح بگو ارسال با خود کاربر است.
 - اگر کار بزرگی ثبت کردی و شکستی، پیشنهاد بده آن را تجزیه کنیم؛ اگر موافقت کرد → breakdown_task.
 - اگر اطلاعات وب تازه (اخبار، قیمت، آب‌وهوا) در پیام سیستم ارائه شد، پاسخ را بر اساس همان بده و منابع را به‌صورت پیوند مارک‌داون در reply بیاور؛ هرگز منابع را از خودت نساز.
@@ -152,6 +153,7 @@ ${replyHint}
 {"type":"add_reminder","message":"...","remindAt":"YYYY-MM-DDTHH:mm"}
 {"type":"breakdown_task","taskId":"..."}
 {"type":"finance_summary","range":"today|week|month"}
+{"type":"add_expense","dir":"expense|income","amount":700000,"note":"خرید"}
 {"type":"draft_message","recipient":"...","body":"...","channel":"sms|telegram|whatsapp|email"}`
 }
 
@@ -624,6 +626,26 @@ export async function executeChatActions(
           const { agg, currency } = await financeSummaryFor(userId, range)
           await logAction({ userId, actionType: 'finance_summary', status: 'success', detail: `${range} count=${agg.count}` })
           results.push({ type: 'finance_summary', ok: true, summary: { range, expense: agg.expense, income: agg.income, net: agg.net, count: agg.count, currency, topCats: agg.topCats } })
+          break
+        }
+        case 'add_expense': {
+          // F7: پیشنهاد ثبت مالی — هرگز نوشتن مستقیم؛ پندینگ + تأیید کاربر
+          // (ماشین-وضعیتِ pending-action تنها مجرای نوشتن است — هم‌عرض مسیر قطعی)
+          const amount = Math.round(Number(a.amount))
+          if (!Number.isFinite(amount) || amount <= 0) {
+            results.push({ type: 'add_expense', ok: false, note: note('مبلغ نامعتبر بود', 'Invalid amount') })
+            await logAction({ userId, actionType: 'add_expense', status: 'failed', detail: 'invalid amount (model path)' })
+            break
+          }
+          const { setPendingAction } = await import('@/lib/assistant/pending-action')
+          await setPendingAction(userId, {
+            type: 'add_expense',
+            dir: a.dir === 'income' ? 'income' : 'expense',
+            amount,
+            note: (a.note ?? '').slice(0, 300) || undefined,
+          })
+          await logAction({ userId, actionType: 'add_expense', status: 'needs_confirmation', detail: 'model-proposed finance entry — awaiting explicit user confirmation' })
+          results.push({ type: 'add_expense', ok: true, pending: true })
           break
         }
         case 'draft_message': {

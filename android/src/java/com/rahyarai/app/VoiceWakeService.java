@@ -26,6 +26,11 @@ import java.util.ArrayList;
  *    هیچ بافر صدا ذخیره یا ارسال نمی‌شود؛ فقط عبارت بیدارباش دیده می‌شود.
  *  - روی دستگاه‌های بدون سرویس تشخیص گفتار، سرویس با وضعیت degraded می‌ماند
  *    (اعلان نشان می‌دهد) و بدون هیچ ادعای عملیاتی خاموش می‌شود.
+ *
+ * F7 (ایجنت ۲): باگ چرخهٔ شنود برطرف شد — پیش از این بعد از اولین onResults/onError
+ * شنونده هرگز دوباره شروع نمی‌شد (کامنت‌های «restartLoop» بی‌پیاده‌سازی بودند).
+ * اکنون: پس از هر پایان/خطا، شنونده با تأخیر محاسبه‌شدهٔ قطعی (backoff) دوباره
+ * شروع می‌شود؛ برای «اجازهٔ ناکافی» دوباره‌شروعی نمی‌کنیم (degrade صادقانه).
  */
 public final class VoiceWakeService extends Service {
 
@@ -34,11 +39,54 @@ public final class VoiceWakeService extends Service {
     /** عبارت‌های بیدارباش — fa و en */
     static final String[] WAKE_PHRASES = {"سلام رهیار", "سلام رهيار", "hey rahyar", "hi rahyar", "rahyar"};
 
-    private SpeechRecognizer recognizer;
+    /** کدهای خطای SpeechRecognizer — برای آزمون JVM و backoff */
+    static final int ERR_NETWORK_TIMEOUT = 1;
+    static final int ERR_NETWORK = 2;
+    static final int ERR_AUDIO = 3;
+    static final int ERR_SERVER = 4;
+    static final int ERR_CLIENT = 5;
+    static final int ERR_SPEECH_TIMEOUT = 6;
+    static final int ERR_NO_MATCH = 7;
+    static final int ERR_RECOGNIZER_BUSY = 8;
+    static final int ERR_INSUFFICIENT_PERMISSIONS = 9;
+
+    /** سقف backoff (ms) */
+    static final long RESTART_MAX_MS = 30_000;
+    /** تأخیر عادی چرخهٔ شنود (ms) */
+    static final long RESTART_QUICK_MS = 150;
+
+    private android.speech.SpeechRecognizer recognizer;
+    private volatile boolean destroyed = false;
+    private int consecutiveErrors = 0;
+    private final android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable restartTask = new Runnable() {
+        @Override public void run() { startListeningSafe(); }
+    };
+
+    /**
+     * F7 — تأخیر دوباره‌شروعیِ قطعی (خالص — JVM آزمون‌پذیر).
+     * خروجی -۱ = دوباره‌شروعی ممنوع (مثلاً اجازهٔ ناکافی).
+     */
+    static long nextRestartDelayMs(int errorCode, int consecutiveErrors) {
+        if (errorCode == ERR_INSUFFICIENT_PERMISSIONS) return -1;
+        if (errorCode == ERR_NO_MATCH || errorCode == ERR_SPEECH_TIMEOUT || errorCode == ERR_CLIENT) {
+            return RESTART_QUICK_MS; // پایان عادی چرخهٔ شنود
+        }
+        // خطای شبکه/سرور/صدا/مشغول — backoff نمایی تا سقف
+        long delay = 1_000;
+        for (int i = 0; i < Math.min(consecutiveErrors, 6); i++) delay *= 2;
+        return Math.min(delay, RESTART_MAX_MS);
+    }
 
     @Override
     public IBinder onBind(Intent intent) {
         return null;
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        destroyed = false;
     }
 
     @Override
@@ -82,7 +130,7 @@ public final class VoiceWakeService extends Service {
         if (recognizer != null) return;
         recognizer = SpeechRecognizer.createSpeechRecognizer(this);
         recognizer.setRecognitionListener(new RecognitionListener() {
-            @Override public void onReadyForSpeech(Bundle params) { /* آماده */ }
+            @Override public void onReadyForSpeech(Bundle params) { consecutiveErrors = 0; }
             @Override public void onBeginningOfSpeech() { /* شروع گفتار */ }
             @Override public void onRmsChanged(float rmsdB) { /* — */ }
             @Override public void onBufferReceived(byte[] buffer) { /* ذخیره/ارسال نمی‌شود */ }
@@ -104,10 +152,22 @@ public final class VoiceWakeService extends Service {
                         }
                     }
                 }
+                scheduleRestart(RESTART_QUICK_MS); // شنود پیوسته ادامه دارد
             }
-            @Override public void onError(int error) { /* در restartLoop */ }
-            @Override public void onResults(Bundle results) { /* در restartLoop */ }
+            @Override public void onError(int error) {
+                long d = nextRestartDelayMs(error, consecutiveErrors);
+                consecutiveErrors++;
+                scheduleRestart(d);
+            }
+            @Override public void onResults(Bundle results) {
+                scheduleRestart(RESTART_QUICK_MS); // پایان چرخه — دوباره گوش بده
+            }
         });
+        startListeningSafe();
+    }
+
+    private void startListeningSafe() {
+        if (destroyed || recognizer == null) return;
         Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
@@ -117,8 +177,18 @@ public final class VoiceWakeService extends Service {
         } catch (Exception ignored) { /* دستگاه بدون سرویس — degraded */ }
     }
 
+    /** زمان‌بندی دوباره‌شروعی — تأخیر -۱ یعنی ممنوع (degrade صادقانه) */
+    private void scheduleRestart(long delayMs) {
+        if (destroyed) return;
+        if (delayMs < 0) return;
+        main.removeCallbacks(restartTask);
+        main.postDelayed(restartTask, delayMs);
+    }
+
     @Override
     public void onDestroy() {
+        destroyed = true;
+        main.removeCallbacks(restartTask);
         if (recognizer != null) {
             try { recognizer.destroy(); } catch (Exception ignored) {}
             recognizer = null;

@@ -4,6 +4,7 @@ import { rateLimit, tooManyRequests, sameOriginOk, forbiddenOrigin } from '@/lib
 import { exportRows } from '@/lib/finance/server'
 import { buildCsv, buildExcelXml, buildJson, buildTxt } from '@/lib/finance/exporters'
 import { buildFinancePdf } from '@/lib/finance/pdf'
+import { renderFinancePdfFa } from '@/lib/finance/pdf-fa'
 
 /**
  * خروجی مالی — format=csv|xls|json|txt|pdf + month=YYYY-MM (اختیاری)
@@ -27,8 +28,20 @@ export async function GET(req: NextRequest) {
 
     switch (format) {
       case 'pdf': {
-        // F5: PDF سمت سرور — بازت خروجی واقعی PDF (نه چاپ مرورگر)
-        body = buildFinancePdf(accounts, transactions, budgets)
+        // F7 (Gate D): PDF فارسی راست‌چین با شکل‌دهی کامل (Chromium) — رفع
+        // مشکل «?» مأموریت F6. اگر محیط رندر در دسترس نبود، به سازندهٔ لاتین
+        // قبلی برمی‌گردد (fail-degraded صادقانه — محدودیت در پاسخ هدر اعلام می‌شود)
+        let faPdf: Buffer | null = null
+        try {
+          faPdf = await renderFinancePdfFa(accounts, transactions, budgets)
+        } catch {
+          faPdf = null
+        }
+        if (faPdf) {
+          body = faPdf
+        } else {
+          body = buildFinancePdf(accounts, transactions, budgets)
+        }
         mime = 'application/pdf'
         filename = `rahyar-finance-${stamp}.pdf`
         break

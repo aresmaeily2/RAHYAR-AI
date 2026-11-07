@@ -64,6 +64,15 @@ public class HomeActivity extends Activity {
         });
 
         store = new LocalStore(getFilesDir());
+        // F7 (ایجنت ۲): بازگرداندن Wake Word هنگام شروع اپ — فقط با رضایت ذخیره‌شدهٔ
+        // کاربر در پروفایل محلی؛ پیش‌فرض خاموش (هیچ شنود پنهانی شروع نمی‌شود)
+        if (BootReceiver.wakeEnabledFromProfileJson(store.get("profile"))) {
+            try {
+                android.content.Intent wake = new android.content.Intent(this, VoiceWakeService.class);
+                if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(wake);
+                else startService(wake);
+            } catch (Exception ignored) { /* بدون مجوز foreground — degrade صادقانه */ }
+        }
         bridge = new RahyarBridge(
                 new RahyarCore(store, AppVersion.NAME, AppVersion.CODE),
                 /* اشتراک پشتیبان: Share Sheet سیستم — بدون مجوز */

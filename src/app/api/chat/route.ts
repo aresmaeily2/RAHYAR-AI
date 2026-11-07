@@ -116,6 +116,19 @@ export async function POST(req: NextRequest) {
         await clearPendingAction(user.id)
         await logAction({ userId: user.id, actionType: pendingOp.type, status: 'canceled', detail: 'canceled by user (pending-action state machine)' })
         text = pick(lang, 'انصراف داده شد — هیچ تغییری اعمال نشد.', 'Canceled — nothing was changed.')
+      } else if (pendingOp.type === 'add_expense') {
+        // F7: مالی چندحسابی — حساب از متن تأیید تطبیق داده می‌شود؛ وگرنه دوباره پرسیده می‌شود
+        const { prepareExpenseExecution } = await import('@/lib/assistant/expense-flow')
+        const prepared = await prepareExpenseExecution(user.id, lang, pendingOp, message)
+        if (prepared && 'ask' in prepared) {
+          text = prepared.ask
+          const assistantMsg = await db.chatMessage.create({ data: { userId: user.id, role: 'assistant', content: text, actions: null } })
+          return NextResponse.json({ userMessage: serializeMessage(userMsg), assistantMessage: serializeMessage(assistantMsg), actions: [], mode: 'deterministic' })
+        }
+        const r = await executePendingAction(user.id, prepared!.op)
+        await clearPendingAction(user.id)
+        await logAction({ userId: user.id, actionType: 'add_expense', status: r.ok ? 'success' : 'failed', detail: 'finance write after explicit user confirmation (F7 lane)' })
+        text = pick(lang, r.fa, r.en)
       } else {
         const r = await executePendingAction(user.id, pendingOp)
         await clearPendingAction(user.id)
@@ -167,7 +180,18 @@ export async function POST(req: NextRequest) {
       })
       let reply = ''
       let actions: ChatAction[] = []
-      if (intent.kind === 'add_task') {
+      if (intent.kind === 'add_expense') {
+        // F7: فرمان مالی گفتاری/نوشتاری — هرگز Task نمی‌سازد؛ پیشنهاد تأییددار می‌سازد
+        const { proposeExpense } = await import('@/lib/assistant/expense-flow')
+        const prop = await proposeExpense(user.id, lang, intent.parsed)
+        reply = prop.reply
+        await logAction({
+          userId: user.id,
+          actionType: 'add_expense',
+          status: prop.pending ? 'needs_confirmation' : 'failed',
+          detail: pick(lang, 'مسیر قطعی مالی — در انتظار تأیید کاربر', 'Deterministic finance lane — awaiting user confirmation'),
+        })
+      } else if (intent.kind === 'add_task') {
         const p = intent.parsed
         const t = await db.task.create({
           data: {

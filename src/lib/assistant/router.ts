@@ -6,12 +6,18 @@
 // توابع خالص و آزمون‌پذیرند؛ اجرای اکشن در server-ai انجام می‌شود.
 
 import { parseQuickTask, type ParsedQuickTask } from '@/lib/nlp'
+import { parseExpensePhrase, type ParsedExpense } from '@/lib/assistant/expense'
+
+export type { ParsedExpense }
 
 /** محدودهٔ گزارش مالی — عین تعریف src/lib/finance/summary.ts (رویتر خالص می‌ماند) */
 export type FinanceRange = 'today' | 'week' | 'month'
 
 export type DeterministicIntent =
   | { kind: 'add_task'; parsed: ParsedQuickTask }
+  // F7: فرمان مالی گفتاری — «هزینه ۷۰۰ هزار تومان بابت خرید ثبت کن»
+  // هرگز نباید Task بسازد؛ مسیر تأییددار مالی می‌رود (پندینگ + تأیید صریح)
+  | { kind: 'add_expense'; parsed: ParsedExpense }
   | { kind: 'complete_task'; rawTitle: string }
   | { kind: 'daily_report' }
   | { kind: 'finance_report'; range: FinanceRange }
@@ -58,6 +64,11 @@ export function detectIntent(message: string): DeterministicIntent {
 
   // کمک/راهنما — قطعی و بدون مدل
   if (asksHelp && !asksAdd) return { kind: 'help' }
+
+  // F7: ثبت هزینه/درآمد — فقط وقتی اسم پولی + مبلغ هست و واژهٔ تجمیعی نیست؛
+  // پیش از گزارش مالی و ثبت کار سنجیده می‌شود (نوشتن فقط بعد از تأیید صریح کاربر)
+  const expense = parseExpensePhrase(text)
+  if (expense) return { kind: 'add_expense', parsed: expense }
 
   // F-AG1: گزارش مالی — قطعی با اعداد واقعی (محدوده پیش‌فرض: هفته)
   if (asksFinance && !asksAdd) {

@@ -194,6 +194,10 @@ public class MainActivity extends Activity {
         if (requestCode == REQ_NOTIFICATIONS) {
             // نتیجهٔ رضایت اعلان: اجازه = همگام‌سازی بعدی وب (۳۰ ثانیه بعد) به‌طور خودکار
             // زمان‌بندی می‌کند؛ رد = فقط هشدار درون‌برنامه‌ای (وب).
+        } else if (requestCode == 4701) { // F7: نتیجهٔ رضایت میکروفون — به رویداد وب
+            boolean granted = grantResults != null && grantResults.length > 0
+                    && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED;
+            if (voice != null) voice.onPermissionResult(granted);
         } else {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }

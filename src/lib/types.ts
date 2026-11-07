@@ -54,6 +54,8 @@ export type ChatAction =
   | { type: 'add_reminder'; ok: boolean; reminder?: ReminderT; note?: string }
   | { type: 'breakdown_task'; ok: boolean; task?: TaskT; note?: string }
   | { type: 'finance_summary'; ok: boolean; summary?: FinanceSummaryView; note?: string }
+  // F7: پیشنهاد ثبت مالی — pending=true یعنی منتظر تأیید صریح کاربر است
+  | { type: 'add_expense'; ok: boolean; pending?: boolean; note?: string }
   | {
       type: 'draft_message'
       ok: boolean

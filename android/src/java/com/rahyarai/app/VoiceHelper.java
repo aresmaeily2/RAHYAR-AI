@@ -117,6 +117,18 @@ public final class VoiceHelper implements RahyarBridge.VoiceDelegate {
     @Override
     public void startListening(String langBcp47) {
         if (listening.get()) stopListening();
+        // F7 (ایجنت ۲): مجوز میکروفون پیش‌شرط شنود است — بدون آن SpeechRecognizer فقط
+        // «خطای عمومی» می‌دهد؛ اکنون جریان رضایت صریح اجرا می‌شود (بدون شنود پنهانی)
+        String mic = micState();
+        if (!"granted".equals(mic)) {
+            if ("need_request".equals(mic)) {
+                requestMic(); // پاسخ در rahyar-voice-perm — وب دوباره تلاش می‌کند
+            } else {
+                emitError("denied");
+            }
+            emitEnd();
+            return;
+        }
         if (!SpeechRecognizer.isRecognitionAvailable(web.getContext())) {
             emitError("unavailable");
             emitEnd();

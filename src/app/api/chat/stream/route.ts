@@ -78,6 +78,32 @@ export async function POST(req: NextRequest) {
         await clearPendingAction(userId)
         await logAction({ userId, actionType: pendingOp.type, status: 'canceled', detail: 'canceled by user (pending-action state machine)' })
         text = pick(lang, 'انصراف داده شد — هیچ تغییری اعمال نشد.', 'Canceled — nothing was changed.')
+      } else if (pendingOp.type === 'add_expense') {
+        // F7: مالی چندحسابی — حساب از متن تأیید تطبیق داده می‌شود؛ وگرنه دوباره پرسیده می‌شود
+        const { prepareExpenseExecution } = await import('@/lib/assistant/expense-flow')
+        const prepared = await prepareExpenseExecution(userId, lang, pendingOp, message)
+        if (prepared && 'ask' in prepared) {
+          text = prepared.ask
+          const assistantMsg = await db.chatMessage.create({ data: { userId, role: 'assistant', content: text, actions: null } })
+          const encA = new TextEncoder()
+          const streamA = new ReadableStream({
+            start(controller) {
+              const send = (event: string, data: unknown) => {
+                controller.enqueue(encA.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`))
+              }
+              send('meta', { userMessageId: userMsg.id, searched: false })
+              send('done', { reply: text, actions: [], followups: [], sources: [], assistantId: assistantMsg.id })
+              controller.close()
+            },
+          })
+          return new Response(streamA, {
+            headers: { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive' },
+          })
+        }
+        const r = await executePendingAction(userId, prepared!.op)
+        await clearPendingAction(userId)
+        await logAction({ userId, actionType: 'add_expense', status: r.ok ? 'success' : 'failed', detail: 'finance write after explicit user confirmation (F7 lane)' })
+        text = pick(lang, r.fa, r.en)
       } else {
         const r = await executePendingAction(userId, pendingOp)
         await clearPendingAction(userId)
@@ -129,7 +155,18 @@ export async function POST(req: NextRequest) {
       })
       let reply = ''
       let actions: ChatAction[] = []
-      if (intent.kind === 'add_task') {
+      if (intent.kind === 'add_expense') {
+        // F7: فرمان مالی گفتاری/نوشتاری — هرگز Task نمی‌سازد؛ پیشنهاد تأییددار می‌سازد
+        const { proposeExpense } = await import('@/lib/assistant/expense-flow')
+        const prop = await proposeExpense(userId, lang, intent.parsed)
+        reply = prop.reply
+        await logAction({
+          userId,
+          actionType: 'add_expense',
+          status: prop.pending ? 'needs_confirmation' : 'failed',
+          detail: pick(lang, 'مسیر قطعی مالی — در انتظار تأیید کاربر', 'Deterministic finance lane — awaiting user confirmation'),
+        })
+      } else if (intent.kind === 'add_task') {
         const p = intent.parsed
         const t = await db.task.create({
           data: {

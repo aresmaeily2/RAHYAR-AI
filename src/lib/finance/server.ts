@@ -133,21 +133,36 @@ export async function createTransaction(userId: string, input: FinanceTxCreate) 
   }
 
   const occurred = input.occurredAt ? new Date(input.occurredAt) : new Date()
-  const tx = await db.financeTransaction.create({
-    data: {
-      userId,
-      type: input.type,
-      amount,
-      accountId: acc.id,
-      toAccountId: toId,
-      category: (input.category ?? 'other').slice(0, 30),
-      note: input.note ? String(input.note).slice(0, 300) : null,
-      occurredAt: Number.isNaN(occurred.getTime()) ? new Date() : occurred,
-      source: (input.source ?? 'manual').slice(0, 10),
-      externalRef: input.externalRef ?? null,
-    },
-    include: { account: { select: { name: true, kind: true } }, toAccount: { select: { name: true, kind: true } } },
-  })
+  let tx: Awaited<ReturnType<typeof db.financeTransaction.create>>
+  try {
+    tx = await db.financeTransaction.create({
+      data: {
+        userId,
+        type: input.type,
+        amount,
+        accountId: acc.id,
+        toAccountId: toId,
+        category: (input.category ?? 'other').slice(0, 30),
+        note: input.note ? String(input.note).slice(0, 300) : null,
+        occurredAt: Number.isNaN(occurred.getTime()) ? new Date() : occurred,
+        source: (input.source ?? 'manual').slice(0, 10),
+        externalRef: input.externalRef ?? null,
+      },
+      include: { account: { select: { name: true, kind: true } }, toAccount: { select: { name: true, kind: true } } },
+    })
+  } catch (e) {
+    // F7-FIN1 (minor→fixed): در هم‌زمانیِ واقعی، درج هم‌زمانِ یک externalRef یکتا
+    // خطای یکتایی SQLite می‌دهد — به‌جای HTTP 500، پاسخ صادقانهٔ duplicate برگردانده
+    // می‌شود (تساوی exactly-once با آزمون هم‌زمانی اثبات شده است).
+    if (input.externalRef && String((e as { code?: string })?.code ?? '').startsWith('P')) {
+      const dup = await db.financeTransaction.findFirst({
+        where: { userId, externalRef: input.externalRef },
+        select: { id: true },
+      })
+      if (dup) return { ...dup, duplicate: true } as { id: string; duplicate: boolean }
+    }
+    throw e
+  }
   return { ...tx, duplicate: false } as { id: string; duplicate: boolean }
 }
 

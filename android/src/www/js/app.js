@@ -243,7 +243,13 @@
     listening: false,
     busyTts: false,
     wakeOn: false,
-    bcp: function () { return R.lang() === 'en' ? 'en-US' : 'fa-IR'; }
+    // F7: زبان صوتی کاربر از پروفایل خوانده می‌شود (قبلاً تنظیم فقط ظاهری بود)
+    bcp: function () {
+      var p = R.profile ? R.profile() : null;
+      var vl = p && p.voiceLang;
+      if (vl === 'en' || vl === 'fa') return vl === 'en' ? 'en-US' : 'fa-IR';
+      return R.lang() === 'en' ? 'en-US' : 'fa-IR';
+    }
   };
 
   var I18NV = {
@@ -261,6 +267,7 @@
       vDate: 'امروز', vUnknown: 'این فرمان را متوجه نشدم. بگو «چیکار می‌تونی».',
       vHelp: 'می‌توانم وظیفه اضافه یا حذف کنم، یادآور بسازم، هزینه و درآمد ثبت کنم، گزارش مالی بدهم، برنامه امروز را بگویم و تاریخ امروز را بگویم.',
       vCancel: 'قطع شد.', confirmDelete: 'حذف شود؟', yes: 'بله', no: 'نه',
+      confirmFinance: 'ثبت شود؟', vCanceled: 'انصراف داده شد — هیچ چیزی ثبت نشد.',
       voiceSec: 'دستیار صوتی', voiceLang: 'زبان صوت', wake: 'فعال‌سازی «سلام رهیار» (Wake Word)',
       wakeDesc: 'با روشن‌کردن، سرویس پیش‌زمینه با اعلان ماندگار شفاف به عبارت «سلام رهیار» گوش می‌دهد و اپ را باز می‌کند. هیچ صدایی ذخیره یا ارسال نمی‌شود و هر زمان می‌توانی خاموش کنی.',
       privacy: 'صدا فقط با لمس میکروفون و فقط به سرویس گفتار سیستم‌عامل می‌رود؛ ذخیره یا ارسال پنهان صدا وجود ندارد.',
@@ -294,6 +301,7 @@
       vDate: 'Today is', vUnknown: 'I did not catch that. Say "what can you do".',
       vHelp: 'I can add or delete tasks, set reminders, record income and expenses, give a finance report, read today\'s plan and today\'s date.',
       vCancel: 'Stopped.', confirmDelete: 'Delete?', yes: 'Yes', no: 'No',
+      confirmFinance: 'Record this?', vCanceled: 'Canceled — nothing was recorded.',
       voiceSec: 'Voice assistant', voiceLang: 'Voice language', wake: 'Enable "Hey Rahyar" (Wake Word)',
       wakeDesc: 'When enabled, a foreground service with a persistent, transparent notification listens for "Hey Rahyar" and opens the app. No audio is stored or sent; turn off anytime.',
       privacy: 'Audio goes to the OS speech service only when you tap the mic; nothing is stored or silently sent.',
@@ -475,12 +483,21 @@
       arr2doc(R.KEYS.reminders, rarr);
       reply = tv('vReminderAdded') + ' ' + intent.title;
     } else if ((a === 'add_income' || a === 'add_expense') && intent.amount) {
-      var fin = R.readDoc('finance', { items: [] });
-      var farr = Array.isArray(fin) ? fin : (fin && Array.isArray(fin.items) ? fin.items : []);
-      var host = (fin && !Array.isArray(fin) && fin.items) ? fin : { items: [] };
-      host.items.push({ id: R.uid(), kind: a === 'add_income' ? 'income' : 'expense', amount: intent.amount, title: intent.title || '', ts: new Date().toISOString() });
-      R.putDoc('finance', host);
-      reply = (a === 'add_income' ? tv('vIncome') : tv('vExpense')) + ' ' + intent.amount + (intent.title ? ' — ' + intent.title : '');
+      // F7: عملیات مالی حساس است — هرگز بی‌تأیید صریح نوشته نمی‌شود
+      // (هم‌عرض مدل امنیتی وب: پندینگ + تأیید؛ لغو → هیچ تغییری)
+      var amtTxt = String(intent.amount);
+      var whatTxt = (a === 'add_income' ? tv('vIncome') : tv('vExpense')) + ' ' + amtTxt + (intent.title ? ' — ' + intent.title : '');
+      askConfirm(tv('confirmFinance') + ' «' + whatTxt + '»', function (yes) {
+        if (!yes) { setPanel('', '', tv('vCanceled')); return; }
+        var fin = R.readDoc('finance', { items: [] });
+        var farr = Array.isArray(fin) ? fin : (fin && Array.isArray(fin.items) ? fin.items : []);
+        var host = (fin && !Array.isArray(fin) && fin.items) ? fin : { items: [] };
+        host.items.push({ id: R.uid(), kind: a === 'add_income' ? 'income' : 'expense', amount: intent.amount, title: intent.title || '', ts: new Date().toISOString() });
+        R.putDoc('finance', host);
+        var r = whatTxt;
+        setPanel('', '', r); speak(r);
+      });
+      return;
     } else if (a === 'finance_report') {
       var fin2 = R.readDoc('finance', { items: [] });
       var items2 = Array.isArray(fin2) ? fin2 : (fin2 && fin2.items ? fin2.items : []);
@@ -579,8 +596,8 @@
       + '<label style="display:flex;align-items:center;gap:8px;margin:8px 0">'
       + '<span>' + tv('voiceLang') + '</span>'
       + '<select id="vLang" style="background:inherit;color:inherit;border:1px solid #2a3c78;border-radius:8px;padding:4px 8px">'
-      + '<option value="fa"' + (R.lang() === 'fa' ? ' selected' : '') + '>فارسی</option>'
-      + '<option value="en"' + (R.lang() === 'en' ? ' selected' : '') + '>English</option>'
+      + '<option value="fa"' + ((R.profile().voiceLang || R.lang()) === 'fa' ? ' selected' : '') + '>فارسی</option>'
+      + '<option value="en"' + ((R.profile().voiceLang || R.lang()) === 'en' ? ' selected' : '') + '>English</option>'
       + '</select></label>'
       + '<label style="display:flex;align-items:center;gap:8px;margin:8px 0">'
       + '<input type="checkbox" id="vWake"' + (wake ? ' checked' : '') + '><span>' + tv('wake') + '</span></label>'

@@ -110,15 +110,35 @@ export function listen(opts: {
       opts.onEnd?.()
     }
     addNativeVoiceListeners(onPartial, onFinal, onError, onEnd)
+    // F7: جریان رضایت میکروفون — اگر پل نیاز به درخواست مجوز داشت، دیالوگ سیستم
+    // باز می‌شود؛ پس از «granted» شنود دوباره شروع می‌شود، پس از «denied» خطای صادقانه
+    const onPerm = (e: Event) => {
+      const state = (e as CustomEvent<{ state?: string }>).detail?.state
+      window.removeEventListener('rahyar-voice-perm', onPerm)
+      if (state === 'granted' && !ended) {
+        try {
+          b.startVoiceRecognition(langBcp47(opts.lang))
+          return
+        } catch {
+          opts.onError?.('start-failed')
+        }
+      }
+      if (state === 'denied' && !ended) {
+        opts.onError?.('denied')
+      }
+    }
+    window.addEventListener('rahyar-voice-perm', onPerm)
     try {
       b.startVoiceRecognition(langBcp47(opts.lang))
     } catch {
+      window.removeEventListener('rahyar-voice-perm', onPerm)
       removeNativeVoiceListeners(onPartial, onFinal, onError, onEnd)
       opts.onError?.('start-failed')
       return null
     }
     return {
       stop: () => {
+        window.removeEventListener('rahyar-voice-perm', onPerm)
         try {
           b.stopVoiceRecognition()
         } catch {

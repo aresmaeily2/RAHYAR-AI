@@ -98,6 +98,15 @@ export const AssistantActionSchema = z.discriminatedUnion('type', [
     type: z.literal('finance_summary'),
     range: z.enum(['today', 'week', 'month']),
   }),
+  // F7: ثبت مالی تأییددار — مدل فقط «پیشنهاد» می‌سازد؛ نوشتن واقعی فقط پس از
+  // تأیید صریح کاربر (پندینگ + «بله») توسط ماشین-وضعیت انجام می‌شود. WRITE_TYPES
+  // شامل add_expense نیست ⇒ هرگز اثر بی‌تأیید ندارد؛ اما ادعای بدون اثر هم گارد می‌خورد.
+  z.object({
+    type: z.literal('add_expense'),
+    dir: z.enum(['expense', 'income']),
+    amount: z.number().positive().max(1e15),
+    note: z.string().max(300).optional(),
+  }),
   // F-AG2: پیش‌نویس پیام — هرگز ارسال نمی‌شود؛ ارسال واقعی فقط با خود کاربر.
   // این انتخاب امنیتی است: هیچ سرویس پیام‌رسان بیرونی در چرخهٔ عامل نیست.
   z.object({

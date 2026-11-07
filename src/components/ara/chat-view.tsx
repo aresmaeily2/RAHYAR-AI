@@ -235,10 +235,60 @@ export function ChatView() {
 
   // پایان خواندن بومی اندروید — پاک‌کردن نشانگر «در حال خواندن»
   useEffect(() => {
-    const onTtsDone = () => setSpeakingId(null)
+    const onTtsDone = () => {
+      if (ttsFailsafeRef.current) clearTimeout(ttsFailsafeRef.current)
+      setSpeakingId(null)
+    }
     window.addEventListener('rahyar-tts-done', onTtsDone)
     return () => window.removeEventListener('rahyar-tts-done', onTtsDone)
   }, [])
+
+  // F7 — ایمنی TTS: اگر رویداد «پایان خواندن» نیامد (TTS هنگ/موتور نبود)،
+  // نشانگر «در حال خواندن» پس از ۲۵ ثانیه خودش پاک می‌شود (مسیر بومی ۲۵s، وب ۲۰s)
+  const ttsFailsafeRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  function armTtsFailsafe(ms: number) {
+    if (ttsFailsafeRef.current) clearTimeout(ttsFailsafeRef.current)
+    ttsFailsafeRef.current = setTimeout(() => setSpeakingId(null), ms)
+  }
+  function clearTtsFailsafe() {
+    if (ttsFailsafeRef.current) {
+      clearTimeout(ttsFailsafeRef.current)
+      ttsFailsafeRef.current = null
+    }
+  }
+
+  /** کد خطای تشخیص گفتار → پیام محلی‌شده (F7: کد خام انگلیسی به کاربر نشان داده نمی‌شود) */
+  function voiceErrorText(code: string): string {
+    const fa: Record<string, string> = {
+      'no-speech': 'صدایی شنیده نشد — دوباره تلاش کن',
+      'no_match': 'متن گفتاری تشخیص داده نشد — واضح‌تر بگو',
+      'network': 'شبکه در دسترس نیست — تشخیص گفتار آنلاین به اینترنت نیاز دارد',
+      'not-allowed': 'اجازهٔ میکروفون داده نشد — از تنظیمات مرورگر/دستگاه فعالش کن',
+      'service-not-allowed': 'سرویس تشخیص گفتار در دسترس نیست',
+      'audio-capture': 'میکروفون پیدا نشد',
+      'aborted': 'شنیدن لغو شد',
+      'busy': 'موتور گفتار مشغول است — لحظه‌ای بعد دوباره تلاش کن',
+      'denied': 'اجازهٔ میکروفون داده نشد',
+      'start-failed': 'شروع شنیدن ناموفق بود — دوباره تلاش کن',
+      'unavailable': 'سرویس تشخیص گفتار دستگاه در دسترس نیست',
+    }
+    const en: Record<string, string> = {
+      'no-speech': 'No speech heard — try again',
+      'no_match': 'Speech was not recognized — try speaking more clearly',
+      'network': 'Network unavailable — online speech recognition needs internet',
+      'not-allowed': 'Microphone permission denied — enable it in settings',
+      'service-not-allowed': 'Speech recognition service is not available',
+      'audio-capture': 'No microphone found',
+      'aborted': 'Listening was canceled',
+      'busy': 'Speech engine is busy — try again shortly',
+      'denied': 'Microphone permission denied',
+      'start-failed': 'Failed to start listening — try again',
+      'unavailable': 'Device speech recognition service is unavailable',
+    }
+    const key = fa[code] ? code : code.toLowerCase()
+    const msg = (langRef.current === 'en' ? en[key] : fa[key]) ?? (langRef.current === 'en' ? `Voice error (${code})` : `خطای صوتی (${code})`)
+    return msg
+  }
 
   /** خروجی صوتی — در اپ اندروید با TTS بومی، در مرورگر با Web Speech Synthesis */
   function speak(text: string, id: string) {
@@ -246,12 +296,14 @@ export function ChatView() {
       if (nativeTtsAvailable()) {
         if (speakingId === id) {
           nativeB()?.stopSpeaking()
+          clearTtsFailsafe()
           setSpeakingId(null)
           return
         }
         window.speechSynthesis?.cancel()
         nativeB()?.speak(speechText(text), langBcp47(langRef.current))
         setSpeakingId(id)
+        armTtsFailsafe(25_000) // F7: اگر rahyar-tts-done نیامد، نشانگر پاک می‌شود
         return
       }
       const synth = window.speechSynthesis
@@ -261,6 +313,7 @@ export function ChatView() {
       }
       if (speakingId === id) {
         synth.cancel()
+        clearTtsFailsafe()
         setSpeakingId(null)
         return
       }
@@ -270,11 +323,19 @@ export function ChatView() {
       u.rate = 1.02
       const voice = synth.getVoices().find((v) => v.lang.toLowerCase().startsWith(langRef.current))
       if (voice) u.voice = voice
-      u.onend = () => setSpeakingId(null)
-      u.onerror = () => setSpeakingId(null)
+      u.onend = () => {
+        clearTtsFailsafe()
+        setSpeakingId(null)
+      }
+      u.onerror = () => {
+        clearTtsFailsafe()
+        setSpeakingId(null)
+      }
       setSpeakingId(id)
+      armTtsFailsafe(20_000) // F7: اگر onend نیامد، نشانگر پاک می‌شود
       synth.speak(u)
     } catch {
+      clearTtsFailsafe()
       setSpeakingId(null)
     }
   }
@@ -505,7 +566,7 @@ export function ChatView() {
       onEnd: () => setListening(false),
       onError: (code) => {
         setListening(false)
-        if (code) toast.error(`voice: ${code}`)
+        if (code) toast.error(voiceErrorText(code))
       },
     })
     if (!session) {

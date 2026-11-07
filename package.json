@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
-    "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
+    "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/ && mkdir -p .next/standalone/scripts && cp scripts/pdf-render.mjs .next/standalone/scripts/",
     "start": "NODE_ENV=production bun .next/standalone/server.js",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
