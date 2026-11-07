@@ -79,13 +79,13 @@
             android:name=".ReminderReceiver"
             android:exported="false" />
 
-        <!-- F5-مأموریت ۷: گیرندهٔ پیامک بانکی — exported=false (فقط سیستم),
-             دروازهٔ رضایت در onReceive، فیلتر مالی سخت، پیش‌نمایش محلی،
-             ثبت نهایی فقط با انتخاب حساب + تأیید کاربر (ضدتکرار سمت سرور) -->
+        <!-- F5-مأموریت ۷: گیرندهٔ پیامک بانکی — exported=true (الزام تحویل
+             SMS_RECEIVED از فرایند telephony) پیامک SMS_RECEIVED در AOSP محافظت‌شده است (فellet
+             سیستم می‌تواند بفرستد) + دروازهٔ رضایت صریح در onReceive؛ بدون رضایت هیچ.
+             فیلتر مالی سخت، پیش‌نمایش محلی، ثبت فقط با تأیید کاربر. -->
         <receiver
             android:name=".SmsReceiver"
-            android:exported="false"
-            android:permission="android.permission.BROADCAST_SMS">
+            android:exported="true">
             <intent-filter android:priority="999">
                 <action android:name="android.provider.Telephony.SMS_RECEIVED" />
             </intent-filter>

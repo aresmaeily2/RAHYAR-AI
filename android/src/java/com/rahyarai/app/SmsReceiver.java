@@ -38,6 +38,8 @@ public class SmsReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context ctx, Intent intent) {
+        // ابزارسنجی ورود — فقط action (بدون محتوای پیامک)
+        android.util.Log.i("RahyarSms", "onReceive action=" + (intent == null ? "null" : intent.getAction()));
         // 1) دروازهٔ رضایت — بدون رضایت هیچ، حتی خواندن
         if (!ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_CONSENT, false)) {
             android.util.Log.i("RahyarSms", "consent=off — no processing");
