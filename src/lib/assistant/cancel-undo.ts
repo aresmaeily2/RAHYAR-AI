@@ -30,11 +30,35 @@ type UnknownAction = {
   task?: { id?: string; title?: string }
 }
 
-/** استخراج آخرین اکشنِ ثبتِ فوریِ قابل‌لغو از آرایهٔ اکشن‌های پیام — خالص */
+/**
+ * V1-P2 (یافتهٔ آزمون زندهٔ P8): مسیر مدل اکشن‌ها را به‌صورت رشتهٔ JSONِ یک شیء
+ * wrapper به شکل { actions: [...], followups: [...], sources: [...] } ذخیره می‌کند
+ * (src/app/api/chat/route.ts — JSON.stringify({ actions, followups, sources })).
+ * نسخهٔ قبلی extractUndoable فقط آرایهٔ خام می‌پذیرفت → undo در مسیر زنده هرگز
+ * فعال نمی‌شد و مدل آزاد بود ادعای حذفِ بدونِ اثر کند (نقصِ اصلی P8).
+ * اکنون: آرایهٔ خام / wrapper-object / رشتهٔ JSON — هر سه پذیرفته می‌شود.
+ */
+function coerceActionsArray(raw: unknown): unknown[] | null {
+  if (Array.isArray(raw)) return raw
+  if (typeof raw === 'string') {
+    try {
+      return coerceActionsArray(JSON.parse(raw))
+    } catch {
+      return null
+    }
+  }
+  if (raw && typeof raw === 'object' && Array.isArray((raw as { actions?: unknown }).actions)) {
+    return (raw as { actions: unknown[] }).actions
+  }
+  return null
+}
+
+/** استخراج آخرین اکشنِ ثبتِ فوریِ قابل‌لغو از اکشن‌های پیام (هر شکل ذخیره) — خالص */
 export function extractUndoable(actions: unknown): UndoableTarget | null {
-  if (!Array.isArray(actions)) return null
-  for (let i = actions.length - 1; i >= 0; i--) {
-    const a = actions[i] as UnknownAction
+  const list = coerceActionsArray(actions)
+  if (!list) return null
+  for (let i = list.length - 1; i >= 0; i--) {
+    const a = list[i] as UnknownAction
     if (!a || typeof a !== 'object' || a.ok !== true) continue
     if (a.type === 'add_reminder' && a.reminder && typeof a.reminder.id === 'string' && a.reminder.id) {
       return { kind: 'reminder', id: a.reminder.id, label: a.reminder.message || '' }
@@ -55,6 +79,28 @@ export function undoReply(lang: AppLang, target: UndoableTarget): string {
   return pick(lang, `انصراف داده شد — کار «${label}» که تازه ثبت شده بود حذف شد.`, `Canceled — the task “${label}” that was just added has been removed.`)
 }
 
+/**
+ * V1-P2 (یافتهٔ آزمون زندهٔ P8 — معیار مالک: «عملیات تکراری باعث حذف رکورد دیگر نشود»):
+ * اگر آخرین ثبتِ قابل‌لغو قبلاً حذف/لغو شده باشد، لغوِ دوباره باید صادقانه بگوید
+ * «چیزی برای لغو نیست» — هرگز به سراغ ثبت‌های قدیمی‌تر نرود و چیزی را حذف نکند.
+ */
+export function nothingToUndoReply(lang: AppLang): string {
+  return pick(
+    lang,
+    'چیزی برای انصراف نبود — آخرین ثبتِ تازه قبلاً لغو شده یا وجود ندارد. هیچ تغییری اعمال نشد.',
+    'Nothing to cancel — your most recent addition was already canceled or no longer exists. No changes were made.',
+  )
+}
+
+/** انتخاب «آخرین» هدفِ قابل‌لغو از نامزدهای مرتب‌شدهٔ نزولی — خالص؛ اولین نامزدِ دارای اکشن قابل‌لغو برنده است */
+export function pickMostRecentUndoable(candidates: Array<{ actions: unknown }>): UndoableTarget | null {
+  for (const m of candidates) {
+    const t = extractUndoable(m.actions)
+    if (t) return t
+  }
+  return null
+}
+
 /** آیا این پیام، انصرافِ کوتاهِ قابل‌undo است؟ — خالص */
 export function isShortCancel(message: string): boolean {
   if (message.length > MAX_CANCEL_LEN) return false
@@ -63,7 +109,10 @@ export function isShortCancel(message: string): boolean {
 
 /**
  * مسیر زندهٔ سرور: لغوِ آخرین ثبتِ فوری (یادآور/کار) با گارد مالکیت.
- * خروجی: متن پاسخ (undo انجام شد) یا null (این مسیر صادق نیست — ادامه به مسیرهای دیگر).
+ * معنای دقیق: فقط «آخرین» ثبتِ قابل‌لغو بررسی می‌شود؛ اگر آن ردیف در DB نباشد
+ * (قبلاً لغو شده یا جداگانه حذف شده)، پاسخ صادقانهٔ «چیزی برای انصراف نبود» برمی‌گردد —
+ * نه رفتن به سراغ ثبت‌های قدیمی‌تر (نقصِ حذفِ بی‌ربط در لغوِ تکراری — اصلاح‌شده).
+ * خروجی: متن پاسخ (تعیین‌گر و DB-محور) یا null (این مسیر صادق نیست — ادامه به مسیرهای دیگر).
  */
 export async function tryUndoRecentAdd(userId: string, message: string, lang: AppLang): Promise<string | null> {
   if (!isShortCancel(message)) return null
@@ -78,19 +127,19 @@ export async function tryUndoRecentAdd(userId: string, message: string, lang: Ap
   } catch {
     return null
   }
-  for (const m of candidates) {
-    const target = extractUndoable(m.actions)
-    if (!target) continue
-    if (target.kind === 'reminder') {
-      const del = await db.reminder.deleteMany({ where: { id: target.id, userId } })
-      if (del.count === 0) continue
-      await logAction({ userId, actionType: 'add_reminder', status: 'canceled', targetType: 'reminder', targetId: target.id, detail: 'undo after immediate add (V1-P2 cancel lane)' })
-      return undoReply(lang, target)
-    }
-    const del = await db.task.deleteMany({ where: { id: target.id, userId } })
-    if (del.count === 0) continue
-    await logAction({ userId, actionType: 'add_task', status: 'canceled', targetType: 'task', targetId: target.id, detail: 'undo after immediate add (V1-P2 cancel lane)' })
+  const target = pickMostRecentUndoable(candidates)
+  if (!target) return null
+  if (target.kind === 'reminder') {
+    // گارد مالکیت + بررسی واقعیِ وجود ردیف — فقط همین ردیف؛
+    // V1-P2 (race): بین findFirst و delete رکورد ممکن است توسط درخواست دیگر حذف شود —
+    // deleteMany با شمارش (بدون throw) → پاسخ صادقانهٔ «چیزی برای انصراف نبود»، نه خطای 500
+    const del = await db.reminder.deleteMany({ where: { id: target.id, userId } })
+    if (del.count === 0) return nothingToUndoReply(lang)
+    await logAction({ userId, actionType: 'add_reminder', status: 'canceled', targetType: 'reminder', targetId: target.id, detail: 'undo after immediate add (V1-P2 cancel lane)' })
     return undoReply(lang, target)
   }
-  return null
+  const del = await db.task.deleteMany({ where: { id: target.id, userId } })
+  if (del.count === 0) return nothingToUndoReply(lang)
+  await logAction({ userId, actionType: 'add_task', status: 'canceled', targetType: 'task', targetId: target.id, detail: 'undo after immediate add (V1-P2 cancel lane)' })
+  return undoReply(lang, target)
 }

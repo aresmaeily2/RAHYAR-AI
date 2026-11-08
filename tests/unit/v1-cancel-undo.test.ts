@@ -4,6 +4,8 @@ import { describe, expect, test } from 'bun:test'
 import {
   extractUndoable,
   undoReply,
+  nothingToUndoReply,
+  pickMostRecentUndoable,
   isShortCancel,
   MAX_CANCEL_LEN,
   UNDO_WINDOW_MS,
@@ -34,6 +36,50 @@ describe('V1-P2: استخراج هدفِ undo از اکشن‌ها — خالص'
     expect(extractUndoable(null)).toBe(null)
     expect(extractUndoable('junk')).toBe(null)
     expect(extractUndoable([{ type: 'plan_day', ok: true }])).toBe(null)
+  })
+  test('شکل واقعی مسیر زنده: wrapper رشته‌ای JSON {actions,followups,sources}', () => {
+    // مسیر مدل chat/route.ts: JSON.stringify({ actions, followups, sources })
+    const stored = JSON.stringify({
+      actions: [{ type: 'add_reminder', ok: true, reminder: { id: 'r9', message: 'جلسه مهم' } }],
+      followups: ['یادآورها را ببین'],
+      sources: [],
+    })
+    expect(extractUndoable(stored)).toEqual({ kind: 'reminder', id: 'r9', label: 'جلسه مهم' })
+  })
+  test('wrapper-object (بدون رشته) هم پذیرفته می‌شود', () => {
+    const stored = { actions: [{ type: 'add_task', ok: true, task: { id: 't9', title: 'خرید' } }], followups: [] }
+    expect(extractUndoable(stored)?.kind).toBe('task')
+    expect(extractUndoable(stored)?.id).toBe('t9')
+  })
+  test('wrapper خالی → null (ادعای بدون اثر)', () => {
+    const stored = JSON.stringify({ actions: [], followups: ['x'], sources: [] })
+    expect(extractUndoable(stored)).toBe(null)
+  })
+  test('اکشن ناموفق داخل wrapper → null', () => {
+    const stored = JSON.stringify({ actions: [{ type: 'add_reminder', ok: false, note: 'fail' }], followups: [], sources: [] })
+    expect(extractUndoable(stored)).toBe(null)
+  })
+})
+
+describe('V1-P2: انتخاب آخرین هدفِ قابل‌لغو (معیار مالک: لغوِ تکراری رکوردِ دیگر را حذف نکند)', () => {
+  test('اولین نامزدِ دارای اکشن قابل‌لغو (نزولی) برنده است', () => {
+    const cands = [
+      { actions: JSON.stringify({ actions: [{ type: 'plan_day', ok: true }], followups: [], sources: [] }) },
+      { actions: JSON.stringify({ actions: [{ type: 'add_reminder', ok: true, reminder: { id: 'rB', message: 'B' } }], followups: [], sources: [] }) },
+      { actions: JSON.stringify({ actions: [{ type: 'add_reminder', ok: true, reminder: { id: 'rA', message: 'A' } }], followups: [], sources: [] }) },
+    ]
+    expect(pickMostRecentUndoable(cands)?.id).toBe('rB')
+  })
+  test('هیچ نامزد قابل‌لغو → null', () => {
+    expect(pickMostRecentUndoable([{ actions: null }, { actions: '[]' }])).toBe(null)
+    expect(pickMostRecentUndoable([])).toBe(null)
+  })
+  test('پاسخ صادقانهٔ «چیزی برای انصراف نبود» — ادعای حذف ندارد', () => {
+    const r = nothingToUndoReply('fa')
+    expect(r).toContain('هیچ تغییری اعمال نشد')
+    expect(r).not.toContain('حذف شد')
+    const e = nothingToUndoReply('en')
+    expect(e.toLowerCase()).toContain('no changes were made')
   })
 })
 
