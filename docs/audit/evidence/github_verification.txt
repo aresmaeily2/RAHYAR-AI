@@ -1,0 +1,54 @@
+# GitHub-side verification — V1-P3-R2 (A4)
+# هیچ مقدار محرمانه‌ای در این فایل نیست؛ توکن فقط از upload/ خوانده شد و هرگز چاپ نشد.
+
+== BEFORE PUSH (ls-remote, anonymous) ==
+28b64bb0bc21e162703a59a01f6d828f8c2065d4	refs/heads/main
+(v1/voice-acceptance-clean: absent before push)
+
+== PUSH (normal, NO force, new branch) ==
+command shape: git push origin HEAD:refs/heads/v1/voice-acceptance-clean  (GIT_TERMINAL_PROMPT=0, auth via GIT_ASKPASS reading owner's upload file; token never printed)
+pre-push hook ran scripts/tests/r2_push_guard.py → "pre-push: push guard: OK (no forbidden paths, no register fingerprints)"
+result: * [new branch] HEAD -> v1/voice-acceptance-clean   push_exit=0
+
+== AFTER PUSH (ls-remote) ==
+28b64bb0bc21e162703a59a01f6d828f8c2065d4	refs/heads/main
+f58d9beef05e3a11ac3b415f2e1acf3aa68f5563	refs/heads/v1/voice-acceptance-clean
+
+== BRANCH SHA FROM GITHUB API (fresh read, not cache) ==
+GET /repos/aresmaeily2/RAHYAR-AI/branches/v1/voice-acceptance-clean → 200
+sha = f58d9beef05e3a11ac3b415f2e1acf3aa68f5563  match_local_tip = True
+
+== TOP COMMIT LIST FROM GITHUB API (rewritten chain visible remotely) ==
+f58d9beef05e docs(v1-p3r2): گزارش‌های مأموریت P3-R2 …
+d4abcbe43c18 docs(v1-p3r): گزارش انتشار V1-P3-R …
+e99cfdeb753c docs(v1-p3): گزارش نهایی — D-5/D-6/D-7 …   (old bd07ecf → new e99cfdeb)
+06bcb1361496 build(android): v13 …                        (old 68db1a7 → new 06bcb136)
+ed377963e27e test(v1-p3): سناریوی P8 …                    (old a1d720b → new ed37796)
+
+== P3R2 SECURITY REPORT FETCHED FROM GITHUB ==
+GET /repos/.../contents/docs/audit/V1_P3R2_GIT_SECURITY_REPORT.md?ref=v1/voice-acceptance-clean → 200
+size=13725  blob_sha=39bdc1db40fe…  title="# گزارش امنیت Git و پاک‌سازی تاریخچه — V1-P3-R2 (بخش A)"
+
+== COMPARE main...v1/voice-acceptance-clean ==
+GET /repos/.../compare/main...v1/voice-acceptance-clean → 404
+message = "No common ancestor between main and v1/voice-acceptance-clean."
+EXPLANATION (expected): the scrub reached the earliest affected commits (pre-scrub carriers and privacy files exist deep inside the shared old history), so every commit from the root onward was rewritten; the clean branch has no shared commit objects with origin/main. Any PR will be an unrelated-histories PR — audit-only, merge decision belongs to the owner.
+
+== PULL REQUEST CREATION ==
+POST /repos/.../pulls → 403 {"message":"Resource not accessible by personal access token"}
+CAUSE: the owner's fine-grained PAT has Contents write (push worked) but lacks the "Pull requests: write" repository permission.
+EXACT ACCESS NEEDED FROM OWNER (no insecure workaround offered):
+  1) Add "Pull requests: read and write" permission to the existing fine-grained PAT (Settings → Developer settings → Fine-grained tokens → this token → Repository permissions → Pull requests: Read and write), then PR can be created from v1/voice-acceptance-clean → main; OR
+  2) Create the PR manually from the branch page (github.com/aresmaeily2/RAHYAR-AI → branches → v1/voice-acceptance-clean → "Contribute"/Compare). NOTE: because histories are unrelated (see COMPARE above), GitHub's compare page may show no diff — the PR is for audit of the replacement history; merging must remain an explicit owner decision.
+No merge was performed; main untouched.
+
+== MAIN UNCHANGED (during entire mission) ==
+before push (ls-remote)   = 28b64bb0bc21e162703a59a01f6d828f8c2065d4
+after push  (ls-remote)   = 28b64bb0bc21e162703a59a01f6d828f8c2065d4
+after push  (API, fresh)  = 28b64bb0bc21e162703a59a01f6d828f8c2065d4  unchanged=True
+local main (no write commands issued against it in this mission; initial value recorded in backup manifest) = c9a3b233b626b795256e6a6ca685fa74c33d8028
+
+== PRE-PUSH GUARD RUNS ==
+1) simulated range root..d4abcbe (pre-docs tip): "push guard: OK (no forbidden paths, no register fingerprints)" — evidence/prepush_guard_d4abcbe.txt
+2) simulated range root..f58d9be (post-docs tip, this push): guard_exit=0 "push guard: OK (no forbidden paths, no register fingerprints)"
+3) real push hook (automatic): "pre-push: push guard: OK (no forbidden paths, no register fingerprints)"

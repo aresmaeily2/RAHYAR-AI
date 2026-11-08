@@ -17,8 +17,10 @@
 | A3 صفر keystore/vault/`.evidence-*` در تاریخچهٔ انتشار | PASS | فهرست مسیرهای ممنوعهٔ اسکن A3 خالی |
 | A3 FPها مستندشده | PASS | C3 (کلمهٔ رایج) داخل ZIPها — گزارش امنیت بخش ۳ |
 | A3 گارد pre-push روی شاخهٔ پاک | PASS | `evidence/prepush_guard_d4abcbe.txt` + اجرای مجدد پس از کامیت مستندات (کامیت بعدی) |
-| A4 push عادی بدون force + PR باز بدون merge + اثبات GitHub-side | PENDING | `evidence/github_verification.txt` در کامیت بعدیِ همین شاخه ثبت می‌شود |
-| A4 عدم تغییر main (محلی/ریموت) | PASS* | ثبت ابتدای مأموریت در manifest؛ بازخوانی پس از push در کامیت بعدی |
+| A4 push عادی بدون force شاخهٔ پاک به GitHub | PASS | push_exit=0؛ remote SHA = local tip `f58d9be` — `evidence/github_verification.txt` |
+| A4 ساخت PR باز | **BLOCKED** | توکن fine-grained مالک فاقد مجوز «Pull requests: write» است (403)؛ دقیق‌ترین راه‌حل امن در `evidence/github_verification.txt` ثبت شد؛ هیچ راه ناامنی استفاده نشد |
+| A4 اثبات GitHub-side (SHA/commits/سند/main) | PASS | شاخه، ۵ کامیت اول، دریافت سند از API، main=28b64bb — `evidence/github_verification.txt` |
+| A4 عدم تغییر main (محلی/ریموت) | PASS | ریموت قبل/بعد = `28b64bb` (ls-remote ×۲ + API)؛ محلی بدون هیچ دستور نوشتن روی main |
 
 ## بخش B — آزمون صوتی دستگاه واقعی
 
@@ -55,12 +57,12 @@
 | معیار | وضعیت |
 |---|---|
 | تاریخچهٔ انتشار پاک از secretها + اسکن مستقل | **PASS** |
-| شاخهٔ پاک در GitHub | PENDING → A4 |
-| PR باز و بدون merge | PENDING → A4 |
+| شاخهٔ پاک در GitHub | **PASS** — `f58d9be` روی origin |
+| PR باز و بدون merge | **BLOCKED** — توکن مالک مجوز Pull requests: write ندارد (403)؛ هیچ merge انجام نشد؛ main دست‌نخورده |
 | main بدون تغییر | PASS* (تأیید نهایی پس از push) |
 | آزمون زنجیرهٔ صوتی روی گوشی واقعی | **BLOCKED — نه COMPLETE و نه PARTIAL-GIT-complete** |
 | STT/Agent/اقدام واقعی/TTS در یک جریان پیوسته | **BLOCKED** |
 | سناریوهای خطا/مجوز/لغو/تأیید روی دستگاه | **BLOCKED** |
-| مستندات و شواهد در GitHub | PENDING → A4 |
+| مستندات و شواهد در GitHub | **PASS** — دریافت سند امنیت از GitHub API (200) تأیید شد |
 
 > نکتهٔ صادقانه: طبق قاعدهٔ مأموریت، اگر بخش Git موفق و بخش صوتی ناموفق/مسدود باشد، وضعیت کلی مأموریت COMPLETE نیست؛ اعلام نهایی در گزارش پایانی این مأموریت انجام می‌شود. هیچ ادعایی دربارهٔ آزمون دستگاه واقعی وجود ندارد و تا اجرای واقعی هیچ شواهدی تولید نمی‌شود. V1-P4 و هر قابلیت جدید تا تأیید مالک آغاز نمی‌شود.
