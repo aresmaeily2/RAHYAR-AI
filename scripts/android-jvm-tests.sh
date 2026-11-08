@@ -9,12 +9,13 @@ T=$ROOT/artifacts/android-build/tools
 OUT=$ROOT/artifacts/android-build/out
 PROJ=$ROOT/android
 NOJAR=$T/plat/android-nolibs.jar
-CP="$OUT/classes:$T/test-libs/json-20240303.jar:$T/test-libs/junit-4.13.2.jar:$T/test-libs/hamcrest-core-1.3.jar:$T/webkit/webkit-classes.jar:$NOJAR"
+OUT_CLASSES="$OUT/w-user/classes"   # v13: کلاس‌ها در پوشهٔ فلور — user معادل v12/classes
+CP="$OUT_CLASSES:$T/test-libs/json-20240303.jar:$T/test-libs/junit-4.13.2.jar:$T/test-libs/hamcrest-core-1.3.jar:$T/webkit/webkit-classes.jar:$NOJAR"
 # نکتهٔ ترتیب: NOJAR (android.jar استاب) باید «آخر» باشد — وگرنه org.json استاب از آن لود
 # می‌شود و RuntimeException("Stub!") داخل LocalStore با false/−1 پوشانده می‌شود (باگ واقعی خط اول اجرا)
 
-[ -f "$NOJAR" ] || { echo "android-nolibs.jar missing — run build-android-apk-v12.sh first"; exit 1; }
-[ -x "$OUT/classes" ] || { echo "app classes missing — run build-android-apk-v12.sh first"; exit 1; }
+[ -f "$NOJAR" ] || { echo "android-nolibs.jar missing — run build-android-apk-v13.sh first"; exit 1; }
+[ -d "$OUT_CLASSES" ] || { echo "app classes missing — run build-android-apk-v13.sh first"; exit 1; }
 ls "$T/test-libs/junit-4.13.2.jar" >/dev/null || { echo "junit jar missing"; exit 1; }
 
 rm -rf "$OUT/test-classes"
