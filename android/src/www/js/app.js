@@ -291,6 +291,8 @@
       sttEngineUnavailable: 'موتور تشخیص گفتار در دسترس نیست.',
       sttOnlineAllow: 'اجازهٔ شنود آنلاین',
       sttOnlineRevoke: 'لغو رضایت شنود آنلاین',
+      wakeDisabledMsg: 'Wake Word تا تکمیل آزمون واقعی و اندازه‌گیری باتری موقتاً غیرفعال است — دکمهٔ میکروفون بدون تغییر کار می‌کند (تصمیم مستند R3-P1 §5).',
+      wakeRestoreMsg: 'پس از ری‌استارت دستگاه، شنود خودکار خاموش است — برای فعال‌سازی از تنظیمات رهیار روشنش کنید.',
       // F5-مأموریت ۷: پیامک بانکی
       smsSec: 'پیامک بانکی',
       smsDesc: 'با رضایت شما، پیامک‌های بانکی (واریز/برداشت/خرید) دریافت و به‌صورت پیش‌نمایش در اپ نشان داده می‌شوند. ثبت نهایی فقط با تأیید شما انجام می‌شود. پیامک‌های شخصی و غیرمالی هرگز خوانده یا ذخیره نمی‌شوند.',
@@ -334,6 +336,8 @@
       sttEngineUnavailable: 'Speech recognition engine is unavailable.',
       sttOnlineAllow: 'Allow online listening',
       sttOnlineRevoke: 'Revoke online listening consent',
+      wakeDisabledMsg: 'Wake Word is temporarily disabled until real-device testing and battery measurement are complete — the microphone button works unchanged (documented decision R3-P1 §5).',
+      wakeRestoreMsg: 'After a device restart, automatic wake-word listening is off — re-enable it from Rahyar settings.',
       // F5: bank SMS
       smsSec: 'Bank SMS',
       smsDesc: 'With your explicit consent, bank SMS (deposit/withdrawal/purchase) are received and shown as previews in the app. Nothing is recorded without your confirmation. Personal and non-financial SMS are never read or stored.',
@@ -589,6 +593,16 @@
       toggleListen();
     }
   });
+  window.addEventListener('rahyar-wake-restore', function () {
+    // R3-P0 §2: پس از بوت سرویس از BOOT شروع نمی‌شود — پیام صادقانهٔ وضعیت
+    setPanel('', tv('wakeRestoreMsg'), '');
+    V.wakeOn = false;
+  });
+  window.addEventListener('rahyar-wake-state', function (e) {
+    var st = (e.detail && e.detail.state) || '';
+    var map = { OFF_DISABLED: 'wakeDisabledMsg', OFF_NO_CONSENT: 'wakeUnavailable', BLOCKED_NO_MIC: 'needMic', OFF_NO_ENGINE: 'wakeUnavailable', BLOCKED_NOT_FROM_ACTIVITY: 'wakeUnavailable' };
+    setPanel('', tv(map[st] || 'wakeDisabledMsg'), '');
+  });
   window.addEventListener('rahyar-voice-partial', function (e) {
     setPanel(tv('listening'), (e.detail && e.detail.text) || '', '');
   });
@@ -701,6 +715,15 @@
       }
     }
     fillSttState();
+    // R3-P1 §5: Wake Word تا تکمیل آزمون واقعی + اندازه‌گیری باتری غیرفعال است —
+    // toggle صادقانه خاموش می‌ماند؛ Push-to-talk (دکمهٔ میکروفون) بی‌تأثیر است
+    var wakeChk = document.getElementById('vWake');
+    if (wakeChk) {
+      wakeChk.disabled = true;
+      if (wakeChk.checked) wakeChk.checked = false;
+      var wst = document.getElementById('vWakeState');
+      if (wst) wst.textContent = tv('wakeDisabledMsg');
+    }
   }
 
   function boot() {
