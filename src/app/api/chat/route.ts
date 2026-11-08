@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { applyMissionGuard, buildChatSystemPrompt, executeChatActions, getMemories, guardUnbackedClaim, trimChatHistory, type RawAction } from '@/lib/server-ai'
+import { applyMissionGuard, buildChatSystemPrompt, executeChatActions, getMemories, guardUnbackedClaimForUser, trimChatHistory, type RawAction } from '@/lib/server-ai'
 import { chatWelcome, getAllTasks, serializeTask } from '@/lib/server-tasks'
 import { getUserName } from '@/lib/server-profile'
 import { shouldSearch, performWebSearch } from '@/lib/server-search'
@@ -336,8 +336,8 @@ export async function POST(req: NextRequest) {
         const guarded = await applyMissionGuard(message, reply, actions, user.id, idempotencyKey, lang)
         actions = guarded.actions
         reply = guarded.reply
-        // F2-HALL: ادعای بدون اثر مدل — یادداشت صادقانه
-        reply = guardUnbackedClaim(reply, actions, lang)
+        // F2-HALL + V1-P2: ادعای بدون اثر — فقط برای پیام‌های کنش‌محور (پرسش خواندنی هشدار نمی‌گیرد)
+        reply = guardUnbackedClaimForUser(message, reply, actions, lang)
       }
     } catch (e) {
       const { GatewayDisabledError, GatewayQuotaError, quotaMessage } = await import('@/lib/ai/gateway')

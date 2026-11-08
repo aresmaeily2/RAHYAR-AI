@@ -792,18 +792,25 @@ function defaultDraft(lang: AppLang): string {
 // موفقی اجرا نشده، یادداشت صادقانه به پاسخ اضافه می‌شود (ادعای بدون اثر
 // هرگز بی‌پاسخ نمی‌ماند — قاعدهٔ مأموریت: هیچ موفقیت ظاهری).
 const CLAIMS_WRITE =
-  /(ثبت\s*(شد|کردم)|ساخته\s*شد|اضافه\s*(شد|کردم)|ذخیره\s*شد|یادآور(ی)?\s*(ثبت|گذاشتم|گذاشته)|به\s*کارها\s*(اضافه|ثبت)|created|added|saved|recorded|remind(er)? (set|added))/i
+  /(ثبت\s*(شد|کردم)|ساخته\s*شد|اضافه\s*(شد|کردم)|ذخیره\s*شد|یادآور(ی)?\s*(ثبت|گذاشتم|گذاشته)|به\s*کارها\s*(اضافه|ثبت)|created|added|saved|recorded|remind(er)? (set|added)|حذف\s*(شد|کردم|شده)|پاک\s*(شد|کردم)|انجام\s*شد|مرتب\s*(شد|کردم)|برنامه\s*ریزی\s*شد|deleted|removed|cleared|organized)/i
 const WRITE_TYPES = new Set([
   'add_task', 'complete_task', 'delete_task', 'update_task', 'star_task',
-  'snooze_task', 'add_reminder', 'breakdown_task', 'remember',
+  'snooze_task', 'add_reminder', 'breakdown_task', 'remember', 'plan_day',
 ])
 export function guardUnbackedClaim(reply: string, actions: ChatAction[], lang: AppLang): string {
   const anyWriteOk = actions.some(
     (a) => WRITE_TYPES.has(a.type) && 'ok' in a && (a as { ok?: boolean }).ok === true,
   )
-  if (!anyWriteOk && CLAIMS_WRITE.test(reply)) {
+  // V1-P2 (یافتهٔ زندهٔ P8-8/P6-4): مدل پسوند تاریخچهٔ «(اکشن‌ها اجرا شد)» را بدون
+  // هیچ اکشنی تقلید می‌کند — نشانهٔ گمراه‌کننده؛ وقتی هیچ اکشن نوشتاری موفقی نیست، حذف می‌شود
+  const ACTIONS_DONE_MARK = '(اکشن‌ها اجرا شد)'
+  let clean = reply
+  if (!anyWriteOk && clean.includes(ACTIONS_DONE_MARK)) {
+    clean = clean.split(ACTIONS_DONE_MARK).join('').trim()
+  }
+  if (!anyWriteOk && CLAIMS_WRITE.test(clean)) {
     return (
-      reply +
+      clean +
       '\n' +
       pick(
         lang,
@@ -812,7 +819,16 @@ export function guardUnbackedClaim(reply: string, actions: ChatAction[], lang: A
       )
     )
   }
-  return reply
+  return clean
+}
+
+// V1-P2 (یافتهٔ زندهٔ S5): گارد صداقت فقط برای پیام‌های کنش‌محور معنا دارد؛
+// پاسخِ پرسش‌های خواندنی که به رکوردهای «از قبل موجود» اشاره می‌کنند نباید هشدار بگیرند.
+const WRITE_INTENT_RE =
+  /(ثبت|ساخت|حذف|اضافه|یادم\s*بنداز|یادآوری\s*کن|پاک|لغو|منصرف|به\s*روز|تغییر|نگه\s*دار|کنسل|مرتب|برنامه\s*ریزی|remember|delete|add|create|remove|update|cancel|set|plan|organize)/i
+export function guardUnbackedClaimForUser(userMessage: string, reply: string, actions: ChatAction[], lang: AppLang): string {
+  if (!WRITE_INTENT_RE.test(userMessage)) return reply
+  return guardUnbackedClaim(reply, actions, lang)
 }
 
 export async function applyMissionGuard(
