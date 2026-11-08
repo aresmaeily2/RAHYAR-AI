@@ -306,6 +306,11 @@ export async function executeChatActions(
   const results: ChatAction[] = []
   /** یادداشت کاربرپذیر دوزبانه */
   const note = (fa: string, en: string): string => pick(lang, fa, en)
+  // V1-P3 (یافتهٔ زندهٔ T8): اگر پیام کاربر صریحاً «یادآور» را هدف گرفته ولی مدل
+  // اکشنِ تغییرِ «کار» می‌فرستد، اجرا رد می‌شود — وگرنه مدل رکورد بی‌ربط را تغییر
+  // می‌دهد و ادعای پشتیبانی‌شده می‌سازد (هدفِ اشتباه = حذف جانبیِ نرم).
+  const TARGETS_REMINDER = /(یادآور|یادآوری|reminder)/i.test(userMessage)
+  const TASK_MUTATION = new Set(['update_task', 'delete_task', 'complete_task', 'snooze_task', 'star_task', 'breakdown_task'])
 
   // F2-AG (سناریو ۸): claim-first — پیش از هر نوشتنی کلید مصرف می‌شود؛
   // retry همان درخواست هیچ ردیفی نمی‌سازد و با یادداشت شفاف برمی‌گردد.
@@ -347,7 +352,19 @@ export async function executeChatActions(
 
   for (const a of list) {
     try {
-      switch (a.type) {
+      if (TARGETS_REMINDER && TASK_MUTATION.has(String(a.type))) {
+      results.push({
+        type: a.type,
+        ok: false,
+        note: note(
+          'هدف درخواست شما «یادآور» است نه «کار» — یادآورها از چت قابل تغییر/حذف نیستند؛ از صفحهٔ یادآورها استفاده کنید.',
+          'Your request targets a reminder, not a task — reminders cannot be changed or deleted via chat; use the reminders page.',
+        ),
+      })
+      await logAction({ userId, actionType: String(a.type), status: 'failed', detail: 'type-mismatch guard: user targets reminder but model emitted task mutation (V1-P3)' }).catch(() => {})
+      continue
+    }
+    switch (a.type) {
         case 'add_task': {
           if (!a.title || !a.title.trim()) {
             results.push({ type: 'add_task', ok: false, note: note('عنوان خالی بود', 'Title was empty') })

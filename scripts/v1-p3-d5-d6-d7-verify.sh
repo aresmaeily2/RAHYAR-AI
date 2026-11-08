@@ -55,7 +55,9 @@ RS=$(bun scripts/v1-p2-reset-test-state.ts 2>&1 | tail -1)
 echo "== [S0] reset: $RS"; EV_LINE "S0 reset=$RS"
 echo "== [S1] owner login http=$(login owner $CO $OP) / user2 login http=$(login testuser2 $C2 $UP)"; EV_LINE "S1 logins"
 curl -s -b $CO -X DELETE $B/api/chat --max-time 15 >/dev/null; curl -s -b $C2 -X DELETE $B/api/chat --max-time 15 >/dev/null
-echo "== [S2] history cleared (owner+user2)"; EV_LINE "S2 clear"
+bun scripts/v1-p3-memory-setup.ts del "یادداشت-" >/dev/null
+echo "== [S2] history cleared (owner+user2) + leftover test-memories purged"; EV_LINE "S2 clear+memories"
+echo " memories now=$(memcount)"
 
 echo "== [T1] تأییدِ تازه کار می‌کند — لِین فراموشی قطعی =="
 bun scripts/v1-p3-memory-setup.ts add "یادداشت-آزمون-V1P3 رنگ ماشین" >/tmp/v1p3-t1.json
@@ -89,7 +91,7 @@ else
 fi
 
 echo "== [T3] پس از پاکسازی، تأییدِ تازه دوباره کار می‌کند =="
-R=$(chat $CO "\"یادداشت-کهنه-V1P3\" را فراموش کن"); echo " proposal http=$(httpcode) $R"; EV_LINE "T3a http=$(httpcode) reply=$R"
+R=$(chat $CO "«یادداشت-کهنه-V1P3» را فراموش کن"); echo " proposal http=$(httpcode) $R"; EV_LINE "T3a http=$(httpcode) reply=$R"
 R=$(chat $CO "بله"); echo " confirm  http=$(httpcode) $R"; EV_LINE "T3b http=$(httpcode) reply=$R"
 A3=$(memhas "یادداشت-کهنه-V1P3")
 echo " canary after=$A3 (expect 0)"; EV_LINE "T3 canary_after=$A3"
@@ -124,6 +126,7 @@ ts=d if isinstance(d,list) else d.get('tasks',[])
 print(len([t for t in ts if t.get('id')=='$TASK1' or t.get('title')=='کار-جانشین-V1P3']))")
 echo " task still alive=$TASKALIVE2 (expect 1 — no pending left to execute)"; EV_LINE "T4d task_alive=$TASKALIVE2"
 [ "$TASKALIVE2" = "1" ] && PASSFAIL PASS "T4d bare confirm with no pending deleted nothing" || PASSFAIL FAIL "T4d task deleted without pending (task=$TASKALIVE2)"
+curl -s -b $CO -X DELETE $B/api/tasks/$TASK1 --max-time 15 >/dev/null; echo " T4 cleanup: leftover task removed (isolate T8)"
 
 echo "== [T5] دو کاربر — pending هر کاربر فقط همان کاربر =="
 bun scripts/v1-p3-memory-setup.ts add "یادداشت-مالکیت-V1P3" >/tmp/v1p3-t5.json
