@@ -285,6 +285,12 @@
       ttsErrInit: 'موتور خواندن صوتی آماده نشد — پاسخ متنی نمایش داده می‌شود.',
       ttsErrLang: 'صدای این زبان روی این دستگاه نصب نیست — پاسخ متنی نمایش داده می‌شود.',
       ttsErrGeneric: 'خطای خواندن صوتی — پاسخ متنی نمایش داده می‌شود.',
+      errConsentDeclined: 'برای شنود آنلاین رضایت ندادی — می‌توانی از تنظیمات صوت اجازه بدهی.',
+      sttEngineOnDevice: 'موتور تشخیص: روی‌دستگاه — صدا از دستگاه خارج نمی‌شود.',
+      sttEngineSystem: 'موتور تشخیص: سرویس گفتار سیستم‌عامل — ممکن است آنلاین پردازش کند.',
+      sttEngineUnavailable: 'موتور تشخیص گفتار در دسترس نیست.',
+      sttOnlineAllow: 'اجازهٔ شنود آنلاین',
+      sttOnlineRevoke: 'لغو رضایت شنود آنلاین',
       // F5-مأموریت ۷: پیامک بانکی
       smsSec: 'پیامک بانکی',
       smsDesc: 'با رضایت شما، پیامک‌های بانکی (واریز/برداشت/خرید) دریافت و به‌صورت پیش‌نمایش در اپ نشان داده می‌شوند. ثبت نهایی فقط با تأیید شما انجام می‌شود. پیامک‌های شخصی و غیرمالی هرگز خوانده یا ذخیره نمی‌شوند.',
@@ -322,6 +328,12 @@
       ttsErrInit: 'Speech engine failed to initialize — showing the text reply instead.',
       ttsErrLang: 'No voice for this language is installed on this device — showing the text reply instead.',
       ttsErrGeneric: 'Speech playback failed — showing the text reply instead.',
+      errConsentDeclined: 'You did not consent to online listening — you can allow it in voice settings.',
+      sttEngineOnDevice: 'Recognition engine: on-device — audio never leaves the device.',
+      sttEngineSystem: 'Recognition engine: OS speech service — may process online depending on the device.',
+      sttEngineUnavailable: 'Speech recognition engine is unavailable.',
+      sttOnlineAllow: 'Allow online listening',
+      sttOnlineRevoke: 'Revoke online listening consent',
       // F5: bank SMS
       smsSec: 'Bank SMS',
       smsDesc: 'With your explicit consent, bank SMS (deposit/withdrawal/purchase) are received and shown as previews in the app. Nothing is recorded without your confirmation. Personal and non-financial SMS are never read or stored.',
@@ -593,7 +605,7 @@
   });
   window.addEventListener('rahyar-voice-error', function (e) {
     var code = (e.detail && e.detail.code) || 'error';
-    var map = { no_match: 'errNoMatch', busy: 'errBusy', denied: 'errDenied', unavailable: 'errUnavailable' };
+    var map = { no_match: 'errNoMatch', busy: 'errBusy', denied: 'errDenied', unavailable: 'errUnavailable', consent_declined: 'errConsentDeclined' };
     setPanel(tv(map[code] || 'errGeneric'), '', '');
     V.listening = false; fabIdle(); hidePanelSoon();
   });
@@ -645,7 +657,8 @@
       + '<input type="checkbox" id="vWake"' + (wake ? ' checked' : '') + '><span>' + tv('wake') + '</span></label>'
       + '<p style="opacity:.8;font-size:12px">' + tv('wakeDesc') + '</p>'
       + '<p style="opacity:.6;font-size:11px">' + tv('privacy') + '</p>'
-      + '<div id="vWakeState" style="font-size:12px;opacity:.8"></div>';
+      + '<div id="vWakeState" style="font-size:12px;opacity:.8"></div>'
+      + '<div id="vSttState" style="font-size:12px;opacity:.8;margin-top:6px"></div>';
     var main = document.querySelector('main');
     if (main) main.appendChild(sec); else document.body.appendChild(sec);
     document.getElementById('vLang').addEventListener('change', function (e2) {
@@ -664,6 +677,30 @@
         document.getElementById('vWakeState').textContent = on ? 'ON' : 'OFF';
       }
     });
+    // R3-P0 §4: وضعیت موتور تشخیص + رضایت شنود آنلاین — شفاف و قابل لغو
+    function fillSttState() {
+      var el = document.getElementById('vSttState');
+      if (!el) return;
+      var st;
+      try { st = JSON.parse(native.voiceSttState ? native.voiceSttState() : '{"mode":"unavailable","online_consent":false}'); }
+      catch (err) { st = { mode: 'unavailable', online_consent: false }; }
+      var lbl = st.mode === 'on_device' ? tv('sttEngineOnDevice')
+              : st.mode === 'system_service' ? tv('sttEngineSystem')
+              : tv('sttEngineUnavailable');
+      if (st.mode === 'system_service') {
+        lbl += '<br><button id="vSttConsent" style="margin-top:4px;font-size:12px;padding:2px 8px">'
+             + (st.online_consent ? tv('sttOnlineRevoke') : tv('sttOnlineAllow')) + '</button>';
+      }
+      el.innerHTML = lbl;
+      var btn = document.getElementById('vSttConsent');
+      if (btn) {
+        btn.addEventListener('click', function () {
+          try { native.setSttOnlineConsent(st.online_consent ? 'false' : 'true'); } catch (e6) { /* بی‌اثر */ }
+          fillSttState();
+        });
+      }
+    }
+    fillSttState();
   }
 
   function boot() {

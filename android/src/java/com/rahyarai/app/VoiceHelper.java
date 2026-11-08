@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.speech.RecognitionListener;
@@ -188,6 +189,124 @@ public final class VoiceHelper implements RahyarBridge.VoiceDelegate {
         return SpeechRecognizer.isRecognitionAvailable(web.getContext());
     }
 
+    // ── R3-P0 §4: مسیر تشخیص — روی‌دستگاه یا سیستمی؛ آنلاین فقط با رضایت صریح ──
+
+    static final String MODE_ON_DEVICE = "on_device";
+    /** سرویس گفتار سیستم — بسته به دستگاه می‌تواند آنلاین پردازش کند؛ برچسب صادقانه */
+    static final String MODE_SYSTEM_SERVICE = "system_service";
+    static final String MODE_UNAVAILABLE = "unavailable";
+
+    static final String DECISION_START_ON_DEVICE = "START_ON_DEVICE";
+    static final String DECISION_START_SYSTEM_CONSENTED = "START_SYSTEM_CONSENTED";
+    static final String DECISION_CONSENT_REQUIRED = "CONSENT_REQUIRED";
+    static final String DECISION_BLOCKED_UNAVAILABLE = "BLOCKED_UNAVAILABLE";
+
+    /** خالص و JVM-آزمون‌پذیر: مسیر موتور بر اساس دسترسی دستگاه */
+    static String sttEngineMode(boolean recognitionAvailable, boolean onDeviceAvailable) {
+        if (onDeviceAvailable) return MODE_ON_DEVICE;
+        if (recognitionAvailable) return MODE_SYSTEM_SERVICE;
+        return MODE_UNAVAILABLE;
+    }
+
+    /** خالص و JVM-آزمون‌پذیر: تصمیم شروع — شنود سیستمی (ممکن است آنلاین) فقط با رضایت ذخیره‌شده */
+    static String sttStartDecision(String mode, boolean onlineConsent) {
+        if (MODE_ON_DEVICE.equals(mode)) return DECISION_START_ON_DEVICE;
+        if (MODE_SYSTEM_SERVICE.equals(mode)) {
+            return onlineConsent ? DECISION_START_SYSTEM_CONSENTED : DECISION_CONSENT_REQUIRED;
+        }
+        return DECISION_BLOCKED_UNAVAILABLE;
+    }
+
+    /** مسیر واقعی موتور روی این دستگاه (API 31+ → on-device در صورت وجود) */
+    private String engineMode() {
+        Context ctx = web.getContext();
+        boolean onDevice = false;
+        if (Build.VERSION.SDK_INT >= 31) {
+            try { onDevice = SpeechRecognizer.isOnDeviceRecognitionAvailable(ctx); } catch (Exception ignored) { }
+        }
+        return sttEngineMode(SpeechRecognizer.isRecognitionAvailable(ctx), onDevice);
+    }
+
+    private boolean onlineConsentStored() {
+        if (activity == null) return false;
+        return activity.getSharedPreferences("rahyar_consents", Context.MODE_PRIVATE)
+                .getBoolean("stt_online_consent", false);
+    }
+
+    /** ثبت/لغو رضایت شنود آنلاین — از UI (تنظیمات) یا دیالوگ بومی */
+    public void setSttOnlineConsent(boolean granted) {
+        if (activity == null) return;
+        activity.getSharedPreferences("rahyar_consents", Context.MODE_PRIVATE).edit()
+                .putBoolean("stt_online_consent", granted).apply();
+    }
+
+    /** وضعیت موتور برای UI — JSON: {available, mode, online_consent} */
+    public String sttState() {
+        String mode = engineMode();
+        return "{\"available\":" + (MODE_UNAVAILABLE.equals(mode) ? "false" : "true")
+                + ",\"mode\":\"" + jsString(mode) + "\""
+                + ",\"online_consent\":" + (onlineConsentStored() ? "true" : "false") + "}";
+    }
+
+    /** ساخت recognizer بر اساس مسیر انتخاب‌شده — شکست on-device = خطای صادقانه */
+    private SpeechRecognizer createRecognizerForMode(String decision) {
+        Context ctx = web.getContext();
+        if (DECISION_START_ON_DEVICE.equals(decision) && Build.VERSION.SDK_INT >= 31) {
+            try {
+                return SpeechRecognizer.createOnDeviceSpeechRecognizer(ctx);
+            } catch (Exception e) {
+                emitError("error");
+                emitEnd();
+                return null;
+            }
+        }
+        return SpeechRecognizer.createSpeechRecognizer(ctx);
+    }
+
+    /** دیالوگ رضایت بومی برای شنود سیستمی/آنلاین — بدون رضایت، هیچ شنودی از این مسیر */
+    private void showSttConsentDialog() {
+        if (activity == null || activity.isFinishing()) {
+            emitError("consent_declined");
+            emitEnd();
+            return;
+        }
+        final String lang = lastLang;
+        activity.runOnUiThread(new Runnable() {
+            @Override public void run() {
+                try {
+                    new android.app.AlertDialog.Builder(activity)
+                            .setTitle(activity.getString(R.string.stt_consent_title))
+                            .setMessage(activity.getString(R.string.stt_consent_msg))
+                            .setPositiveButton(activity.getString(R.string.stt_consent_yes),
+                                    new android.content.DialogInterface.OnClickListener() {
+                                        @Override public void onClick(android.content.DialogInterface d, int w) {
+                                            setSttOnlineConsent(true);
+                                            startListening(lang); // اکنون رضایت ذخیره شده است
+                                        }
+                                    })
+                            .setNegativeButton(activity.getString(R.string.stt_consent_no),
+                                    new android.content.DialogInterface.OnClickListener() {
+                                        @Override public void onClick(android.content.DialogInterface d, int w) {
+                                            setSttOnlineConsent(false);
+                                            emitError("consent_declined");
+                                            emitEnd();
+                                        }
+                                    })
+                            .setOnCancelListener(new android.content.DialogInterface.OnCancelListener() {
+                                @Override public void onCancel(android.content.DialogInterface d) {
+                                    emitError("consent_declined");
+                                    emitEnd();
+                                }
+                            })
+                            .show();
+                } catch (Exception e) {
+                    emitError("consent_declined");
+                    emitEnd();
+                }
+            }
+        });
+    }
+
     // ── تشخیص گفتار ──
 
     @Override
@@ -205,13 +324,22 @@ public final class VoiceHelper implements RahyarBridge.VoiceDelegate {
             emitEnd();
             return;
         }
-        if (!SpeechRecognizer.isRecognitionAvailable(web.getContext())) {
+        // R3-P0 §4: تفکیک مسیر روی‌دستگاه/سیستمی + رضایت صریح برای مسیر آنلاین‌پذیر
+        String mode = engineMode();
+        String decision = sttStartDecision(mode, onlineConsentStored());
+        if (DECISION_BLOCKED_UNAVAILABLE.equals(decision)) {
             emitError("unavailable");
             emitEnd();
             return;
         }
+        if (DECISION_CONSENT_REQUIRED.equals(decision)) {
+            showSttConsentDialog(); // بدون رضایت، هیچ شنودی از مسیر سیستمی/آنلاین
+            emitEnd();
+            return;
+        }
         lastLang = (langBcp47 == null || langBcp47.isEmpty()) ? "fa-IR" : langBcp47;
-        recognizer = SpeechRecognizer.createSpeechRecognizer(web.getContext());
+        recognizer = createRecognizerForMode(decision);
+        if (recognizer == null) return; // خطا/پایان قبلاً ارسال شده است
         recognizer.setRecognitionListener(new RecognitionListener() {
             @Override public void onReadyForSpeech(Bundle params) { /* آماده */ }
             @Override public void onBeginningOfSpeech() { /* شروع گفتار */ }

@@ -41,6 +41,9 @@ public final class RahyarNativeBridge {
     /** V1: سرعت خواندن — nullable؛ نبود = پیش‌فرض سیستم */
     private final HostAction setTtsRate;
 
+    /** R3-P0 §4: وضعیت موتور تشخیص/رضایت — مرجع اختیاری به VoiceHelper */
+    private RahyarBridge.VoiceDelegate boundVoice;
+
     public RahyarNativeBridge(HostAction startVoice, HostAction stopVoice,
                               HostAction speakText, HostAction stopSpeaking,
                               HostAction syncReminders) {
@@ -56,6 +59,11 @@ public final class RahyarNativeBridge {
         this.stopSpeaking = stopSpeaking;
         this.syncReminders = syncReminders;
         this.setTtsRate = setTtsRate;
+    }
+
+    /** R3-P0 §4: اتصال منبع صوت برای وضعیت موتور/رضایت — از MainActivity */
+    public void bindVoice(RahyarBridge.VoiceDelegate voice) {
+        this.boundVoice = voice;
     }
 
     @JavascriptInterface
@@ -130,6 +138,19 @@ public final class RahyarNativeBridge {
         float r = sanitizeRate(rate);
         if (Float.isNaN(r)) return;
         setTtsRate.run(String.valueOf(r));
+    }
+
+    /** R3-P0 §4: وضعیت موتور تشخیص برای UI — JSON {available, mode, online_consent} */
+    @JavascriptInterface
+    public String voiceSttState() {
+        return boundVoice == null ? "{\"available\":false,\"mode\":\"unavailable\",\"online_consent\":false}"
+                : boundVoice.sttState();
+    }
+
+    /** R3-P0 §4: ثبت/لغو رضایت شنود آنلاین — مقدار "true"|"false" */
+    @JavascriptInterface
+    public void setSttOnlineConsent(String granted) {
+        if (boundVoice != null) boundVoice.setSttOnlineConsent("true".equals(granted));
     }
 
     /** اعتبارسنجی سرعت — خالص و JVM-آزمون‌پذیر؛ نامعتبر = NaN */

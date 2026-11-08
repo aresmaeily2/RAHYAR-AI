@@ -293,6 +293,7 @@ export function ChatView() {
       'denied': 'اجازهٔ میکروفون داده نشد',
       'start-failed': 'شروع شنیدن ناموفق بود — دوباره تلاش کن',
       'unavailable': 'سرویس تشخیص گفتار دستگاه در دسترس نیست',
+      'consent_declined': 'برای شنود آنلاین رضایت ندادی — از تنظیمات صوت می‌توانی اجازه بدهی',
     }
     const en: Record<string, string> = {
       'no-speech': 'No speech heard — try again',
@@ -306,6 +307,7 @@ export function ChatView() {
       'denied': 'Microphone permission denied',
       'start-failed': 'Failed to start listening — try again',
       'unavailable': 'Device speech recognition service is unavailable',
+      'consent_declined': 'You did not consent to online listening — allow it in voice settings',
     }
     const key = fa[code] ? code : code.toLowerCase()
     const msg = (langRef.current === 'en' ? en[key] : fa[key]) ?? (langRef.current === 'en' ? `Voice error (${code})` : `خطای صوتی (${code})`)

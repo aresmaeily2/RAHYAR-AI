@@ -42,5 +42,10 @@
     <string name="wake_channel">Listening for "Hey Rahyar"</string>
     <string name="wake_title">Rahyar — listening for "Hey Rahyar"</string>
     <string name="wake_body">Listening is active. Audio is processed by the OS speech service — on-device or online, depending on the device. Rahyar never stores audio. Turn off: Rahyar settings.</string>
-    <string name="wake_desc">Rahyar optional wake-word service channel</string>
+    <string name="wake_desc">Optional wake-word service channel for Rahyar</string>
+    <!-- R3-P0 §4: online listening consent — only when on-device recognition is unavailable -->
+    <string name="stt_consent_title">On-device speech recognition unavailable</string>
+    <string name="stt_consent_msg">On-device recognition is not available on this device. If you allow it, audio goes to the OS speech service which may process it online depending on the device. Rahyar itself never stores audio. Without consent, listening will not use the online path.</string>
+    <string name="stt_consent_yes">Allow (online listening)</string>
+    <string name="stt_consent_no">No online listening</string>
 </resources>

@@ -14,7 +14,9 @@ import android.webkit.JavascriptInterface;
  *    هر کدام فقط یک کار مشخص می‌کنند و با HostAction از HomeActivity تزریق می‌شوند.
  *
  * F2-VOICE: مسیرهای صوتی — تشخیص گفتار/TTS در VoiceHelper (سیستم‌عامل)،
- * تحلیل فرمان در VoiceCommandParser (JVM-خالص). صدا هیچ‌گاه ذخیره یا ارسال نمی‌شود.
+ * تحلیل فرمان در VoiceCommandParser (JVM-خالص). رهیار خودش هیچ صدایی ذخیره نمی‌کند؛
+ * اما مسیر پردازش صدا (روی‌دستگاه یا آنلاین، بسته به دستگاه/موتور) با voiceSttState
+ * به‌شکل صادقانه گزارش می‌شود — R3-P0 §4.
  */
 public final class RahyarBridge {
     private final RahyarCore core;
@@ -161,6 +163,19 @@ public final class RahyarBridge {
         if (voiceDelegate() != null) voiceDelegate().stopSpeaking();
     }
 
+    /** R3-P0 §4: وضعیت موتور تشخیص برای UI — JSON {available, mode, online_consent} */
+    @JavascriptInterface
+    public String voiceSttState() {
+        return voiceDelegate() == null ? "{\"available\":false,\"mode\":\"unavailable\",\"online_consent\":false}"
+                : voiceDelegate().sttState();
+    }
+
+    /** R3-P0 §4: ثبت/لغو رضایت شنود آنلاین — مقدار "true"|"false" */
+    @JavascriptInterface
+    public void setSttOnlineConsent(String granted) {
+        if (voiceDelegate() != null) voiceDelegate().setSttOnlineConsent("true".equals(granted));
+    }
+
     /** تحلیل فرمان صوتی → کنش JSON (منطق JVM-خالص در VoiceCommandParser) */
     @JavascriptInterface
     public String parseVoiceCommand(String text, String lang) {
@@ -222,5 +237,9 @@ public final class RahyarBridge {
         void stopListening();
         void speak(String text, String langBcp47);
         void stopSpeaking();
+        /** R3-P0 §4: وضعیت موتور تشخیص — JSON {available, mode, online_consent} */
+        String sttState();
+        /** R3-P0 §4: ثبت/لغو رضایت شنود آنلاین */
+        void setSttOnlineConsent(boolean granted);
     }
 }
