@@ -10,6 +10,7 @@ import android.view.View;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
+import android.speech.SpeechRecognizer;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.TextView;
@@ -95,14 +96,34 @@ public class HomeActivity extends Activity {
                         });
                     }
                 },
-                /* F2-VOICE: سرویس اختیاری Wake Word — فقط با رضایت صریح از تنظیمات */
+                /* F2-VOICE: سرویس اختیاری Wake Word — فقط از گیت واحد R3-P0
+                 * (مجوز میکروفون + رضایت پروفایل + Activity قابل مشاهده + موتور موجود).
+                 * هر مسیر دیگری — از جمله BOOT — پذیرفته نیست. */
                 new RahyarBridge.HostAction() {
                     @Override public void run(String arg) {
                         runOnUiThread(new Runnable() {
                             @Override public void run() {
-                                Intent i = new Intent(HomeActivity.this, VoiceWakeService.class);
-                                if ("on".equals(arg)) startService(i);
-                                else stopService(i);
+                                if (!"on".equals(arg)) {
+                                    stopService(new Intent(HomeActivity.this, VoiceWakeService.class));
+                                    return;
+                                }
+                                String gate = VoiceWakeService.startGate(
+                                        checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)
+                                                == android.content.pm.PackageManager.PERMISSION_GRANTED,
+                                        BootReceiver.wakeEnabledFromProfileJson(store.get("profile")),
+                                        true /* از Activity قابل مشاهده */,
+                                        SpeechRecognizer.isRecognitionAvailable(HomeActivity.this),
+                                        VoiceWakeService.WAKE_FEATURE_ENABLED);
+                                if (!VoiceWakeService.GATE_START_OK.equals(gate)) {
+                                    web.evaluateJavascript(VoiceHelper.eventJs("rahyar-wake-state",
+                                            "{\"state\":\"" + VoiceHelper.jsString(gate) + "\"}"), null);
+                                    return;
+                                }
+                                Intent i = new Intent(HomeActivity.this, VoiceWakeService.class)
+                                        .putExtra(VoiceWakeService.EXTRA_START_FROM,
+                                                VoiceWakeService.START_FROM_ACTIVITY);
+                                if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(i);
+                                else startService(i);
                             }
                         });
                     }
@@ -142,7 +163,8 @@ public class HomeActivity extends Activity {
                     }
                 });
 
-        // F2-VOICE: دستیار صوتی — فقط با لمس کاربر؛ صدا هرگز ذخیره/ارسال نمی‌شود
+        // F2-VOICE: دستیار صوتی — فقط با لمس کاربر؛ صدا به سرویس گفتار سیستم‌عامل می‌رود
+        // (روی‌دستگاه یا آنلاین بسته به دستگاه)؛ رهیار هیچ صدایی ذخیره نمی‌کند
         voice = new VoiceHelper(web, this);
         bridge.attachVoiceDelegate(voice);
 
@@ -193,6 +215,19 @@ public class HomeActivity extends Activity {
         web.setWebViewClient(new LocalClient(loader));
 
         web.loadUrl(START_URL);
+        // R3-P0 (مأموریت §2): پس از بوت سرویس میکروفون از BOOT_COMPLETED شروع نمی‌شود؛
+        // فقط وضعیت بازیابی می‌شود و کاربر پیام صادقانه را در UI محلی می‌بیند
+        if (getSharedPreferences("rahyar_consents", MODE_PRIVATE)
+                .getBoolean("wake_restore_pending", false)) {
+            getSharedPreferences("rahyar_consents", MODE_PRIVATE).edit()
+                    .putBoolean("wake_restore_pending", false).apply();
+            web.postDelayed(new Runnable() {
+                @Override public void run() {
+                    web.evaluateJavascript(VoiceHelper.eventJs("rahyar-wake-restore",
+                            "{\"reason\":\"boot\"}"), null);
+                }
+            }, 1500L);
+        }
         applyWakeIntent(getIntent()); // V1: Wake Word → شنود خودکار با رضایت موجود
     }
 

@@ -18,6 +18,7 @@ CP="$OUT_CLASSES:$T/test-libs/json-20240303.jar:$T/test-libs/junit-4.13.2.jar:$T
 [ -d "$OUT_CLASSES" ] || { echo "app classes missing — run build-android-apk-v13.sh first"; exit 1; }
 ls "$T/test-libs/junit-4.13.2.jar" >/dev/null || { echo "junit jar missing"; exit 1; }
 
+mkdir -p "$ROOT/artifacts/rahyar-audit"
 rm -rf "$OUT/test-classes"
 mkdir -p "$OUT/test-classes"
 SRCS=$(find "$PROJ/app/src/test/java" -name "*.java")

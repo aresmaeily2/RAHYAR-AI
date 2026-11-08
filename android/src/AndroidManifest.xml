@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- RETIRED-MANIFEST (R3-P1 §7): این فایل دیگر منبع حقیقت نیست و هیچ خط لولهٔ فعلی از آن استفاده نمی‌کند.
+     منبع حقیقت یگانه: android/app/gradle/AndroidManifest.xml — مستند در docs/audit/V1_P3R3_RELEASE_IDENTITY.md -->
 <!-- رهیار — کلاینت اندروید مستقل ( hybrid native + web view از endpoint قابل‌تنظیم) -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.rahyarai.app">

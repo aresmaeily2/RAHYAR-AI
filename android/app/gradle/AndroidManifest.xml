@@ -18,7 +18,9 @@
     <!-- لرزش اعلان یادآور -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- F2-VOICE: میکروفون — فقط برای تشخیص گفتار با رضایت صریح کاربر (دکمهٔ میکروفون).
-         صدا به سرویس گفتار سیستم می‌رود؛ هیچ‌گاه ذخیره یا ارسال نمی‌شود. -->
+         صدا به سرویس گفتار سیستم‌عامل می‌رود؛ بسته به دستگاه این پردازش می‌تواند
+         روی‌دستگاه یا آنلاین باشد (R3-P0 §4 — ادعای «هرگز ارسال نمی‌شود» صحیح نیست).
+         رهیار خودش هیچ صدایی ذخیره نمی‌کند. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- F2-VOICE: سرویس پیش‌زمینهٔ اختیاری Wake Word (فقط با رضایت کاربر + اعلان ماندگار) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -92,7 +94,9 @@
             </intent-filter>
         </receiver>
 
-        <!-- F2-VOICE: سرویس اختیاری Wake Word — پیش‌زمینه با اعلان ماندگار شفاف -->
+        <!-- F2-VOICE: سرویس اختیاری Wake Word — پیش‌زمینه با اعلان ماندگار شفاف.
+             R3-P0: فقط از Activity قابل مشاهده با گیت واحد شروع می‌شود؛ هرگز از BOOT.
+             R3-P1: تا آزمون واقعی و اندازه‌گیری باتری غیرفعال (WAKE_FEATURE_ENABLED=false). -->
         <service
             android:name=".VoiceWakeService"
             android:exported="false"

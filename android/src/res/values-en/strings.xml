@@ -41,6 +41,6 @@
     <!-- F2-VOICE: voice assistant — consent/transparency -->
     <string name="wake_channel">Listening for "Hey Rahyar"</string>
     <string name="wake_title">Rahyar — listening for "Hey Rahyar"</string>
-    <string name="wake_body">Active listening; no audio is stored or sent. Turn off: Rahyar settings.</string>
+    <string name="wake_body">Listening is active. Audio is processed by the OS speech service — on-device or online, depending on the device. Rahyar never stores audio. Turn off: Rahyar settings.</string>
     <string name="wake_desc">Rahyar optional wake-word service channel</string>
 </resources>

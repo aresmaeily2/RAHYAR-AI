@@ -6,6 +6,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
 import android.os.Build;
 import android.os.Bundle;
@@ -13,24 +14,29 @@ import android.os.IBinder;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
+import android.util.Log;
 
 import java.util.ArrayList;
 
 /**
  * VoiceWakeService — فعال‌ساز اختیاری Wake Word «سلام رهیار».
  *
- * مأموریت مالک (بند ۲ — Wake Word جداگانه):
- *  - پیش‌فرض خاموش؛ فقط با رضایت صریح کاربر از تنظیمات روشن می‌شود.
- *  - با اعلان ماندگار شفاف («گوش دادن به سلام رهیار») اجرا می‌شود — هرگز پنهان نیست.
- *  - شنود پیوسته فقط در حافظه و در فرایند سرویس گفتار سیستم پردازش می‌شود؛
- *    هیچ بافر صدا ذخیره یا ارسال نمی‌شود؛ فقط عبارت بیدارباش دیده می‌شود.
- *  - روی دستگاه‌های بدون سرویس تشخیص گفتار، سرویس با وضعیت degraded می‌ماند
- *    (اعلان نشان می‌دهد) و بدون هیچ ادعای عملیاتی خاموش می‌شود.
+ * R3-P0 (مأموریت V1-P3-R3 §2 — سیاست واحد شروع):
+ *  - شروع سرویس فقط از مسیر «Activity قابل مشاهده + مجوز RECORD_AUDIO + رضایت ذخیره‌شدهٔ
+ *    پروفایل + موتور تشخیص موجود» مجاز است — گیت واحد startGate؛ هر مسیر دیگر (از جمله
+ *    BOOT_COMPLETED) رد می‌شود.
+ *  - پیش از startForeground، گیت بررسی می‌شود؛ در رد مجوز یا SecurityException:
+ *    سرویس شروع نمی‌شود، اعلان گمراه‌کنندهٔ «در حال شنود» هرگز ساخته نمی‌شود،
+ *    خطا به شکل امن (بدون دادهٔ کاربر) ثبت می‌شود و UI به وضعیت واقعی برمی‌گردد.
+ *  - در لغو مجوز در حین اجرا، چرخهٔ شنود سرویس را فوراً متوقف می‌کند.
  *
- * F7 (ایجنت ۲): باگ چرخهٔ شنود برطرف شد — پیش از این بعد از اولین onResults/onError
- * شنونده هرگز دوباره شروع نمی‌شد (کامنت‌های «restartLoop» بی‌پیاده‌سازی بودند).
- * اکنون: پس از هر پایان/خطا، شنونده با تأخیر محاسبه‌شدهٔ قطعی (backoff) دوباره
- * شروع می‌شود؛ برای «اجازهٔ ناکافی» دوباره‌شروعی نمی‌کنیم (degrade صادقانه).
+ * R3-P1 (§5 — تصمیم معماری Wake Word): تا تکمیل آزمون واقعی و اندازه‌گیری باتری،
+ * بیدارباش به‌صورت پیش‌فرض غیرفعال است (WAKE_FEATURE_ENABLED=false)؛ Push-to-talk
+ * (دکمهٔ میکروفون) کاملاً مستقل از این سرویس است و بی‌تأثیر می‌ماند. مستند:
+ * docs/audit/V1_P3R3_WAKE_WORD_DECISION.md
+ *
+ * F7 (ایجنت ۲): باگ چرخهٔ شنود برطرف شد — پس از هر پایان/خطا، شنونده با تأخیر
+ * قطعی (backoff) دوباره شروع می‌شود؛ برای «اجازهٔ ناکافی» دوباره‌شروعی نمی‌کنیم.
  */
 public final class VoiceWakeService extends Service {
 
@@ -38,6 +44,21 @@ public final class VoiceWakeService extends Service {
     public static final int NOTIF_ID = 4702;
     /** عبارت‌های بیدارباش — fa و en */
     static final String[] WAKE_PHRASES = {"سلام رهیار", "سلام رهيار", "hey rahyar", "hi rahyar", "rahyar"};
+
+    /** R3-P1: بیدارباش تا آزمون واقعی + اندازه‌گیری باتری غیرفعال است (تصمیم مستند) */
+    static final boolean WAKE_FEATURE_ENABLED = false;
+
+    /** خروجی‌های گیت واحد شروع — JVM-آزمون‌پذیر */
+    static final String GATE_START_OK = "START_OK";
+    static final String GATE_OFF_DISABLED = "OFF_DISABLED";
+    static final String GATE_OFF_NO_CONSENT = "OFF_NO_CONSENT";
+    static final String GATE_BLOCKED_NOT_FROM_ACTIVITY = "BLOCKED_NOT_FROM_ACTIVITY";
+    static final String GATE_BLOCKED_NO_MIC = "BLOCKED_NO_MIC";
+    static final String GATE_OFF_NO_ENGINE = "OFF_NO_ENGINE";
+
+    /** extra مسیر شروع — فقط مقدار "activity" از HomeActivity پذیرفته است */
+    static final String EXTRA_START_FROM = "rahyar_start_from";
+    static final String START_FROM_ACTIVITY = "activity";
 
     /** کدهای خطای SpeechRecognizer — برای آزمون JVM و backoff */
     static final int ERR_NETWORK_TIMEOUT = 1;
@@ -62,6 +83,21 @@ public final class VoiceWakeService extends Service {
     private final Runnable restartTask = new Runnable() {
         @Override public void run() { startListeningSafe(); }
     };
+
+    /**
+     * R3-P0 — گیت واحد شروع سرویس بیدارباش (خالص و JVM-آزمون‌پذیر).
+     * ترتیب ارزیابی: غیرفعال بودن قابلیت → رضایت → مسیر Activity → مجوز میکروفون → موتور.
+     * شنود فقط با START_OK مجاز است؛ هیچ ترکیب دیگری سرویس را روشن نمی‌کند.
+     */
+    static String startGate(boolean micGranted, boolean wakeConsent, boolean fromVisibleActivity,
+                            boolean recognitionAvailable, boolean wakeFeatureEnabled) {
+        if (!wakeFeatureEnabled) return GATE_OFF_DISABLED;
+        if (!wakeConsent) return GATE_OFF_NO_CONSENT;
+        if (!fromVisibleActivity) return GATE_BLOCKED_NOT_FROM_ACTIVITY;
+        if (!micGranted) return GATE_BLOCKED_NO_MIC;
+        if (!recognitionAvailable) return GATE_OFF_NO_ENGINE;
+        return GATE_START_OK;
+    }
 
     /**
      * F7 — تأخیر دوباره‌شروعیِ قطعی (خالص — JVM آزمون‌پذیر).
@@ -91,9 +127,41 @@ public final class VoiceWakeService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        startAsForeground();
+        String gate = startGate(
+                hasMicPermission(),
+                wakeConsentFromProfile(),
+                startedFromVisibleActivity(intent),
+                SpeechRecognizer.isRecognitionAvailable(this),
+                WAKE_FEATURE_ENABLED);
+        if (!GATE_START_OK.equals(gate)) {
+            // R3-P0 بند ۶: بدون اعلان گمراه‌کنندهٔ «در حال شنود»؛ وضعیت واقعی = متوقف
+            Log.w("RahyarWake", "start refused by gate: " + gate);
+            stopSelf();
+            return START_NOT_STICKY;
+        }
+        try {
+            startAsForeground();
+        } catch (SecurityException | IllegalStateException e) {
+            // R3-P0 بند ۶: رد مجوز/محدودیت پلتفرم → بدون سرویس، بدون اعلان، خطای امن
+            Log.w("RahyarWake", "foreground start rejected: " + e.getClass().getSimpleName());
+            stopSelf();
+            return START_NOT_STICKY;
+        }
         startLoop();
         return START_STICKY;
+    }
+
+    private boolean hasMicPermission() {
+        return checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private boolean wakeConsentFromProfile() {
+        return BootReceiver.wakeEnabledFromProfileJson(BootReceiver.readProfileJson(this));
+    }
+
+    private boolean startedFromVisibleActivity(Intent intent) {
+        return intent != null && START_FROM_ACTIVITY.equals(intent.getStringExtra(EXTRA_START_FROM));
     }
 
     private void startAsForeground() {
@@ -171,6 +239,12 @@ public final class VoiceWakeService extends Service {
 
     private void startListeningSafe() {
         if (destroyed || recognizer == null) return;
+        // R3-P0 بند ۸: لغو مجوز در حین اجرا → توقف فوری سرویس (بدون چرخهٔ بی‌فایده)
+        if (!hasMicPermission()) {
+            Log.w("RahyarWake", "mic permission revoked — stopping service");
+            stopSelf();
+            return;
+        }
         Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
