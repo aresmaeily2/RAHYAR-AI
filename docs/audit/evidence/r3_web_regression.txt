@@ -1,0 +1,10 @@
+شواهد V1-P3-R3 — همهٔ فایل‌ها بدون هیچ مقدار محرمانه
+== typecheck (exit=0) ==
+$ tsc --noEmit
+== unit (exit=0) ==
+bun test v1.3.14 (0d9b296a)
+== lint (exit=0) ==
+  161:13  warning  Unused eslint-disable directive (no problems were reported from '@next/next/no-img-element')
+
+✖ 1 problem (0 errors, 1 warning)
+  0 errors and 1 warning potentially fixable with the `--fix` option.

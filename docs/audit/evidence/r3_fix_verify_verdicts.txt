@@ -1,0 +1,15 @@
+شواهد V1-P3-R3 — همهٔ فایل‌ها بدون هیچ مقدار محرمانه
+[21:13:02] ===== RUN head=e9a6b9a =====
+[21:13:07] verdict=PASS  P6-3 two distinct records with IDs
+[21:13:07] verdict=WARN  P6-3 reminder B time recorded (row: یادآوری: ساعت 14 @2026-11-10T09:30:00.000Z — linked-reminder pattern: 60min before task due; exact 14:00 not asserted)
+[21:13:11] verdict=PASS  P6-4 reply mentions BOTH reminders (and no cross-user leak)
+[21:13:11] verdict=PASS  P6-5 no cross-user data in owner reply
+[21:13:12] verdict=PASS  P6-6 honest empty-day answer (reply saved for review)
+[21:13:13] verdict=PASS  P8-3 new record ID captured (cmw8bx2zf001hnl2y7ifg3rvv)
+[21:13:13] verdict=WARN  P8-3b remindAt is tomorrow but not exactly 14:00 Tehran — row=cmw8bx2zf001hnl2y7ifg3rvv | یادآوری: ساعت 14 | 2026-11-10T09:30:00.000Z (recorded as observation)
+[21:13:13] verdict=PASS  P8-4 deterministic undo reply announces real deletion with record name
+[21:13:13] verdict=PASS  P8-5 exact record cmw8bx2zf001hnl2y7ifg3rvv removed and count restored
+[21:13:13] verdict=PASS  P8-6 repeat cancel deleted nothing more (count=2), honest nothing-to-cancel reply, user2 canary intact
+[21:13:19] verdict=PASS  P8-7 other user's record survives owner deletion attempt
+[21:14:28] verdict=PASS  P8-8 ambiguous long message did not trigger blind mass-cancel (count=2)
+[21:14:28] ===== SUMMARY PASS=10 FAIL=0 WARN=2 =====

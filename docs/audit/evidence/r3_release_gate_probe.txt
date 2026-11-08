@@ -1,0 +1,4 @@
+شواهد V1-P3-R3 — همهٔ فایل‌ها بدون هیچ مقدار محرمانه
+RELEASE_KEY_POLICY: ok=0 (key files absent)
+RELEASE_KEY_MISSING_OR_MISMATCH — build stopped. Owner must restore the original keystore; NO new key is generated.
+exit=42

@@ -1,0 +1,14 @@
+شواهد V1-P3-R3 — همهٔ فایل‌ها بدون هیچ مقدار محرمانه
+PASS: login fa: html[lang=fa] + rtl — fa/rtl
+PASS: axe login-fa: no serious violations — 0 serious
+PASS: login flow: dashboard reached
+PASS: task created via UI appears in list
+PASS: calendar fa: Jalali month visible
+PASS: owner sees users admin
+PASS: axe settings-fa: no serious violations — 0 serious
+PASS: en mode: html data-lang=en — en
+PASS: calendar en: Gregorian only, Latin digits, no Jalali leak — gregorian=true noPersian=true
+PASS: tablet: no horizontal overflow — overflow=0px
+PASS: mobile: no horizontal overflow — overflow=0px
+==============================
+E2E RESULT: PASS — 11/11 checks, consoleErrors=0
