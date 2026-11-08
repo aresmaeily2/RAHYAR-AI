@@ -23,7 +23,7 @@
 
 اسکریپت `scripts/v1-fix-verify.sh` طبق دستور «اگر ناقص بود اصلاح کن» بازنویسی شد: پوشش **همهٔ ۶ سناریوی P6 و ۹ سناریوی P8**، ثبت HTTP status واقعی (مصون از باگ subshell)، شناسهٔ دقیق رکورد، DB قبل/بعد، retry طبق Retry-After روی 429، چرخش لاگ شواهد.
 
-**اجرای نهایی (12:31 UTC): PASS=10 FAIL=0 WARN=2** — شواهد: `artifacts/logs/f8/voice-agent-fix-verify.log` + `p6-p8-evidence.log`
+**اجرای ثبت‌شدهٔ نهایی (12:38 UTC): PASS=11 FAIL=0 WARN=1** — در همهٔ اجراهای کامل (۱۲:۰۰، ۱۲:۳۱، ۱۲:۳۸) FAIL=0 ماند؛ تفاوت PASS/WARN فقط از واریانس رفتار مدل در الگوی یادآورِ متصل است — شواهد: `artifacts/logs/f8/voice-agent-fix-verify.log` + `p6-p8-evidence.log`
 
 ### P6 — زمینهٔ یادآور: **TESTED-SERVER-LIVE — PASS**
 | سناریو | نتیجه واقعی |
