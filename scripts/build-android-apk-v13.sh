@@ -27,7 +27,7 @@ mkdir -p "$OUT" "$KS_DIR"
 if [ -d /tmp/android-dl/bt34x ] && [ -d /tmp/android-dl/bt34x/*/lib64 ]; then
   cp -rn /tmp/android-dl/bt34x/*/lib64/* "$BT/" 2>/dev/null || true
 fi
-export LD_LIBRARY_PATH="$BT/lib64:$LD_LIBRARY_PATH"
+export LD_LIBRARY_PATH="$BT/lib64:${LD_LIBRARY_PATH:-}"
 
 # android.jar بدون java/* و javax/* برای ECJ (تداخل java.base JDK 21 — تجربهٔ v12)
 if [ ! -f "$NOJAR" ]; then
