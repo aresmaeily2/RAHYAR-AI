@@ -818,7 +818,7 @@ const CLAIM_CATEGORIES: Array<{ re: RegExp; backings: readonly string[] }> = [
   },
   {
     // به‌روزرسانی/تغییر/اصلاح/جابه‌جایی (یافتهٔ D-7)
-    re: /(تغییر\s*(دادم|داده\s*شد|کردم|شد)|اصلاح\s*(کردم|شد)|جابه‌جا\s*(کردم|شد)|به‌روزرسانی\s*(کردم|شد)|ویرایش\s*(کردم|شد)|updated|changed|rescheduled|edited|moved)/i,
+    re: /(تغییر\s*(دادم|داده\s*شد|کردم|کرد|شد)|اصلاح\s*(کردم|کرد|شد)|جابه‌جا\s*(کردم|کرد|شد)|به‌روزرسانی\s*(کردم|کرد|شد)|ویرایش\s*(کردم|کرد|شد)|updated|changed|rescheduled|edited|moved)/i,
     backings: ['update_task', 'snooze_task', 'star_task'],
   },
   {

@@ -84,6 +84,11 @@ describe('V1-P3 D-7: افعال به‌روزرسانی (یافتهٔ زندهٔ
     expect(out).toContain('راستی‌آزمایی صادقانه')
     expect(out).toContain('هیچ تغییری واقعاً ذخیره نشد')
   })
+  test('«تغییر کرد» (یافتهٔ زندهٔ T8 هارنس P3) بدون اکشن → یادداشت صادقانه', () => {
+    const out = guardUnbackedClaim('یادآور تماس با بانک به ساعت ۱۲ تغییر کرد.', [], 'fa')
+    expect(out).toContain('راستی‌آزمایی')
+    expect(out).toContain('هیچ تغییری واقعاً ذخیره نشد')
+  })
   test('«اصلاح کردم» / «جابه‌جا کردم» بدون اکشن → یادداشت', () => {
     expect(guardUnbackedClaim('یادآور را اصلاح کردم.', [], 'fa')).toContain('راستی‌آزمایی')
     expect(guardUnbackedClaim('جلسه را جابه‌جا کردم.', [], 'fa')).toContain('راستی‌آزمایی')
