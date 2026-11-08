@@ -1,0 +1,6 @@
+APK identity — RECORDED from docs/audit/V1_P3_FINAL_REPORT.md (byte files LOST from sandbox after P3; re-verification impossible — rebuild required for device test)
+release cert: CN=RahyAr,O=RahyAr,C=IR — cert SHA-256 598facd4... (same as P2)
+Rahyar-v2.4.0-vc28-user-release.apk c9ce5a65f7eaaa51dbb6bffd85fa44fccdd06f541a6057280e363ffacebec5fb
+Rahyar-v2.4.0-vc28-user-debug.apk 93129c28e866393da46ea6fd02442e3dab01ae3cb6a0e64530a79df6cce6d123
+Rahyar-v2.4.0-vc29-owner-release.apk 73312f0a71e7fbc72bb389fc29d97e4fcb98fcced2f76c512deb03bf14e1dbdb
+Rahyar-v2.4.0-vc29-owner-debug.apk c9793abf4be17a1aa809bdb073f913f812b0ad495c7597a898eed0e2bc96a714

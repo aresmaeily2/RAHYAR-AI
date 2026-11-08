@@ -1,0 +1,7 @@
+pre-r2-scrub backup 2026-11-08T17:11:16+00:00 Tehran
+bundle=artifacts/git-backup/rahyar-pre-r2-scrub-20261108-171111.bundle
+main=c9a3b233b626b795256e6a6ca685fa74c33d8028
+origin_main=28b64bb0bc21e162703a59a01f6d828f8c2065d4
+v1_tip=95acf84c9785516186da4dc737e309c2a9bbfe49
+commit_count_all=220
+object_count=2908

@@ -1,0 +1,5 @@
+pre-push guard run on pre-docs tip d4abcbe (mirror clone, simulated new-branch range root..tip)
+command: python3 scripts/tests/r2_push_guard.py <root> d4abcbe
+output:
+push guard: OK (no forbidden paths, no register fingerprints)
+guard_exit=0
