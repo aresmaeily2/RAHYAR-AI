@@ -223,6 +223,7 @@ export function SettingsView() {
             />
           </div>
           <VoiceRepliesRow />
+          <VoiceLangRateRow />
           <button
             onClick={() => setNotifOpen(true)}
             className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-secondary/60 px-3 py-2 text-[11px] font-medium transition-colors hover:bg-secondary"
@@ -966,6 +967,11 @@ function VoiceRepliesRow() {
   const { t } = useI18n()
   const [on, setOn] = useState(true)
   const [loaded, setLoaded] = useState(false)
+  // V1 بند ۳/۵: زبان صوتی + سرعت خواندن — از استور (متصل به تنظیمات سرور)
+  const voiceLang = useI18n((s) => s.voiceLang)
+  const setVoiceLang = useI18n((s) => s.setVoiceLang)
+  const voiceRate = useI18n((s) => s.voiceRate)
+  const setVoiceRate = useI18n((s) => s.setVoiceRate)
 
   useEffect(() => {
     fetch('/api/settings/app')
@@ -1006,6 +1012,48 @@ function VoiceRepliesRow() {
         aria-label={t('پاسخ گفتاری دستیار')}
         className="h-4 w-4 accent-[var(--primary)]"
       />
+    </div>
+      )
+}
+
+/** V1 (بند ۳ + بند ۵): زبان ورودی صوتی + سرعت خواندن پاسخ — متصل به تنظیمات سرور */
+function VoiceLangRateRow() {
+  const { t } = useI18n()
+  const voiceLang = useI18n((s) => s.voiceLang)
+  const setVoiceLang = useI18n((s) => s.setVoiceLang)
+  const voiceRate = useI18n((s) => s.voiceRate)
+  const setVoiceRate = useI18n((s) => s.setVoiceRate)
+
+  return (
+    <div className="space-y-2 rounded-xl bg-secondary/50 px-3 py-2.5">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-medium">{t('زبان ورودی صوتی')}</p>
+        <select
+          value={voiceLang}
+          onChange={(e) => setVoiceLang(e.target.value as '' | 'fa' | 'en')}
+          aria-label={t('زبان ورودی صوتی')}
+          className="rounded-lg border bg-background px-2 py-1 text-xs"
+        >
+          <option value="">{t('هم‌زبان رابط (خودکار)')}</option>
+          <option value="fa">{t('فارسی — fa-IR')}</option>
+          <option value="en">{t('English — en-US')}</option>
+        </select>
+      </div>
+      <div>
+        <p className="text-[10px] text-muted-foreground">
+          {t('سرعت خواندن پاسخ')} — <span className="font-bold text-foreground">{voiceRate.toFixed(2)}×</span>
+        </p>
+        <input
+          type="range"
+          min={0.5}
+          max={2.5}
+          step={0.05}
+          value={voiceRate}
+          onChange={(e) => setVoiceRate(Number(e.target.value))}
+          aria-label={t('سرعت خواندن پاسخ')}
+          className="mt-1 w-full accent-[var(--primary)]"
+        />
+      </div>
     </div>
   )
 }

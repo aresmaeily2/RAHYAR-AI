@@ -27,10 +27,16 @@ interface I18nState {
   hydrated: boolean
   calendarMode: CalendarMode
   voiceReplies: boolean
+  /** سرعت خواندن صوتی — ۰٫۵ تا ۲٫۵ (پیش‌فرض ۱) — V1 بند ۵ */
+  voiceRate: number
+  /** زبان ورودی صوتی — '' = هم‌زبان رابط؛ 'fa' | 'en' دستی — V1 بند ۳ */
+  voiceLang: '' | 'fa' | 'en'
   smsConsent: boolean
   setLang: (l: Lang) => void
   setCalendarMode: (m: CalendarMode) => void
   setVoiceReplies: (v: boolean) => void
+  setVoiceRate: (r: number) => void
+  setVoiceLang: (l: '' | 'fa' | 'en') => void
   setSmsConsent: (v: boolean) => void
   /** خواندن از localStorage + سرور — یک‌بار در شروع اپ */
   hydrate: () => Promise<void>
@@ -76,6 +82,8 @@ export const useI18n = create<I18nState>((set, get) => ({
   hydrated: false,
   calendarMode: 'jalali',
   voiceReplies: true,
+  voiceRate: 1,
+  voiceLang: '',
   smsConsent: false,
 
   setLang: (l) => {
@@ -117,6 +125,25 @@ export const useI18n = create<I18nState>((set, get) => ({
     }).catch(() => {})
   },
 
+  setVoiceRate: (r) => {
+    const safe = Math.min(2.5, Math.max(0.5, Number.isFinite(r) ? r : 1))
+    set({ voiceRate: safe })
+    fetch('/api/settings/app', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voiceRate: safe }),
+    }).catch(() => {})
+  },
+
+  setVoiceLang: (l) => {
+    set({ voiceLang: l })
+    fetch('/api/settings/app', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voiceLang: l }),
+    }).catch(() => {})
+  },
+
   setSmsConsent: (v) => {
     set({ smsConsent: v })
     fetch('/api/settings/app', {
@@ -149,6 +176,8 @@ export const useI18n = create<I18nState>((set, get) => ({
           lang?: Lang
           calendarMode?: CalendarMode
           voiceReplies?: boolean
+          voiceRate?: number
+          voiceLang?: '' | 'fa' | 'en'
           smsConsent?: boolean
         }
         // سرور منبع حقیقت بین دستگاه‌هاست؛ اگر کاربر اینجا هنوز انتخابی نکرده
@@ -161,6 +190,8 @@ export const useI18n = create<I18nState>((set, get) => ({
           // انگلیسی → همیشه میلادی (معیار مأموریت)؛ فارسی → انتخاب کاربر
           calendarMode: lang === 'en' ? 'gregorian' : (d.calendarMode ?? 'jalali'),
           voiceReplies: d.voiceReplies !== false,
+          voiceRate: Number.isFinite(d.voiceRate) && (d.voiceRate as number) >= 0.5 && (d.voiceRate as number) <= 2.5 ? (d.voiceRate as number) : 1,
+          voiceLang: d.voiceLang === 'fa' || d.voiceLang === 'en' ? d.voiceLang : '',
           smsConsent: d.smsConsent === true,
           hydrated: true,
         })

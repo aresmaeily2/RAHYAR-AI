@@ -15,6 +15,8 @@ export const SETTING_KEYS = {
   appLang: 'app_lang',
   calendarMode: 'calendar_mode',
   voiceReplies: 'voice_replies',
+  voiceRate: 'voice_rate',
+  voiceLang: 'voice_lang',
   smsConsent: 'sms_consent',
   financeCurrency: 'finance_currency',
 } as const
@@ -64,6 +66,19 @@ export async function getCalendarMode(userId: string, lang: AppLang): Promise<Ca
 export async function getVoiceReplies(userId: string): Promise<boolean> {
   const v = await getUserSetting(userId, SETTING_KEYS.voiceReplies)
   return v !== '0'
+}
+
+/** سرعت خواندن پاسخ صوتی — ۰٫۵ تا ۲٫۵؛ پیش‌فرض ۱ (V1 بند ۵) */
+export async function getVoiceRate(userId: string): Promise<number> {
+  const v = await getUserSetting(userId, SETTING_KEYS.voiceRate)
+  const n = v ? Number(v) : NaN
+  return Number.isFinite(n) && n >= 0.5 && n <= 2.5 ? n : 1
+}
+
+/** زبان ورودی صوتی — '' = هم‌زبان رابط (خودکار)؛ 'fa' | 'en' انتخاب دستی (V1 بند ۳) */
+export async function getVoiceLang(userId: string): Promise<'' | 'fa' | 'en'> {
+  const v = await getUserSetting(userId, SETTING_KEYS.voiceLang)
+  return v === 'fa' || v === 'en' ? v : ''
 }
 
 /** واحد نمایش مالی — «IRR» (ریال) یا «toman» (تومان)؛ پیش‌فرض ریال */

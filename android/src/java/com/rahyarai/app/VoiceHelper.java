@@ -78,10 +78,17 @@ public final class VoiceHelper implements RahyarBridge.VoiceDelegate {
     private volatile boolean ttsReady = false;
     private final AtomicBoolean listening = new AtomicBoolean(false);
     private String lastLang = "fa-IR";
+    /** سرعت خواندن — پیش‌فرض سیستم؛ با setSpeechRate از تنظیمات صوتی تغییر می‌کند (بند ۵ مأموریت V1) */
+    private volatile float speechRate = 1.0f;
 
     public VoiceHelper(WebView web, Activity activity) {
         this.web = web;
         this.activity = activity;
+    }
+
+    /** تنظیم سرعت خواندن TTS — بازهٔ مجاز ۰.۵ تا ۲.۵ (خارج بازه = بی‌اثر) */
+    public void setSpeechRate(float rate) {
+        if (rate >= 0.5f && rate <= 2.5f) speechRate = rate;
     }
 
     // ── مجوز میکروفون (قرارداد VoiceDelegate) ──
@@ -189,6 +196,11 @@ public final class VoiceHelper implements RahyarBridge.VoiceDelegate {
         i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, lastLang);
         i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
         i.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+        // V1 (بند ۳): تغییر زبان در میانهٔ مکالمه — روی سرویس‌های سازگار (API 33+)
+        // سرویس تشخیص می‌تواند بین fa/en سوییچ کند؛ روی دستگاه‌های قدیمی‌تر بی‌اثر است
+        try {
+            i.putExtra("android.speech.extra.ENABLE_LANGUAGE_SWITCH", true);
+        } catch (Exception ignored) { /* کلید روی پلتفرم قدیمی پشتیبانی نمی‌شود */ }
         listening.set(true);
         try {
             recognizer.startListening(i);
@@ -259,6 +271,7 @@ public final class VoiceHelper implements RahyarBridge.VoiceDelegate {
                 l = new Locale(langBcp47 == null || langBcp47.isEmpty() ? "fa" : langBcp47);
             }
             tts.setLanguage(l);
+            tts.setSpeechRate(speechRate); // V1: سرعت انتخابی کاربر (تنظیمات صوتی)
             String id = "rahyar-tts-" + System.nanoTime();
             tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
                 @Override public void onStart(String utteranceId) { /* شروع */ }

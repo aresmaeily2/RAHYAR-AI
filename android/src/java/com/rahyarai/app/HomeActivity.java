@@ -193,6 +193,27 @@ public class HomeActivity extends Activity {
         web.setWebViewClient(new LocalClient(loader));
 
         web.loadUrl(START_URL);
+        applyWakeIntent(getIntent()); // V1: Wake Word → شنود خودکار با رضایت موجود
+    }
+
+    /** V1 (بند ۷): Wake Word عبارت را دید → اپ باز شد → رویداد rahyar-wake به UI محلی
+     *  (شنود فقط با رضایت میکروفون داخل app.js شروع می‌شود — fail-closed) */
+    private void applyWakeIntent(Intent i) {
+        if (i == null || web == null) return;
+        if ("1".equals(i.getStringExtra("rahyar_wake"))) {
+            web.postDelayed(new Runnable() {
+                @Override public void run() {
+                    web.evaluateJavascript(VoiceHelper.eventJs("rahyar-wake", null), null);
+                }
+            }, 1200L); // پس از بارگذاری صفحهٔ محلی
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        applyWakeIntent(intent);
     }
 
     /** قفل ناوبری: فقط مبدأ appassets داخل WebView می‌ماند؛ هر چیز دیگر مسدود است. */

@@ -111,6 +111,11 @@ public class MainActivity extends Activity {
                 },
                 new RahyarNativeBridge.HostAction() { // همگام‌سازی یادآورها
                     @Override public void run(String arg) { onRemindersSync(arg); }
+                },
+                new RahyarNativeBridge.HostAction() { // V1: سرعت خواندن — ورودی معتبر‌سازی‌شده در پل
+                    @Override public void run(String arg) {
+                        try { voice.setSpeechRate(Float.parseFloat(arg)); } catch (Exception ignored) {}
+                    }
                 }
         );
         web.addJavascriptInterface(bridge, "RahyarNative");

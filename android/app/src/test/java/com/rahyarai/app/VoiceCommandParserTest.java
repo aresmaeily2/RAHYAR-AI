@@ -69,6 +69,39 @@ public class VoiceCommandParserTest {
     @Test public void faCancel() {
         assertEquals("cancel", act(fa("لغو")));
     }
+
+    // ── V1 بند ۴ سناریو ۴: «منصرف شدم» / «ثبت نکن» → هیچ نوشتنی ──
+    @Test public void faCancelReversed() {
+        assertEquals("cancel", act(fa("این هزینه را ثبت نکن، منصرف شدم")));
+        assertEquals("cancel", act(fa("منصرف شدم")));
+        assertEquals("cancel", act(fa("این یادآور را نریز")));
+    }
+    @Test public void enCancelDoNotAdd() {
+        assertEquals("cancel", act(en("don't add that expense")));
+        assertEquals("cancel", act(en("do not save it")));
+    }
+
+    // ── V1 بند ۳: مبلغ و واحد پول — هزار/میلیون ──
+    @Test public void faExpenseThousandMultiplier() {
+        JSONObject o = fa("امروز ۱۵۰ هزار تومان برای خرید هزینه کردم");
+        assertEquals("add_expense", act(o));
+        assertEquals(150000L, o.optLong("amount"));
+    }
+    @Test public void faExpenseMillionMultiplier() {
+        JSONObject o = fa("۲ میلیون تومان فروش داشتیم");
+        assertEquals("add_income", act(o));
+        assertEquals(2000000L, o.optLong("amount"));
+    }
+    @Test public void enExpenseThousandMultiplier() {
+        JSONObject o = en("spent 5 thousand for groceries");
+        assertEquals("add_expense", act(o));
+        assertEquals(5000L, o.optLong("amount"));
+    }
+    @Test public void amountWithoutUnitStaysRaw() {
+        JSONObject o = fa("هزینه خرید خواروبار ۱۲۰ تومان");
+        assertEquals("add_expense", act(o));
+        assertEquals(120L, o.optLong("amount"));
+    }
     @Test public void faHelp() {
         assertEquals("help", act(fa("چیکار می‌تونی بکنی")));
     }

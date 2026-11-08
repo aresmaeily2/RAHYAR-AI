@@ -127,21 +127,21 @@ public class OfflineContractTest {
 
     @Test
     public void appVersionMatchesGradleContract() throws Exception {
-        // همگامی AppVersion با build.gradle — منبع واحد حقیقت (v2.3.0 دو ویراست (F7))
+        // همگامی AppVersion با build.gradle — منبع واحد حقیقت (v2.4.0 دو ویراست (V1))
         // build.gradle در android/app — از rahyar.www.dir بازگشت می‌کنیم به ریشهٔ مخزن اندروید
         Path dir = wwwDir(); // .../android/src/www
         Path gradle = dir.getParent().getParent().resolve("app/build.gradle");
         assertTrue("build.gradle must exist at " + gradle, Files.exists(gradle));
         String g = read(gradle);
-        assertTrue("user flavor must be versionCode 26", g.contains("versionCode 26"));
-        assertTrue("user flavor must be versionName 2.3.0", g.contains("versionName '2.3.0'"));
-        assertTrue("owner flavor must be versionCode 27", g.contains("versionCode 27"));
+        assertTrue("user flavor must be versionCode 28", g.contains("versionCode 28"));
+        assertTrue("user flavor must be versionName 2.4.0", g.contains("versionName '2.4.0'"));
+        assertTrue("owner flavor must be versionCode 29", g.contains("versionCode 29"));
         // همگام با دستور تحویل: هر دو ویراست versionName «2.2.0» دارند؛
         // تمایز ویراست‌ها در applicationId (com.rahyarai.app[.owner]) و versionCode است.
-        assertTrue("owner flavor must also be versionName 2.3.0", g.contains("versionName '2.3.0'"));
+        assertTrue("owner flavor must also be versionName 2.4.0", g.contains("versionName '2.4.0'"));
         assertTrue("owner flavor package must be com.rahyarai.app.owner", g.contains("com.rahyarai.app.owner"));
-        assertEquals("AppVersion.NAME", "2.3.0", AppVersion.NAME);
-        assertEquals("AppVersion.CODE", 26, AppVersion.CODE);
+        assertEquals("AppVersion.NAME", "2.4.0", AppVersion.NAME);
+        assertEquals("AppVersion.CODE", 28, AppVersion.CODE);
         assertEquals("AppVersion.PACKAGE_ID", "com.rahyarai.app", AppVersion.PACKAGE_ID);
     }
 

@@ -5,6 +5,8 @@ import {
   getUserLang,
   getCalendarMode,
   getVoiceReplies,
+  getVoiceRate,
+  getVoiceLang,
   getFinanceCurrency,
   getUserSetting,
   setUserSetting,
@@ -22,6 +24,8 @@ export async function GET(req: NextRequest) {
       lang,
       calendarMode: await getCalendarMode(user.id, lang),
       voiceReplies: await getVoiceReplies(user.id),
+      voiceRate: await getVoiceRate(user.id),
+      voiceLang: await getVoiceLang(user.id),
       smsConsent: (await getUserSetting(user.id, SETTING_KEYS.smsConsent)) === '1',
       financeCurrency: await getFinanceCurrency(user.id),
     })
@@ -42,6 +46,8 @@ export async function PUT(req: NextRequest) {
       lang?: unknown
       calendarMode?: unknown
       voiceReplies?: unknown
+      voiceRate?: unknown
+      voiceLang?: unknown
       smsConsent?: unknown
       financeCurrency?: unknown
     } | null
@@ -61,6 +67,19 @@ export async function PUT(req: NextRequest) {
     if (body?.voiceReplies !== undefined) {
       await setUserSetting(user.id, SETTING_KEYS.voiceReplies, body.voiceReplies ? '1' : '0')
     }
+    if (body?.voiceRate !== undefined) {
+      const n = Number(body.voiceRate)
+      if (!Number.isFinite(n) || n < 0.5 || n > 2.5) {
+        return NextResponse.json({ error: 'سرعت خواندن نامعتبر است' }, { status: 400 })
+      }
+      await setUserSetting(user.id, SETTING_KEYS.voiceRate, String(n))
+    }
+    if (body?.voiceLang !== undefined) {
+      if (body.voiceLang !== '' && body.voiceLang !== 'fa' && body.voiceLang !== 'en') {
+        return NextResponse.json({ error: 'زبان صوتی نامعتبر است' }, { status: 400 })
+      }
+      await setUserSetting(user.id, SETTING_KEYS.voiceLang, String(body.voiceLang))
+    }
     if (body?.smsConsent !== undefined) {
       await setUserSetting(user.id, SETTING_KEYS.smsConsent, body.smsConsent ? '1' : '0')
     }
@@ -76,6 +95,8 @@ export async function PUT(req: NextRequest) {
       lang,
       calendarMode: await getCalendarMode(user.id, lang),
       voiceReplies: await getVoiceReplies(user.id),
+      voiceRate: await getVoiceRate(user.id),
+      voiceLang: await getVoiceLang(user.id),
       smsConsent: (await getUserSetting(user.id, SETTING_KEYS.smsConsent)) === '1',
       financeCurrency: await getFinanceCurrency(user.id),
     })

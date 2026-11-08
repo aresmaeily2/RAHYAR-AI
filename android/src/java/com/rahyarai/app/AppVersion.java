@@ -10,8 +10,8 @@ package com.rahyarai.app;
  * هویت بصری رهیار و نشان دو‌تقویمی در همین نسخه اضافه شده‌اند.
  */
 public final class AppVersion {
-    public static final String NAME = "2.3.0"; // F7: تکمیل صوتی + مسیر مالی تأییددار
-    public static final int CODE = 26; // F7
+    public static final String NAME = "2.4.0"; // V1: چرخهٔ صوتی پیوسته + ارسال خودکار + سرعت/زبان صوت + Wake→شنود
+    public static final int CODE = 28; // V1 (owner: 29)
     public static final String PACKAGE_ID = "com.rahyarai.app";
 
     private AppVersion() {}

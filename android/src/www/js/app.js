@@ -249,6 +249,13 @@
       var vl = p && p.voiceLang;
       if (vl === 'en' || vl === 'fa') return vl === 'en' ? 'en-US' : 'fa-IR';
       return R.lang() === 'en' ? 'en-US' : 'fa-IR';
+    },
+    // V1 (بند ۵): سرعت خواندن از پروفایل — ۰٫۷ تا ۲٫۰؛ نامعتبر = ۱
+    rate: function () {
+      var p = R.profile ? R.profile() : null;
+      var r = p && Number(p.voiceRate);
+      if (r >= 0.5 && r <= 2.5) return r;
+      return 1;
     }
   };
 
@@ -268,7 +275,7 @@
       vHelp: 'می‌توانم وظیفه اضافه یا حذف کنم، یادآور بسازم، هزینه و درآمد ثبت کنم، گزارش مالی بدهم، برنامه امروز را بگویم و تاریخ امروز را بگویم.',
       vCancel: 'قطع شد.', confirmDelete: 'حذف شود؟', yes: 'بله', no: 'نه',
       confirmFinance: 'ثبت شود؟', vCanceled: 'انصراف داده شد — هیچ چیزی ثبت نشد.',
-      voiceSec: 'دستیار صوتی', voiceLang: 'زبان صوت', wake: 'فعال‌سازی «سلام رهیار» (Wake Word)',
+      voiceSec: 'دستیار صوتی', voiceLang: 'زبان صوت', voiceRate: 'سرعت خواندن', wake: 'فعال‌سازی «سلام رهیار» (Wake Word)',
       wakeDesc: 'با روشن‌کردن، سرویس پیش‌زمینه با اعلان ماندگار شفاف به عبارت «سلام رهیار» گوش می‌دهد و اپ را باز می‌کند. هیچ صدایی ذخیره یا ارسال نمی‌شود و هر زمان می‌توانی خاموش کنی.',
       privacy: 'صدا فقط با لمس میکروفون و فقط به سرویس گفتار سیستم‌عامل می‌رود؛ ذخیره یا ارسال پنهان صدا وجود ندارد.',
       wakeUnavailable: 'سرویس تشخیص گفتار روی این دستگاه نیست؛ Wake Word عملیاتی نمی‌شود.',
@@ -302,7 +309,7 @@
       vHelp: 'I can add or delete tasks, set reminders, record income and expenses, give a finance report, read today\'s plan and today\'s date.',
       vCancel: 'Stopped.', confirmDelete: 'Delete?', yes: 'Yes', no: 'No',
       confirmFinance: 'Record this?', vCanceled: 'Canceled — nothing was recorded.',
-      voiceSec: 'Voice assistant', voiceLang: 'Voice language', wake: 'Enable "Hey Rahyar" (Wake Word)',
+      voiceSec: 'Voice assistant', voiceLang: 'Voice language', voiceRate: 'Speaking speed', wake: 'Enable "Hey Rahyar" (Wake Word)',
       wakeDesc: 'When enabled, a foreground service with a persistent, transparent notification listens for "Hey Rahyar" and opens the app. No audio is stored or sent; turn off anytime.',
       privacy: 'Audio goes to the OS speech service only when you tap the mic; nothing is stored or silently sent.',
       wakeUnavailable: 'No speech service on this device; Wake Word cannot operate.',
@@ -435,7 +442,11 @@
     if (!text) return;
     V.busyTts = true;
     setPanel(tv('reply'), '', text);
-    try { native.ttsSpeak(text, V.bcp()); } catch (e) { V.busyTts = false; }
+    try {
+      // V1 (بند ۵): سرعت خواندن انتخابی کاربر — پل قدیمی‌تر بدون setTtsRate بی‌اثر می‌ماند
+      if (native.setTtsRate) { try { native.setTtsRate(String(V.rate())); } catch (e0) { /* بی‌اثر */ } }
+      native.ttsSpeak(text, V.bcp());
+    } catch (e) { V.busyTts = false; }
   }
 
   // ─── اجرای واقعی کنش‌ها روی ماژول‌ها ───
@@ -552,6 +563,14 @@
   }
 
   // ─── رویدادهای بومی ───
+  window.addEventListener('rahyar-wake', function () {
+    // V1 (بند ۷): باز شدن اپ با Wake Word — شروع شنود همان مسیر دکمهٔ میکروفون
+    // (درست مجوز داخل toggleListen بررسی می‌شود؛ بدون رضایت، شنود شروع نمی‌شود)
+    var st = native.voiceMicState ? native.voiceMicState() : 'granted';
+    if (st === 'granted' && !V.listening) {
+      toggleListen();
+    }
+  });
   window.addEventListener('rahyar-voice-partial', function (e) {
     setPanel(tv('listening'), (e.detail && e.detail.text) || '', '');
   });
@@ -600,6 +619,15 @@
       + '<option value="en"' + ((R.profile().voiceLang || R.lang()) === 'en' ? ' selected' : '') + '>English</option>'
       + '</select></label>'
       + '<label style="display:flex;align-items:center;gap:8px;margin:8px 0">'
+      + '<span>' + tv('voiceRate') + '</span>'
+      + '<select id="vRate" style="background:inherit;color:inherit;border:1px solid #2a3c78;border-radius:8px;padding:4px 8px">'
+      + '<option value="0.8"' + (V.rate() === 0.8 ? ' selected' : '') + '>۰٫۸ — آهسته</option>'
+      + '<option value="0.95"' + (V.rate() === 0.95 ? ' selected' : '') + '>۰٫۹۵</option>'
+      + '<option value="1"' + (V.rate() === 1 ? ' selected' : '') + '>۱ — عادی</option>'
+      + '<option value="1.2"' + (V.rate() === 1.2 ? ' selected' : '') + '>۱٫۲ — تند</option>'
+      + '<option value="1.5"' + (V.rate() === 1.5 ? ' selected' : '') + '>۱٫۵</option>'
+      + '</select></label>'
+      + '<label style="display:flex;align-items:center;gap:8px;margin:8px 0">'
       + '<input type="checkbox" id="vWake"' + (wake ? ' checked' : '') + '><span>' + tv('wake') + '</span></label>'
       + '<p style="opacity:.8;font-size:12px">' + tv('wakeDesc') + '</p>'
       + '<p style="opacity:.6;font-size:11px">' + tv('privacy') + '</p>'
@@ -608,6 +636,9 @@
     if (main) main.appendChild(sec); else document.body.appendChild(sec);
     document.getElementById('vLang').addEventListener('change', function (e2) {
       R.saveProfile({ voiceLang: e2.target.value });
+    });
+    document.getElementById('vRate').addEventListener('change', function (e5) {
+      R.saveProfile({ voiceRate: Number(e5.target.value) });
     });
     document.getElementById('vWake').addEventListener('change', function (e3) {
       var on = e3.target.checked;

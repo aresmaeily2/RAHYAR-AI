@@ -36,7 +36,7 @@ import type { ChatAction, ChatMessageT, SourceT } from '@/lib/types'
 import { ActionChips } from './chat-action-chips'
 import { MemorySheet } from './chat-memory-sheet'
 import { AiOrb, VoiceWave } from './ai-orb'
-import { listen, speechInputSupported } from '@/lib/voice/speech'
+import { listen, speechInputSupported, stopSpeaking } from '@/lib/voice/speech'
 import { nativeTtsSupported as nativeTtsAvailable, nativeBridge as nativeB, nativeVoiceSupported } from '@/lib/voice/native'
 import { useI18n } from '@/i18n/store'
 import { formatNum, langBcp47 } from '@/i18n/core'
@@ -174,13 +174,28 @@ export function ChatView() {
   const setView = useAra((s) => s.setView)
   const setChatPlan = useAra((s) => s.setChatPlan)
   const setFocusTaskId = useAra((s) => s.setFocusTaskId)
-  const { lang, voiceReplies, t } = useI18n()
+  const { lang, voiceReplies, voiceRate, voiceLang, t } = useI18n()
   const voiceOriginRef = useRef(false) // آخرین پیام با صدا فرستاده شد؟
+  /** V1 بند ۶ — مکالمه پیوسته: بعد از پایان خواندن پاسخِ پیامِ صوتی، شنود خودکار ادامه پیدا می‌کند */
+  const voiceConvoRef = useRef(false)
+  /** آخرین مقدار phase برای listenerهای خارج از رندر */
+  const phaseRef = useRef<'idle' | 'waiting' | 'streaming'>('idle')
   const langRef = useRef(lang)
   // GRAND-F4-lint: نوشتن ref فقط در effect — نوشتن حین رندر ضدالگوی React 19 است
   useEffect(() => {
     langRef.current = lang
   }, [lang])
+  useEffect(() => {
+    phaseRef.current = phase
+  }, [phase])
+  const voiceLangRef = useRef<'' | 'fa' | 'en'>('')
+  useEffect(() => {
+    voiceLangRef.current = voiceLang
+  }, [voiceLang])
+  const voiceRateRef = useRef(1)
+  useEffect(() => {
+    voiceRateRef.current = voiceRate
+  }, [voiceRate])
   const bottomRef = useRef<HTMLDivElement>(null)
   const recRef = useRef<unknown>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -238,6 +253,13 @@ export function ChatView() {
     const onTtsDone = () => {
       if (ttsFailsafeRef.current) clearTimeout(ttsFailsafeRef.current)
       setSpeakingId(null)
+      // V1 بند ۶: مکالمه پیوسته — پاسخ صوتی تمام شد → دوباره گوش می‌دهیم
+      // (فقط وقتی چرخهٔ صوتی فعال است و چیزی در جریان نیست؛ خطا/لغو = توقف)
+      if (voiceConvoRef.current && phaseRef.current === 'idle') {
+        setTimeout(() => {
+          if (voiceConvoRef.current && phaseRef.current === 'idle') startVoiceListening()
+        }, 400)
+      }
     }
     window.addEventListener('rahyar-tts-done', onTtsDone)
     return () => window.removeEventListener('rahyar-tts-done', onTtsDone)
@@ -301,6 +323,8 @@ export function ChatView() {
           return
         }
         window.speechSynthesis?.cancel()
+        // V1 بند ۵: سرعت خواندن انتخابی کاربر (۰٫۵–۲٫۵) روی پل بومی
+        try { nativeB()?.setTtsRate?.(String(voiceRateRef.current)) } catch { /* پل قدیمی‌تر */ }
         nativeB()?.speak(speechText(text), langBcp47(langRef.current))
         setSpeakingId(id)
         armTtsFailsafe(25_000) // F7: اگر rahyar-tts-done نیامد، نشانگر پاک می‌شود
@@ -320,7 +344,8 @@ export function ChatView() {
       synth.cancel()
       const u = new SpeechSynthesisUtterance(speechText(text))
       u.lang = langBcp47(langRef.current)
-      u.rate = 1.02
+      // V1 بند ۵: سرعت انتخابی کاربر؛ فارسی پیش‌فرض کمی آرام‌تر
+      u.rate = langRef.current === 'fa' ? Math.min(Math.max(voiceRateRef.current * 0.95, 0.5), 2.5) : voiceRateRef.current
       const voice = synth.getVoices().find((v) => v.lang.toLowerCase().startsWith(langRef.current))
       if (voice) u.voice = voice
       u.onend = () => {
@@ -542,7 +567,22 @@ export function ChatView() {
   function toggleVoice() {
     // ورودی صوتی — در اپ اندروید با تشخیص گفتار بومی، در مرورگر با Web Speech API.
     // صدا هرگز روی سرور ارسال یا ذخیره نمی‌شود (هر دو مسیر روی دستگاه).
+    if (listening) {
+      // قطع شنود — خروج از مکالمهٔ پیوسته هم هست (تاپ کاربر = تصمیم صریح)
+      voiceConvoRef.current = false
+      const rec = recRef.current as { stop: () => void } | null
+      rec?.stop()
+      setListening(false)
+      return
+    }
+    voiceConvoRef.current = true // شروع/ادامهٔ مکالمهٔ صوتی
+    startVoiceListening()
+  }
+
+  /** شروع شنود — V1: قطع فوری خواندن جاری (قطع/بَرج-این بند ۲–۱۳ و بند ۵) + همان چرخهٔ listen */
+  function startVoiceListening() {
     if (!speechInputSupported()) {
+      voiceConvoRef.current = false
       toast.error(
         nativeVoiceSupported()
           ? t('سرویس تشخیص گفتار دستگاه در دسترس نیست')
@@ -550,26 +590,36 @@ export function ChatView() {
       )
       return
     }
-    if (listening) {
-      const rec = recRef.current as { stop: () => void } | null
-      rec?.stop()
-      setListening(false)
+    // V1 بند ۵ (قطع فوری): با شروع شنود، خواندن جاری بلافاصله قطع می‌شود
+    stopSpeaking()
+    setSpeakingId(null)
+    clearTtsFailsafe()
+    if (phaseRef.current !== 'idle') {
+      // پاسخ هنوز در جریان است — شنود شروع نمی‌شود؛ بعد از پایان چرخهٔ فعلی ادامه می‌دهیم
       return
     }
+    // زبان صوتی: انتخاب دستی کاربر ('' = هم‌زبان رابط) — V1 بند ۳
+    const effective: 'fa' | 'en' = voiceLangRef.current === 'fa' || voiceLangRef.current === 'en' ? voiceLangRef.current : langRef.current
     const session = listen({
-      lang: langRef.current,
+      lang: effective,
       onPartial: (txt) => setInput(txt),
       onFinal: (txt) => {
         setInput(txt)
         voiceOriginRef.current = true // پاسخ به این پیام خوانده شود
+        // V1 بند ۲ (گام ۶): متن تشخیص‌داده‌شده بلافاصله به Agent می‌رود —
+        // چرخهٔ کامل صوتی بدون لمس دوم (ارسال خودکار)
+        if (txt.trim()) void send(txt)
       },
       onEnd: () => setListening(false),
       onError: (code) => {
         setListening(false)
+        // خطای صوتی = مکالمهٔ پیوسته متوقف می‌شود (هیچ حلقهٔ بی‌پایانی)
+        voiceConvoRef.current = false
         if (code) toast.error(voiceErrorText(code))
       },
     })
     if (!session) {
+      voiceConvoRef.current = false
       toast.error(
         nativeVoiceSupported()
           ? t('سرویس تشخیص گفتار دستگاه در دسترس نیست')
@@ -579,7 +629,7 @@ export function ChatView() {
     }
     recRef.current = session
     setListening(true)
-    toast(t('گوش می‌دهم... فارسی حرف بزن'), {
+    toast(t(voiceLangRef.current === 'en' || (voiceLangRef.current === '' && langRef.current === 'en') ? 'گوش می‌دهم... انگلیسی حرف بزن' : 'گوش می‌دهم... فارسی حرف بزن'), {
       icon: <Mic className="h-4 w-4 text-primary" />,
     })
   }

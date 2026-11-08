@@ -65,9 +65,9 @@ public final class VoiceCommandParser {
         try {
             if (t.isEmpty()) return intent("unknown", l, null);
 
-            // لغو/توقف — اولویت بالا
-            if (fa && t.matches(".*(لغو|کافیه|بسه|بس کن|صرف نظر|نمی خوام).*")) return intent("cancel", l, null);
-            if (!fa && t.matches(".*(cancel|stop listening|never mind|forget it).*")) return intent("cancel", l, null);
+            // لغو/توقف — اولویت بالا (V1 بند ۴ سناریو ۴: «منصرف شدم» / «ثبت نکن»)
+            if (fa && t.matches(".*(لغو|کافیه|بسه|بس کن|صرف نظر|منصرف|ثبت نکن|نریز|نمی خوام).*")) return intent("cancel", l, null);
+            if (!fa && t.matches(".*(cancel|stop listening|never mind|forget it|don't (add|save|record)|do not (add|save|record)).*")) return intent("cancel", l, null);
 
             // راهنما
             if (fa && t.matches(".*(چیکار می تونی|چه کارایی می تونی|کمک|راهنما|چه کنای داری).*")) return intent("help", l, null);
@@ -107,7 +107,7 @@ public final class VoiceCommandParser {
                 return intent("date_query", l, null);
             }
 
-            // ثبت درآمد/هزینه — شامل عدد
+            // ثبت درآمد/هزینه — شامل عدد (V1 بند ۳: هزار/میلیون ضرب می‌شوند)
             Long amount = firstAmount(t);
             if (fa && t.matches(".*(درآمد|فروخت|فروش|دریافت|پول گرفتن?).*") && amount != null) {
                 return new JSONObject().put("action", "add_income").put("amount", amount)
@@ -179,9 +179,20 @@ public final class VoiceCommandParser {
         return "";
     }
 
-    private static Long firstAmount(String t) {
-        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d{1,12})").matcher(t);
-        return m.find() ? Long.parseLong(m.group(1)) : null;
+    /**
+     * اولین مبلغ — V1 بند ۳ (مبلغ و واحد پول): «۱۵۰ هزار تومان» = ۱۵۰٬۰۰۰؛
+     * «۲ میلیون» = ۲٬۰۰۰٬۰۰۰. ضریب پس از عدد (هزار/میلیون/thousand/million)
+     * اعمال می‌شود؛ بدون ضریب همان عدد.
+     */
+    static Long firstAmount(String t) {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d{1,12})\\s*(میلیون|هزار|million|thousand)?").matcher(t);
+        if (!m.find()) return null;
+        long v = Long.parseLong(m.group(1));
+        String unit = m.group(2);
+        if (unit == null) return v;
+        if (unit.equals("میلیون") || unit.equals("million")) v *= 1_000_000L;
+        else if (unit.equals("هزار") || unit.equals("thousand")) v *= 1_000L;
+        return v;
     }
 
     /** توضیح پس از مبلغ — از اولین عدد به بعد حذف و کلمات ربط پاک می‌شود */

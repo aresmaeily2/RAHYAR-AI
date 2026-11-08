@@ -38,15 +38,24 @@ public final class RahyarNativeBridge {
     private final HostAction speakText;
     private final HostAction stopSpeaking;
     private final HostAction syncReminders;
+    /** V1: سرعت خواندن — nullable؛ نبود = پیش‌فرض سیستم */
+    private final HostAction setTtsRate;
 
     public RahyarNativeBridge(HostAction startVoice, HostAction stopVoice,
                               HostAction speakText, HostAction stopSpeaking,
                               HostAction syncReminders) {
+        this(startVoice, stopVoice, speakText, stopSpeaking, syncReminders, null);
+    }
+
+    public RahyarNativeBridge(HostAction startVoice, HostAction stopVoice,
+                              HostAction speakText, HostAction stopSpeaking,
+                              HostAction syncReminders, HostAction setTtsRate) {
         this.startVoice = startVoice;
         this.stopVoice = stopVoice;
         this.speakText = speakText;
         this.stopSpeaking = stopSpeaking;
         this.syncReminders = syncReminders;
+        this.setTtsRate = setTtsRate;
     }
 
     @JavascriptInterface
@@ -112,6 +121,27 @@ public final class RahyarNativeBridge {
     @JavascriptInterface
     public void stopSpeaking() {
         if (stopSpeaking != null) stopSpeaking.run("");
+    }
+
+    /** V1 (بند ۵): تغییر سرعت خواندن — رشتهٔ عددی؛ خارج بازهٔ ۰.۵–۲.۵ بی‌اثر */
+    @JavascriptInterface
+    public void setTtsRate(String rate) {
+        if (setTtsRate == null) return;
+        float r = sanitizeRate(rate);
+        if (Float.isNaN(r)) return;
+        setTtsRate.run(String.valueOf(r));
+    }
+
+    /** اعتبارسنجی سرعت — خالص و JVM-آزمون‌پذیر؛ نامعتبر = NaN */
+    static float sanitizeRate(String raw) {
+        if (raw == null) return Float.NaN;
+        try {
+            float r = Float.parseFloat(raw.trim());
+            if (r < 0.5f || r > 2.5f) return Float.NaN;
+            return r;
+        } catch (Exception e) {
+            return Float.NaN;
+        }
     }
 
     // ── یادآورها: همگام‌سازی با AlarmManager (اعلان سیستمی) ──

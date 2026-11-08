@@ -144,8 +144,11 @@ public final class VoiceWakeService extends Service {
                         String low = s.toLowerCase(java.util.Locale.ROOT);
                         for (String w : WAKE_PHRASES) {
                             if (low.contains(w.toLowerCase(java.util.Locale.ROOT))) {
+                                // V1 (بند ۷): علاوه بر بازکردن اپ، اپ باید بداند که «بیدارباش» بوده —
+                                // HomeActivity رویداد rahyar-wake را به UI محلی تزریق می‌کند
                                 Intent open = new Intent(VoiceWakeService.this, HomeActivity.class)
-                                        .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                                        .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                                        .putExtra("rahyar_wake", "1");
                                 startActivity(open);
                                 break;
                             }

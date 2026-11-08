@@ -25,6 +25,8 @@ export interface RahyarNativeBridge {
   /** خواندن متن — شناسهٔ گفته برمی‌گرداند؛ پایان با rahyar-tts-done */
   speak(text: string, langBcp47: string): string
   stopSpeaking(): void
+  /** V1 بند ۵: تنظیم سرعت خواندن (۰٫۵–۲٫۵) — روی پل‌های قدیمی‌تر موجود نیست */
+  setTtsRate?(rate: string): void
   /** همگام‌سازی یادآورهای فعال — آرایه [{id, message, remindAt}] */
   syncReminders(jsonArray: string): void
   /** نسخهٔ اپ اندروید */

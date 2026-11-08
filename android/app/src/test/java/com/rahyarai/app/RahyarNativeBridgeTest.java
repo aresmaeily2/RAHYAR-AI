@@ -45,6 +45,38 @@ public class RahyarNativeBridgeTest {
         b.syncReminders("[]");
     }
 
+    // ── V1 بند ۵: سرعت خواندن — اعتبارسنجی پل ──
+    @Test
+    public void sanitizeRateAcceptsValidRange() {
+        assertEquals(1.0f, RahyarNativeBridge.sanitizeRate("1"), 0.0001f);
+        assertEquals(0.5f, RahyarNativeBridge.sanitizeRate("0.5"), 0.0001f);
+        assertEquals(2.5f, RahyarNativeBridge.sanitizeRate("2.5"), 0.0001f);
+        assertEquals(1.25f, RahyarNativeBridge.sanitizeRate(" 1.25 "), 0.0001f);
+    }
+
+    @Test
+    public void sanitizeRateRejectsInvalid() {
+        assertTrue(Float.isNaN(RahyarNativeBridge.sanitizeRate(null)));
+        assertTrue(Float.isNaN(RahyarNativeBridge.sanitizeRate("")));
+        assertTrue(Float.isNaN(RahyarNativeBridge.sanitizeRate("abc")));
+        assertTrue(Float.isNaN(RahyarNativeBridge.sanitizeRate("0.49")));
+        assertTrue(Float.isNaN(RahyarNativeBridge.sanitizeRate("2.51")));
+        assertTrue(Float.isNaN(RahyarNativeBridge.sanitizeRate("-1")));
+    }
+
+    @Test
+    public void setTtsRateIgnoresInvalidInput() {
+        final java.util.List<String> seen = new java.util.ArrayList<>();
+        RahyarNativeBridge b = new RahyarNativeBridge(null, null, null, null, null, seen::add);
+        b.setTtsRate("9.9");     // خارج بازه — نباید به میزبان برسد
+        b.setTtsRate("abc");
+        b.setTtsRate(null);
+        assertTrue(seen.isEmpty());
+        b.setTtsRate("1.4");     // معتبر — می‌رسد
+        assertEquals(1, seen.size());
+        assertEquals("1.4", seen.get(0));
+    }
+
     // ── sanitizeLang ──
 
     @Test
