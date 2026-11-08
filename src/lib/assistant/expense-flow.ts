@@ -24,6 +24,7 @@ export async function proposeExpense(
   userId: string,
   lang: Lang,
   parsed: ParsedExpense,
+  proposalMsgId?: string | null,
 ): Promise<ExpenseProposal> {
   const accounts = await db.financeAccount.findMany({
     where: { userId },
@@ -45,13 +46,17 @@ export async function proposeExpense(
     }
   }
 
-  await setPendingAction(userId, {
-    type: 'add_expense',
-    dir: parsed.dir,
-    amount: parsed.amount,
-    note: parsed.note,
-    accountId: accounts.length === 1 ? accounts[0].id : null,
-  })
+  await setPendingAction(
+    userId,
+    {
+      type: 'add_expense',
+      dir: parsed.dir,
+      amount: parsed.amount,
+      note: parsed.note,
+      accountId: accounts.length === 1 ? accounts[0].id : null,
+    },
+    proposalMsgId ?? null,
+  )
 
   const summaryFa = `${amt} تومان ${whatFa}${parsed.note && parsed.note !== whatFa ? ` بابت «${parsed.note.slice(0, 80)}»` : ''}`
   const summaryEn = `${amt} toman ${whatEn}${parsed.note && parsed.note !== whatEn ? ` for “${parsed.note.slice(0, 80)}”` : ''}`

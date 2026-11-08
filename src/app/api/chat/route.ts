@@ -7,7 +7,8 @@ import { shouldSearch, performWebSearch } from '@/lib/server-search'
 import { detectIntent } from '@/lib/assistant/router'
 import { logAction } from '@/lib/assistant/action-log'
 import { claimIdempotencyKey } from '@/lib/assistant/action-log'
-import { getPendingAction, clearPendingAction, executePendingAction, setPendingAction, CONFIRM_RE, CANCEL_RE } from '@/lib/assistant/pending-action'
+import { getPendingAction, clearPendingAction, executePendingAction, setPendingAction, pendingIsFresh, STALE_PENDING_FA, STALE_PENDING_EN, CONFIRM_RE, CANCEL_RE } from '@/lib/assistant/pending-action'
+import { sanitizeReplyForDisplay, safeDisplayContent, displayFallback } from '@/lib/assistant/reply-sanitize'
 import { tryUndoRecentAdd } from '@/lib/assistant/cancel-undo'
 import { getUserLang } from '@/lib/server-settings'
 import { pick } from '@/lib/server-lang'
@@ -52,10 +53,12 @@ function serializeMessage(m: {
   createdAt: Date
 }): ChatMessageT {
   const { actions, followups, sources } = parseStoredActions(m.actions)
+  const isAssistant = m.role === 'assistant'
   return {
     id: m.id,
     role: m.role as ChatMessageT['role'],
-    content: m.content,
+    // V1-P3 (D-6): نمایش امن — پیام‌های قدیمیِ آلوده هم payload خام نشان نمی‌دهند
+    content: isAssistant ? safeDisplayContent(m.content, actions.length > 0) : m.content,
     actions,
     followups,
     sources,
@@ -108,7 +111,25 @@ export async function POST(req: NextRequest) {
 
     // F2-AG (سناریو ۹): ماشین-وضعیت تأیید عملیات حساس — قبل از هر مسیر دیگری.
     // «بله/تأیید» → اجرای عملیات پندینگ روی ردیف واقعی؛ «انصراف/لغو» → ابطال.
-    const pendingOp = await getPendingAction(user.id)
+    let pendingOp = await getPendingAction(user.id)
+    if (pendingOp && (CONFIRM_RE.test(message) || CANCEL_RE.test(message))) {
+      // V1-P3 (D-5): تأیید/لغو فقط پیشنهادِ «همین درخواست» را مصرف می‌کند؛ پیشنهاد
+      // کهنه (لنگر ندارد یا پیام کاربر دیگری میانجی شده) هرگز اجرا نمی‌شود —
+      // پاکسازی صادقانه (یافتهٔ زندهٔ P8-7b: تأییدِ یک درخواست، pending کهنهٔ دیگری را اجرا کرد)
+      const isCancel0 = CANCEL_RE.test(message)
+      const fresh = await pendingIsFresh(user.id, pendingOp)
+      if (!fresh) {
+        await clearPendingAction(user.id)
+        await logAction({ userId: user.id, actionType: pendingOp.type, status: 'canceled', detail: 'D-5: stale pending cleared — belongs to an older request' })
+        if (!isCancel0) {
+          const userMsg = await db.chatMessage.create({ data: { userId: user.id, role: 'user', content: message } })
+          const text = pick(lang, STALE_PENDING_FA, STALE_PENDING_EN)
+          const assistantMsg = await db.chatMessage.create({ data: { userId: user.id, role: 'assistant', content: text, actions: null } })
+          return NextResponse.json({ userMessage: serializeMessage(userMsg), assistantMessage: serializeMessage(assistantMsg), actions: [], mode: 'deterministic' })
+        }
+        pendingOp = null // انصراف روی پیشنهاد کهنه → ادامه؛ undo lane شاید لغو واقعیِ ثبتِ تازه را انجام دهد
+      }
+    }
     if (pendingOp && (CONFIRM_RE.test(message) || CANCEL_RE.test(message))) {
       const isCancel = CANCEL_RE.test(message)
       const userMsg = await db.chatMessage.create({ data: { userId: user.id, role: 'user', content: message } })
@@ -161,8 +182,8 @@ export async function POST(req: NextRequest) {
     const qm = !FORGET_NEG_RE.test(message) ? message.match(/[«“"]([^«»“”"]{2,100})[»”"]/) : null
     if (!pendingOp && qm && FORGET_VERB_RE.test(message)) {
       const frag = qm[1].trim().slice(0, 100)
-      await setPendingAction(user.id, { type: 'forget', factContains: frag })
       const userMsg = await db.chatMessage.create({ data: { userId: user.id, role: 'user', content: message } })
+      await setPendingAction(user.id, { type: 'forget', factContains: frag }, userMsg.id)
       await logAction({
         userId: user.id,
         actionType: 'forget',
@@ -196,7 +217,7 @@ export async function POST(req: NextRequest) {
       if (intent.kind === 'add_expense') {
         // F7: فرمان مالی گفتاری/نوشتاری — هرگز Task نمی‌سازد؛ پیشنهاد تأییددار می‌سازد
         const { proposeExpense } = await import('@/lib/assistant/expense-flow')
-        const prop = await proposeExpense(user.id, lang, intent.parsed)
+        const prop = await proposeExpense(user.id, lang, intent.parsed, userMsg.id)
         reply = prop.reply
         await logAction({
           userId: user.id,
@@ -301,10 +322,14 @@ export async function POST(req: NextRequest) {
       ...history
         .filter((h) => h.id !== userMsg.id)
         .slice(-10)
-        .map((h) => ({
-          role: h.role === 'user' ? ('user' as const) : ('assistant' as const),
-          content: h.role === 'assistant' && h.actions ? `${h.content}\n(اکشن‌ها اجرا شد)` : h.content,
-        })),
+        .map((h) => {
+          // V1-P3 (D-6): تاریخچهٔ آلودهٔ قدیمی هم payload نشان نمی‌دهد (ضد تقلید مدل)
+          const c = h.role === 'assistant' ? sanitizeReplyForDisplay(h.content, Boolean(h.actions)) || h.content : h.content
+          return {
+            role: h.role === 'user' ? ('user' as const) : ('assistant' as const),
+            content: h.role === 'assistant' && h.actions ? `${c}\n(اکشن‌ها اجرا شد)` : c,
+          }
+        }),
       { role: 'user', content: searchContext ? `${message}\n\n[نتایج جستجوی وب امروز]\n<user_data>\n${searchContext}\n</user_data>` : message },
     ]
 
@@ -322,7 +347,7 @@ export async function POST(req: NextRequest) {
       const parsed = extractJson<{ reply?: string; actions?: RawAction[]; followups?: string[] }>(raw.text)
       if (parsed && typeof parsed.reply === 'string' && parsed.reply.trim()) {
         reply = parsed.reply.trim().slice(0, 4000)
-        actions = await executeChatActions(parsed.actions ?? [], message, user.id, idempotencyKey, lang)
+        actions = await executeChatActions(parsed.actions ?? [], message, user.id, idempotencyKey, lang, userMsg.id)
         followups = (Array.isArray(parsed.followups) ? parsed.followups : [])
           .filter((f) => typeof f === 'string' && f.trim().length > 1)
           .slice(0, 3)
@@ -351,7 +376,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ۴) ذخیره پاسخ
+    // ۴) ذخیرهٔ پاسخ — V1-P3 (D-6): payload داخلی هرگز در متن نمایشی نمی‌نشیند
+    const shown = sanitizeReplyForDisplay(reply, actions.length > 0)
+    if (!shown && reply.trim()) {
+      // خطای parsing → متن فنی خام نمایش داده نمی‌شود؛ لاگ فنی مینیمال (بدون payload کامل)
+      console.error('[D-6] model reply was pure internal payload — hidden (len=%d)', reply.length)
+      reply = displayFallback(lang)
+    } else if (shown) {
+      reply = shown
+    }
     const assistantMsg = await db.chatMessage.create({
       data: {
         userId: user.id,

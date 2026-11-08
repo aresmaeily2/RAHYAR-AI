@@ -301,6 +301,7 @@ export async function executeChatActions(
   userId = '',
   idempotencyKey: string | null = null,
   lang: AppLang = 'fa',
+  proposalMsgId: string | null = null,
 ): Promise<ChatAction[]> {
   const results: ChatAction[] = []
   /** یادداشت کاربرپذیر دوزبانه */
@@ -455,7 +456,7 @@ export async function executeChatActions(
           }
           // F2-AG (سناریو ۹): حذف = عملیات حساس — همیشه با تأیید صریح کاربر؛
           // ارجاع taskId از سمت مدل قابل‌اعتماد نیست (مدل id را از پرامپت تکرار می‌کند)
-          await setPendingAction(userId, { type: 'delete_task', taskId: task.id, title: task.title })
+          await setPendingAction(userId, { type: 'delete_task', taskId: task.id, title: task.title }, proposalMsgId)
           await logAction({ userId, actionType: 'delete_task', status: 'needs_confirmation', targetType: 'task', targetId: task.id })
           results.push({
             type: 'delete_task',
@@ -567,7 +568,7 @@ export async function executeChatActions(
             break
           }
           // F2-AG (سناریو ۹): فراموشی حافظه = عملیات حساس (deleteMany) → تأیید صریح
-          await setPendingAction(userId, { type: 'forget', factContains: frag.slice(0, 100) })
+          await setPendingAction(userId, { type: 'forget', factContains: frag.slice(0, 100) }, proposalMsgId)
           await logAction({ userId, actionType: 'forget', status: 'needs_confirmation', detail: frag.slice(0, 100) })
           results.push({
             type: 'forget',
@@ -673,12 +674,16 @@ export async function executeChatActions(
             break
           }
           const { setPendingAction } = await import('@/lib/assistant/pending-action')
-          await setPendingAction(userId, {
-            type: 'add_expense',
-            dir: a.dir === 'income' ? 'income' : 'expense',
-            amount,
-            note: (a.note ?? '').slice(0, 300) || undefined,
-          })
+          await setPendingAction(
+            userId,
+            {
+              type: 'add_expense',
+              dir: a.dir === 'income' ? 'income' : 'expense',
+              amount,
+              note: (a.note ?? '').slice(0, 300) || undefined,
+            },
+            proposalMsgId,
+          )
           await logAction({ userId, actionType: 'add_expense', status: 'needs_confirmation', detail: 'model-proposed finance entry — awaiting explicit user confirmation' })
           results.push({ type: 'add_expense', ok: true, pending: true })
           break
@@ -788,27 +793,69 @@ function defaultDraft(lang: AppLang): string {
  * اکشن اجراشده‌ای که آن نیاز را برآورده کند وجود نداشته باشد، فالبک قطعی
  * همان اثر واقعی را می‌سازد (کار + یادآور متصل / پیش‌نویس / برنامهٔ روز).
  */
-// F2-HALL: ضد توهم مدل — اگر reply مدل ادعای «نوشتن» دارد ولی هیچ اکشن نوشتاری
-// موفقی اجرا نشده، یادداشت صادقانه به پاسخ اضافه می‌شود (ادعای بدون اثر
-// هرگز بی‌پاسخ نمی‌ماند — قاعدهٔ مأموریت: هیچ موفقیت ظاهری).
-const CLAIMS_WRITE =
-  /(ثبت\s*(شد|کردم)|ساخته\s*شد|اضافه\s*(شد|کردم)|ذخیره\s*شد|یادآور(ی)?\s*(ثبت|گذاشتم|گذاشته)|به\s*کارها\s*(اضافه|ثبت)|created|added|saved|recorded|remind(er)? (set|added)|حذف\s*(شد|کردم|شده)|پاک\s*(شد|کردم)|انجام\s*شد|مرتب\s*(شد|کردم)|برنامه\s*ریزی\s*شد|deleted|removed|cleared|organized)/i
-const WRITE_TYPES = new Set([
-  'add_task', 'complete_task', 'delete_task', 'update_task', 'star_task',
-  'snooze_task', 'add_reminder', 'breakdown_task', 'remember', 'plan_day',
-])
+// ─── V1-P3 (D-7): گارد صداقت — فهرست مرجع اکشن‌های تغییردهنده + ارزیابی جداگانهٔ هر دستهٔ ادعا ───
+// یافتهٔ زندهٔ D-7 (P6 سناریوهای P، اجرای ۱۲:۵۹): مدل «تغییر دادم» گفت ولی اکشن
+// update_task ok=false بود و هشداری ظاهر نشد. اکنون هر دستهٔ ادعا (ساخت/حذف/
+// به‌روزرسانی/برنامه/لغو/انجام) جدا ارزیابی می‌شود و فقط اکشن موفقِ هم‌دسته پشتوانه است.
+// پاسخ‌های خواندنی/پرسشی هم‌چنان از گیت guardUnbackedClaimForUser عبور نمی‌کنند (بدون false-positive).
+export const MUTATING_ACTION_TYPES = [
+  'add_task', 'add_reminder', 'remember', 'breakdown_task',
+  'complete_task', 'update_task', 'delete_task', 'star_task', 'snooze_task',
+  'plan_day',
+] as const
+
+/** دسته‌های ادعای موفقیت (fa/en، فقط صورتِ گذشتهٔ اعلامی) → اکشن‌های پشتیبانِ همان دسته */
+const CLAIM_CATEGORIES: Array<{ re: RegExp; backings: readonly string[] }> = [
+  {
+    // ساختن/ثبت
+    re: /(ثبت\s*(شد|کردم)|ساخته\s*شد|اضافه\s*(شد|کردم)|ذخیره\s*شد|یادآور(ی)?\s*(ثبت|گذاشتم|گذاشته)|به\s*کارها\s*(اضافه|ثبت)|created|added|saved|recorded|remind(er)?\s*(set|added))/i,
+    backings: ['add_task', 'add_reminder', 'remember', 'breakdown_task'],
+  },
+  {
+    // حذف
+    re: /(حذف\s*(شد|کردم|شده)|پاک\s*(شد|کردم)|deleted|removed|cleared)/i,
+    backings: ['delete_task'],
+  },
+  {
+    // به‌روزرسانی/تغییر/اصلاح/جابه‌جایی (یافتهٔ D-7)
+    re: /(تغییر\s*(دادم|داده\s*شد|کردم|شد)|اصلاح\s*(کردم|شد)|جابه‌جا\s*(کردم|شد)|به‌روزرسانی\s*(کردم|شد)|ویرایش\s*(کردم|شد)|updated|changed|rescheduled|edited|moved)/i,
+    backings: ['update_task', 'snooze_task', 'star_task'],
+  },
+  {
+    // برنامه‌ریزی
+    re: /(مرتب\s*(شد|کردم)|برنامه\s*ریزی\s*شد|planned|organized)/i,
+    backings: ['plan_day'],
+  },
+  {
+    // لغو — در مسیر مدل هرگز پشتوانهٔ واقعی ندارد (لغوهای واقعی در لِین‌های قطعی رخ می‌دهند)
+    re: /(لغو\s*(شد|کردم)|کنسل\s*(شد|کردم)|cancelled|canceled)/i,
+    backings: [],
+  },
+  {
+    // «انجام شد» عمومی — هر اکشن تغییردهندهٔ موفق پشتوانه‌اش است
+    re: /(انجام\s*شد|\bdone\b)/i,
+    backings: MUTATING_ACTION_TYPES,
+  },
+]
+
 export function guardUnbackedClaim(reply: string, actions: ChatAction[], lang: AppLang): string {
-  const anyWriteOk = actions.some(
-    (a) => WRITE_TYPES.has(a.type) && 'ok' in a && (a as { ok?: boolean }).ok === true,
+  const okTypes = new Set(
+    (actions ?? [])
+      .filter((a) => 'ok' in a && (a as { ok?: boolean }).ok === true)
+      .map((a) => a.type as string),
   )
-  // V1-P2 (یافتهٔ زندهٔ P8-8/P6-4): مدل پسوند تاریخچهٔ «(اکشن‌ها اجرا شد)» را بدون
-  // هیچ اکشنی تقلید می‌کند — نشانهٔ گمراه‌کننده؛ وقتی هیچ اکشن نوشتاری موفقی نیست، حذف می‌شود
+  // V1-P2 (یافتهٔ زندهٔ P8-8/P6-4): پسوند تقلیدی تاریخچهٔ «(اکشن‌ها اجرا شد)» بدون
+  // هیچ اکشن موفق نشانهٔ گمراه‌کننده است و حذف می‌شود
   const ACTIONS_DONE_MARK = '(اکشن‌ها اجرا شد)'
   let clean = reply
-  if (!anyWriteOk && clean.includes(ACTIONS_DONE_MARK)) {
+  if (okTypes.size === 0 && clean.includes(ACTIONS_DONE_MARK)) {
     clean = clean.split(ACTIONS_DONE_MARK).join('').trim()
   }
-  if (!anyWriteOk && CLAIMS_WRITE.test(clean)) {
+  // V1-P3 (D-7): هر دستهٔ ادعا جداگانه — اگر ادعایی پشتوانهٔ هم‌دسته نداشت، یادداشت صادقانه
+  const unbacked = CLAIM_CATEGORIES.filter(
+    (c) => c.re.test(clean) && !c.backings.some((b) => okTypes.has(b)),
+  )
+  if (unbacked.length > 0) {
     return (
       clean +
       '\n' +
@@ -825,7 +872,7 @@ export function guardUnbackedClaim(reply: string, actions: ChatAction[], lang: A
 // V1-P2 (یافتهٔ زندهٔ S5): گارد صداقت فقط برای پیام‌های کنش‌محور معنا دارد؛
 // پاسخِ پرسش‌های خواندنی که به رکوردهای «از قبل موجود» اشاره می‌کنند نباید هشدار بگیرند.
 const WRITE_INTENT_RE =
-  /(ثبت|ساخت|حذف|اضافه|یادم\s*بنداز|یادآوری\s*کن|پاک|لغو|منصرف|به\s*روز|تغییر|نگه\s*دار|کنسل|مرتب|برنامه\s*ریزی|remember|delete|add|create|remove|update|cancel|set|plan|organize)/i
+  /(ثبت|ساخت|حذف|اضافه|یادم\s*بنداز|یادآوری\s*کن|پاک|لغو|منصرف|به\s*روز|به‌روز|تغییر|اصلاح|جابه‌جا|ویرایش|نگه\s*دار|کنسل|مرتب|برنامه\s*ریزی|remember|delete|add|create|remove|update|cancel|edit|modify|reschedule|set|plan|organize)/i
 export function guardUnbackedClaimForUser(userMessage: string, reply: string, actions: ChatAction[], lang: AppLang): string {
   if (!WRITE_INTENT_RE.test(userMessage)) return reply
   return guardUnbackedClaim(reply, actions, lang)
@@ -876,6 +923,7 @@ export async function applyMissionGuard(
       userId,
       idempotencyKey ? `${idempotencyKey}:guard` : null,
       lang,
+      null,
     )
     await logAction({ userId, actionType: 'mission_guard', status: 'success', targetType: 'task', detail: 'event_reminder fallback' }).catch(() => {})
     return { actions: [...actions, ...fb], reply, fallbackUsed: true }
@@ -897,7 +945,7 @@ export async function applyMissionGuard(
   const planOk = hasOk((a) => a.type === 'plan_day' && a.ok)
   const multiTask = actions.filter((a) => a.type === 'add_task' && a.ok).length >= 2
   if (planOk || multiTask) return { actions, reply, fallbackUsed: false }
-  const fb = await executeChatActions([{ type: 'plan_day' }], userMessage, userId, null, lang)
+  const fb = await executeChatActions([{ type: 'plan_day' }], userMessage, userId, null, lang, null)
   const okPlan = fb.find((a) => a.type === 'plan_day' && a.ok && a.plan)
   if (!okPlan) {
     // فالبک نهایی بدون مدل — برنامهٔ قطعی از کارهای اولویت‌دار

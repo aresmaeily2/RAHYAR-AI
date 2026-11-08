@@ -7,7 +7,8 @@ import { shouldSearch, performWebSearch } from '@/lib/server-search'
 import { detectIntent } from '@/lib/assistant/router'
 import { logAction } from '@/lib/assistant/action-log'
 import { claimIdempotencyKey } from '@/lib/assistant/action-log'
-import { getPendingAction, clearPendingAction, executePendingAction, CONFIRM_RE, CANCEL_RE } from '@/lib/assistant/pending-action'
+import { getPendingAction, clearPendingAction, executePendingAction, pendingIsFresh, STALE_PENDING_FA, STALE_PENDING_EN, CONFIRM_RE, CANCEL_RE } from '@/lib/assistant/pending-action'
+import { sanitizeReplyForDisplay, displayFallback } from '@/lib/assistant/reply-sanitize'
 import { tryUndoRecentAdd } from '@/lib/assistant/cancel-undo'
 import { getUserLang } from '@/lib/server-settings'
 import {
@@ -70,7 +71,36 @@ export async function POST(req: NextRequest) {
     const idempotencyKey = cleanText((body as { clientKey?: unknown })?.clientKey, 120) || null
 
     // F2-AG (سناریو ۹): ماشین-وضعیت تأیید — هم‌ارز روت POST (SSE)
-    const pendingOp = await getPendingAction(userId)
+    let pendingOp = await getPendingAction(userId)
+    if (pendingOp && (CONFIRM_RE.test(message) || CANCEL_RE.test(message))) {
+      // V1-P3 (D-5): هم‌ارز POST — پیشنهاد کهنه هرگز اجرا نمی‌شود؛ پاکسازی صادقانه
+      const isCancel0 = CANCEL_RE.test(message)
+      const fresh = await pendingIsFresh(userId, pendingOp)
+      if (!fresh) {
+        await clearPendingAction(userId)
+        await logAction({ userId, actionType: pendingOp.type, status: 'canceled', detail: 'D-5: stale pending cleared — belongs to an older request' })
+        if (!isCancel0) {
+          const userMsg = await db.chatMessage.create({ data: { userId, role: 'user', content: message } })
+          const text = pick(lang, STALE_PENDING_FA, STALE_PENDING_EN)
+          const assistantMsg = await db.chatMessage.create({ data: { userId, role: 'assistant', content: text, actions: null } })
+          const encS = new TextEncoder()
+          const streamS = new ReadableStream({
+            start(controller) {
+              const send = (event: string, data: unknown) => {
+                controller.enqueue(encS.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`))
+              }
+              send('meta', { userMessageId: userMsg.id, searched: false })
+              send('done', { reply: text, actions: [], followups: [], sources: [], assistantId: assistantMsg.id })
+              controller.close()
+            },
+          })
+          return new Response(streamS, {
+            headers: { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive' },
+          })
+        }
+        pendingOp = null // انصراف روی پیشنهاد کهنه → ادامه؛ undo lane شاید لغو واقعیِ ثبتِ تازه را انجام دهد
+      }
+    }
     if (pendingOp && (CONFIRM_RE.test(message) || CANCEL_RE.test(message))) {
       const isCancel = CANCEL_RE.test(message)
       const userMsg = await db.chatMessage.create({ data: { userId, role: 'user', content: message } })
@@ -182,7 +212,7 @@ export async function POST(req: NextRequest) {
       if (intent.kind === 'add_expense') {
         // F7: فرمان مالی گفتاری/نوشتاری — هرگز Task نمی‌سازد؛ پیشنهاد تأییددار می‌سازد
         const { proposeExpense } = await import('@/lib/assistant/expense-flow')
-        const prop = await proposeExpense(userId, lang, intent.parsed)
+        const prop = await proposeExpense(userId, lang, intent.parsed, userMsg.id)
         reply = prop.reply
         await logAction({
           userId,
@@ -388,10 +418,14 @@ export async function POST(req: NextRequest) {
       ...history
         .filter((h) => h.id !== userMsg.id)
         .slice(-10)
-        .map((h) => ({
-          role: h.role === 'user' ? ('user' as const) : ('assistant' as const),
-          content: h.role === 'assistant' && h.actions ? `${h.content}\n(اکشن‌ها اجرا شد)` : h.content,
-        })),
+        .map((h) => {
+          // V1-P3 (D-6): تاریخچهٔ آلودهٔ قدیمی هم payload نشان نمی‌دهد (ضد تقلید مدل)
+          const c = h.role === 'assistant' ? sanitizeReplyForDisplay(h.content, Boolean(h.actions)) || h.content : h.content
+          return {
+            role: h.role === 'user' ? ('user' as const) : ('assistant' as const),
+            content: h.role === 'assistant' && h.actions ? `${c}\n(اکشن‌ها اجرا شد)` : c,
+          }
+        }),
       { role: 'user', content: searchContext ? `${message}\n\n[نتایج جستجوی وب امروز]\n<user_data>\n${searchContext}\n</user_data>` : message },
     ]
 
@@ -540,7 +574,7 @@ export async function POST(req: NextRequest) {
           const parsed = extractJson<{ reply?: string; actions?: RawAction[]; followups?: string[] }>(raw)
           if (parsed && typeof parsed.reply === 'string' && parsed.reply.trim()) {
             reply = parsed.reply.trim().slice(0, 4000)
-            actions = await executeChatActions(parsed.actions ?? [], message, userId, idempotencyKey, lang)
+            actions = await executeChatActions(parsed.actions ?? [], message, userId, idempotencyKey, lang, userMsg.id)
             followups = (Array.isArray(parsed.followups) ? parsed.followups : [])
               .filter((f) => typeof f === 'string' && f.trim().length > 1)
               .slice(0, 3)
@@ -564,6 +598,16 @@ export async function POST(req: NextRequest) {
           }
         } catch {
           reply = raw.trim().slice(0, 4000) || 'الان نتوانستم درست پاسخ بدهم، لطفاً دوباره تلاش کن.'
+        }
+
+        // V1-P3 (D-6): payload داخلی هرگز در متن نمایشی/SSE نمی‌نشیند؛
+        // خطای parsing → fallback صادقانه (بدون متن فنی خام)
+        const shown = sanitizeReplyForDisplay(reply, actions.length > 0)
+        if (!shown && reply.trim()) {
+          console.error('[D-6] model reply was pure internal payload — hidden (len=%d)', reply.length)
+          reply = displayFallback(lang)
+        } else if (shown) {
+          reply = shown
         }
 
         try {

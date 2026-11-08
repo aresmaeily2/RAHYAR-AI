@@ -9,6 +9,9 @@ export interface PendingOp {
   taskId?: string
   title?: string
   factContains?: string
+  // V1-P3 (D-5): پیشنهاد به «درخواستِ مبدأ» مقید می‌شود — تأیید فقط همین جریان را مصرف می‌کند
+  proposalMsgId?: string
+  proposalAt?: string
   // F7 — ثبت مالی تأییددار:
   dir?: 'expense' | 'income'
   amount?: number
@@ -21,14 +24,56 @@ const KEY = 'pending_action'
 const TTL_MS = 15 * 60_000
 
 /** رزرو عملیات در انتظار تأیید — فقط آخرین عملیات نگه داشته می‌شود */
-export async function setPendingAction(userId: string, op: Omit<PendingOp, 'savedAt'>): Promise<void> {
-  const value = JSON.stringify({ ...op, savedAt: new Date().toISOString() } satisfies PendingOp)
+export async function setPendingAction(
+  userId: string,
+  op: Omit<PendingOp, 'savedAt'>,
+  proposalMsgId?: string | null,
+): Promise<void> {
+  const base = { ...op, savedAt: new Date().toISOString() } as PendingOp
+  // V1-P3 (D-5): لنگرِ پیشنهاد = پیام کاربریِ مبدأ (با وارسی مالکیت؛ نبودِ لنگر = کهنه در گیت)
+  if (proposalMsgId) {
+    const m = await db.chatMessage.findUnique({
+      where: { id: proposalMsgId },
+      select: { id: true, userId: true, role: true, createdAt: true },
+    })
+    if (m && m.userId === userId && m.role === 'user') {
+      base.proposalMsgId = m.id
+      base.proposalAt = m.createdAt.toISOString()
+    }
+  }
+  const value = JSON.stringify(base)
   await db.setting.upsert({
     where: { userId_key: { userId, key: KEY } },
     create: { userId, key: KEY, value },
     update: { value },
   })
 }
+
+/**
+ * V1-P3 (D-5): تازگیِ پیشنهاد — تأیید/لغو فقط پیشنهادِ «همین درخواست» را مصرف می‌کند.
+ * کهنه است اگر: لنگر ندارد، لنگر به پیام کاربرِ همان کاربر تعلق ندارد، یا بین
+ * پیشنهاد و اکنون هر پیام کاربرِ دیگری آمده باشد (جریان جلو رفته). پیشنهاد کهنه
+ * هرگز اجرا نمی‌شود — فقط پاکسازی صادقانه (یافتهٔ زندهٔ P8-7b اجرای ۱۲:۵۱).
+ */
+export async function pendingIsFresh(userId: string, op: PendingOp): Promise<boolean> {
+  if (!op.proposalMsgId || !op.proposalAt) return false
+  const prop = await db.chatMessage.findUnique({
+    where: { id: op.proposalMsgId },
+    select: { id: true, userId: true, role: true, createdAt: true },
+  })
+  if (!prop || prop.userId !== userId || prop.role !== 'user') return false
+  if (prop.createdAt.toISOString() !== op.proposalAt) return false
+  const later = await db.chatMessage.count({
+    where: { userId, role: 'user', id: { not: op.proposalMsgId }, createdAt: { gt: prop.createdAt } },
+  })
+  return later === 0
+}
+
+/** پاسخ صادقانهٔ پیشنهادِ کهنه — هیچ ادعای اجرا ندارد (D-5) */
+export const STALE_PENDING_FA =
+  'پیشنهاد معلق قبلی دیگر معتبر نیست و لغو شد — لطفاً درخواست را دوباره مطرح کنید.'
+export const STALE_PENDING_EN =
+  'The previous pending proposal is no longer valid and was discarded — please state your request again.'
 
 /** خواندن عملیات در انتظار — منقضی (۱۵ دقیقه) پاک و null برمی‌گردد */
 export async function getPendingAction(userId: string): Promise<PendingOp | null> {
