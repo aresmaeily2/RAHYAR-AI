@@ -1,0 +1,29 @@
+شواهد V1-P3-R3 — اثبات GitHub-side (بدون هیچ مقدار محرمانه)
+
+## push عادی (بدون force)
+- push exit=0 — شاخه: v1/voice-acceptance-r3 — quiet push با askpass موقت (توکن هرگز در خروجی/لاگ نیست)
+- pre-push hook: push guard OK (no forbidden paths, no register fingerprints)
+- پیام ریموت: repository moved → نام canonical جدید: aresmaeily2/RAHYAR-AI (سازگار با متن مأموریت؛ remote URL محلی به همین به‌روزرسانی شد)
+
+## تطبیق SHA (ls-remote + API، دو منبع مستقل)
+- REMOTE_MAIN_BEFORE = 28b64bb0bc21e162703a59a01f6d828f8c2065d4
+- REMOTE_MAIN_AFTER  = 28b64bb0bc21e162703a59a01f6d828f8c2065d4  → main دست‌نخورده
+- REMOTE_R3 (ls-remote)  = e4d0bc4f5229c57695bf50948f7019058b41c4e1
+- API_R3_SHA (branches API) = e4d0bc4f5229c57695bf50948f7019058b41c4e1  → برابر local tip هنگام تأیید
+- LOCAL_R3 = e4d0bc4f5229c57695bf50948f7019058b41c4e1
+
+## فهرست کامیت‌های سمت GitHub (API commits، هنگام تأیید e4d0bc4)
+e4d0bc4f docs(v1-p3r3): سندهای نهایی — fixes/privacy/final report + بازبینی دستی اسکن تاریخچه
+e3251c95 docs(v1-p3r3): P1-3/P1-4 هویت انتشار + پذیرش دستگاه + اسکنر امنیتی + شواهد
+6009145d feat(android voice): P1-1 تصمیم معماری Wake Word + UI صادقانه
+004fffcf fix(android+web voice): P0-3 سیاست صادقانهٔ STT و حریم خصوصی
+73b3394f fix(android voice): P0-2 چرخهٔ عمر TTS
+e9a6b9ad fix(android voice): P0-1 سرویس میکروفون پیش‌زمینه
+7d346f4d (پایهٔ clean — R2) …
+
+## دسترس‌پذیری مستندات از GitHub
+- GET /contents/docs/audit/V1_P3R3_FINAL_REPORT.md?ref=v1/voice-acceptance-r3 → 200، size=4468
+
+## نکتهٔ نسخهٔ نهایی
+این فایل در کامیت شواهدِ پس از push ثبت می‌شود؛ کامیت(های) بعد از e4d0bc4 فقط همین رکورد
+شواهد را اضافه می‌کنند. تأیید نهایی tip پس از push آخر در گزارش مأموریت با ls-remote تازه ثبت شده است.
