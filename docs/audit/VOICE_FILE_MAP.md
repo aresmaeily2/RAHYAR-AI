@@ -1,7 +1,7 @@
 # V1 بخش ۲ — نقشه فایل‌های Voice (بند ۵ مأموریت)
 
-> commit مبنا: `1e15165` (V1-VOICE بخش ۱) + `7092937` (V1-DOCS) — شاخه کاری: `v1/voice-acceptance`
-> تاریخ تهیه: 2026-11-08 | هر جزء با مسئولیت، ورودی، خروجی و وابستگی دقیق
+> commit مبنا: `1e15165` (V1-VOICE بخش ۱) + `7092937` (V1-DOCS) + `b00a9eef` (P6/P8) + fixهای بخش ۲ (ccca074..5439b22) — شاخه کاری: `v1/voice-acceptance`
+> تاریخ تهیه: 2026-11-08 (به‌روزشده در بخش ۲ مأموریت V1) | هر جزء با مسئولیت، ورودی، خروجی و وابستگی دقیق
 
 ## ۱. زنجیره اصلی صوت (Single Path)
 
@@ -49,6 +49,7 @@ Wake Word مسیر جانبی مستقل است (بخش ۳ جدول) و مستق
 | `src/lib/assistant/router.ts` + `pending-action.ts` + `expense-flow.ts` | مغز Agent سرور: اجرای ابزار واقعی، گیت تأیید عملیات حساس (بند ۶ مأموریت) |
 | `src/app/api/chat/route.ts` | نقطهٔ ورود فرمان صوتی-متنی به Agent |
 | `src/app/api/reminders/route.ts` | ثبت واقعی یادآور (S1 سناریو) |
+| `src/lib/assistant/cancel-undo.ts` (۱۴۵ خط — V1-P2) | لغو پس از ثبتِ فوری: استخراج هدف از اکشن‌های ذخیره‌شدهٔ واقعی (آرایه/wrapper/string)، پنجرهٔ undo ده‌دقیقه‌ای، فقط «آخرین» هدف، گارد مالکیت userId روی هر حذف، پاسخ صادقانهٔ «چیزی برای انصراف نبود» | پیام کوتاه لغو + تاریخچهٔ اکشن‌های همان کاربر | حذف واقعی ردیف خودِ کاربر + لاگ `canceled` یا پاسخ صادقانه | `pending-action.ts (CANCEL_RE)`، `action-log.ts`، Prisma |
 | `android/src/java/.../ReminderAlarms.java` + `ReminderReceiver.java` | اعلان واقعی یادآور با AlarmManager |
 | `android/src/www/js/app.js` | پوستهٔ محلی WebView — مصرف رویداد صوت در حالت آفلاین |
 
@@ -56,11 +57,19 @@ Wake Word مسیر جانبی مستقل است (بخش ۳ جدول) و مستق
 
 | جزء | وضعیت | دلیل |
 |---|---|---|
-| VoiceHelper (STT/TTS بومی) | **CODED** | پیاده‌سازی کامل + JVM 194/194؛ اجرای میکروفونی واقعی روی دستگاه = BLOCKED (بند ۳ مأموریت) |
+| VoiceHelper (STT/TTS بومی) | **CODED** | پیاده‌سازی کامل + JVM 97/97 (شمارش واقعی این اجرا — عدد ۱۹۴ ادعای قبلی دوبارشماری بود، ثبت در گزارش بخش ۲)؛ اجرای میکروفونی واقعی روی دستگاه = BLOCKED (بند ۳ مأموریت) |
 | VoiceCommandParser | **CODED** (منطق JVM-VERIFIED) | ۱۸ آزمون JVM جدید در 1e15165 — منطق خالص اثبات‌شده؛ اجرای گفتاری = BLOCKED |
 | VoiceWakeService + BootReceiver | **CODED** | چرخهٔ restart/backoff JVM-آزمون‌پذیر؛ تشخیص واقعی wake روی دستگاه = BLOCKED |
-| speech.ts / chat-view.tsx loop | **CODED** | unit 289/289 + سناریوهای S1–S7 زندهٔ سرور (بخش بعد از متن STT) — صوت واقعی = BLOCKED |
+| speech.ts / chat-view.tsx loop | **CODED** | unit 321/321 + سناریوهای S1–S7 و P1–P8 زندهٔ سرور با DB واقعی (بخش بعد از متن STT) — صوت واقعی = BLOCKED |
 | تنظیمات صوتی سرور | **CODED** (API-level verified) | S7: PUT/GET + ردِ مقدار نامعتبر روی سرور زندهٔ 3001 |
 | مجوز میکروفون (دیالوگ/رد/لغو) | **CODED** | جریان fail-closed کدنویسی‌شده؛ آزمون دیالوگ سیستم = BLOCKED |
 
 > هیچ جزء صوتی VERIFIED-on-device نیست — همین صراحت، مبنای گزارش پذیرش بخش ۲ است.
+
+## ۶. جزء لغو (V1-P2) — وضعیت متمایز
+
+| جزء | وضعیت | شواهد |
+|---|---|---|
+| مسیر undo پس از ثبتِ فوری (cancel-undo.ts + دو Route) | **TESTED-SERVER-LIVE** | `artifacts/logs/f8/voice-agent-fix-verify.log` + `p6-p8-evidence.log` — PASS=10 FAIL=0 در اجرای نهایی 2026-11-08 12:31 UTC؛ حذف با شناسهٔ دقیق، لغو تکراری بدون حذف رکورد دیگر، گارد مالکیت live |
+| زمینهٔ یادآورهای آینده (P6 — server-ai.ts) | **TESTED-SERVER-LIVE** | همان لاگ — هر دو یادآور با ساعت تهران در پاسخ، روز خالی صادقانه، عدم افشای رکورد کاربر دیگر |
+| اجرای صوتی همین مسیرها روی گوشی | **BLOCKED** | بدون دستگاه واقعی (درخواست: V1_DEVICE_ACCESS_REQUEST.md) |
