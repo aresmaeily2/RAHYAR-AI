@@ -2,13 +2,13 @@
 # F8 Zero-Law — rebuild cleaned transferable history from baseline HEAD 5522d458.
 # 1) clone (no-local) -> filter-repo (3 sensitive paths)
 # 2) verify: refs/blobs/tree-parity/commit-count/commit-map
-# 3) bundle + patches + commit-map + SHA256SUMS -> download/RahyAr-F8/transfer
+# 3) bundle + patches + commit-map + SHA256SUMS -> download/RahyAr-V1/transfer
 # 4) INDEPENDENT TEST REPO: clone from the clean bundle and prove tree parity
 set -uo pipefail
 SRC=/home/z/my-project
-CLEAN=/tmp/f8-clean
-TESTREPO=/tmp/f8-testrepo
-OUT=/home/z/my-project/download/RahyAr-F8/transfer
+CLEAN=/tmp/v1-clean
+TESTREPO=/tmp/v1-testrepo
+OUT=/home/z/my-project/download/RahyAr-V1/transfer
 LOG=/home/z/my-project/artifacts/logs/f8/history-cleanup.log
 mkdir -p "$OUT" "$(dirname "$LOG")"
 KS=a807354b1a9c17fa4e22df5ebc265f8006cf6f89
