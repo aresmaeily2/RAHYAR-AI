@@ -70,15 +70,26 @@ rs=d if isinstance(d,list) else d.get('reminders',[])
 print(' reminders count=',len(rs))
 for r in rs: print('  id=',r.get('id'),'| msg=',r.get('message'),'| at=',r.get('remindAt'))"
 
-echo "== [P8] لغو عملیات در حین مکالمه («منصرف شدم» بعد از پیشنهاد) =="
+echo "== [P8] لغو عملیات در حین مکالمه — دو فاز تمیز =="
+echo " -- [P8a] پاک‌سازی pending احتمالی از سناریوهای قبل (پاسخ صادقانهٔ لغو) --"
+R=$(chat "انصراف"); echo "$R" | show
+echo " -- [P8b] ثبت فوری یادآور → «منصرف شدم» → حذف واقعی با شناسهٔ دقیق (مسیر undo) --"
 R=$(chat "برای فردا ساعت ۲ یادآوری کن جلسه مهم"); echo "$R" | show
-R=$(chat "نه منصرف شدم"); echo "$R" | show
-curl -s -b $CO $B/api/reminders --max-time 15 | python3 -c "
+B_IDS=$(curl -s -b $CO $B/api/reminders --max-time 15 | python3 -c "
 import sys,json
 d=json.load(sys.stdin)
 rs=d if isinstance(d,list) else d.get('reminders',[])
-n2=[r for r in rs if 'جلسه' in (r.get('message') or '')]
-print(' reminders-with-جلسه =',len(n2),'(expect 0 — canceled)')"
+print(' '.join(r.get('id','') for r in rs))")
+R=$(chat "نه منصرف شدم"); echo "$R" | show
+curl -s -b $CO $B/api/reminders --max-time 15 | python3 -c "
+import sys,json
+before=set('''$B_IDS'''.split())
+d=json.load(sys.stdin)
+rs=d if isinstance(d,list) else d.get('reminders',[])
+after=set(r.get('id','') for r in rs)
+gone=before-after
+print(' reminders-with-جلسه =',len([r for r in rs if 'جلسه' in (r.get('message') or '')]),'(expect 0 — canceled)')
+print(' exact-removed-ids =',sorted(gone) or 'NONE','(expect the just-added id)')"
 
 echo "===== V1-P2 SCENARIOS DONE $(date -u '+%H:%M:%S') ====="
 } 2>&1 | tee "$LOG" | tail -60
