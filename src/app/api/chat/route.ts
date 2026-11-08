@@ -8,6 +8,7 @@ import { detectIntent } from '@/lib/assistant/router'
 import { logAction } from '@/lib/assistant/action-log'
 import { claimIdempotencyKey } from '@/lib/assistant/action-log'
 import { getPendingAction, clearPendingAction, executePendingAction, setPendingAction, CONFIRM_RE, CANCEL_RE } from '@/lib/assistant/pending-action'
+import { tryUndoRecentAdd } from '@/lib/assistant/cancel-undo'
 import { getUserLang } from '@/lib/server-settings'
 import { pick } from '@/lib/server-lang'
 import {
@@ -139,6 +140,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ userMessage: serializeMessage(userMsg), assistantMessage: serializeMessage(assistantMsg), actions: [], mode: 'deterministic' })
     }
 
+    // V1-P2 (یافتهٔ آزمون P8): لغوِ پس از ثبتِ فوری — مسیر قطعی undo قبل از هر مسیر مدل‌محور.
+    // اگر یادآور/کار تازه ثبت شده و کاربر بلافاصله «منصرف شدم» گفته، همان ردیف حذف می‌شود
+    // و پاسخ دقیق اعلام می‌کند چه چیزی حذف شد (نه ادعای دروغِ «هیچ تغییری اعمال نشد»).)
+    if (!pendingOp) {
+      const undoText = await tryUndoRecentAdd(user.id, message, lang)
+      if (undoText) {
+        const userMsg = await db.chatMessage.create({ data: { userId: user.id, role: 'user', content: message } })
+        const assistantMsg = await db.chatMessage.create({ data: { userId: user.id, role: 'assistant', content: undoText, actions: null } })
+        return NextResponse.json({ userMessage: serializeMessage(userMsg), assistantMessage: serializeMessage(assistantMsg), actions: [], mode: 'deterministic' })
+      }
+    }
+
     // F4-QA (یافتهٔ ممیزی مستقل): مسیر قطعی فراموشی — عملیات حساس هرگز نباید به
     // انطباق مدل وابسته باشد (یافتهٔ آزمون: مدل اکشن forget را ساطع نکرد و در تأیید بعدی
     // حذف را «ادعا» کرد بدون اثر واقعی). اکنون: «...» را فراموش کن → pending-action +
@@ -266,8 +279,13 @@ export async function POST(req: NextRequest) {
     const userMsg = await db.chatMessage.create({ data: { userId: user.id, role: 'user', content: message } })
     void trimChatHistory(user.id)
 
-    // ۲) ساخت زمینه: کارهای فعال + حافظه + تاریخچه اخیر — فقط داده همین کاربر
+    // ۲) ساخت زمینه: کارهای فعال + یادآورهای آینده + حافظه + تاریخچه اخیر — فقط داده همین کاربر
     const tasks = (await getAllTasks(user.id)).filter((t) => t.status === 'todo').slice(0, 40)
+    const upcomingReminders = await db.reminder.findMany({
+      where: { userId: user.id, fired: false, remindAt: { gte: new Date() } },
+      orderBy: { remindAt: 'asc' },
+      take: 12,
+    })
     const memories = await getMemories(user.id)
     const userName = await getUserName(user.id)
     const history = await db.chatMessage.findMany({
@@ -279,7 +297,7 @@ export async function POST(req: NextRequest) {
 
     const { gatewayRun } = await import('@/lib/ai/gateway')
     const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
-      { role: 'system', content: buildChatSystemPrompt(tasks, memories, userName, lang) },
+      { role: 'system', content: buildChatSystemPrompt(tasks, memories, userName, lang, upcomingReminders) },
       ...history
         .filter((h) => h.id !== userMsg.id)
         .slice(-10)

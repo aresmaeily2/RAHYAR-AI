@@ -8,6 +8,7 @@ import { detectIntent } from '@/lib/assistant/router'
 import { logAction } from '@/lib/assistant/action-log'
 import { claimIdempotencyKey } from '@/lib/assistant/action-log'
 import { getPendingAction, clearPendingAction, executePendingAction, CONFIRM_RE, CANCEL_RE } from '@/lib/assistant/pending-action'
+import { tryUndoRecentAdd } from '@/lib/assistant/cancel-undo'
 import { getUserLang } from '@/lib/server-settings'
 import {
   replyTaskAdded,
@@ -125,6 +126,29 @@ export async function POST(req: NextRequest) {
       return new Response(streamC, {
         headers: { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive' },
       })
+    }
+
+    // V1-P2 (یافتهٔ آزمون P8): لغوِ پس از ثبتِ فوری — undo قطعی (هم‌ارز روت POST)
+    {
+      const undoText = await tryUndoRecentAdd(userId, message, lang)
+      if (undoText) {
+        const userMsg = await db.chatMessage.create({ data: { userId, role: 'user', content: message } })
+        const assistantMsg = await db.chatMessage.create({ data: { userId, role: 'assistant', content: undoText, actions: null } })
+        const encU = new TextEncoder()
+        const streamU = new ReadableStream({
+          start(controller) {
+            const send = (event: string, data: unknown) => {
+              controller.enqueue(encU.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`))
+            }
+            send('meta', { userMessageId: userMsg.id, searched: false })
+            send('done', { reply: undoText, actions: [], followups: [], sources: [], assistantId: assistantMsg.id })
+            controller.close()
+          },
+        })
+        return new Response(streamU, {
+          headers: { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive' },
+        })
+      }
     }
 
     // ۰) مسیر قطعی — بدون هیچ فراخوانی مدل (بخش ۶ دستور)
@@ -343,8 +367,13 @@ export async function POST(req: NextRequest) {
     const userMsg = await db.chatMessage.create({ data: { userId, role: 'user', content: message } })
     void trimChatHistory(userId)
 
-    // ۲) زمینه — فقط داده همین کاربر
+    // ۲) زمینه — فقط داده همین کاربر (کارها + یادآورهای آینده — V1-P2 P6)
     const tasks = (await getAllTasks(userId)).filter((t) => t.status === 'todo').slice(0, 40)
+    const upcomingReminders = await db.reminder.findMany({
+      where: { userId, fired: false, remindAt: { gte: new Date() } },
+      orderBy: { remindAt: 'asc' },
+      take: 12,
+    })
     const memories = await getMemories(userId)
     const userName = await getUserName(userId)
     const history = await db.chatMessage.findMany({
@@ -355,7 +384,7 @@ export async function POST(req: NextRequest) {
     history.reverse()
 
     const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
-      { role: 'system', content: buildChatSystemPrompt(tasks, memories, userName, lang) },
+      { role: 'system', content: buildChatSystemPrompt(tasks, memories, userName, lang, upcomingReminders) },
       ...history
         .filter((h) => h.id !== userMsg.id)
         .slice(-10)

@@ -56,7 +56,7 @@ export async function clearPendingAction(userId: string): Promise<void> {
 export const CONFIRM_RE =
   /^\s*(بله|بلی|بله\s*حذفش\s*کن|تأیید|تایید|تایید\s*می\s*کنم|تأیید\s*می\s*کنم|حتماً|حتما|yes|confirm|do\s*it)(?=\s|$|[!.,،؟?:؛])/i
 export const CANCEL_RE =
-  /^\s*(انصراف|لغو|نه\s*لزومی|نه|نظریم\s*عوض\s*شد|بی\s*خیال|cancel|nevermind|never\s*mind)(?=\s|$|[!.,،؟?:؛])/i
+  /^\s*(انصراف|لغو|منصرف\s*(?:شدم|ام)?|نه\s*لزومی|نه|نظریم\s*عوض\s*شد|بی\s*خیال|cancel|nevermind|never\s*mind|changed\s*my\s*mind)(?=\s|$|[!.,،؟?:؛])/i
 
 /** اجرای عملیات تأییدشده — فقط روی ردیف واقعی DB، با لاگ */
 export async function executePendingAction(
