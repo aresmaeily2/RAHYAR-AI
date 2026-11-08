@@ -248,19 +248,28 @@ export function speak(text: string, lang: Lang): Promise<void> {
       const b = nativeBridge()!
       const onDone = () => {
         window.removeEventListener('rahyar-tts-done', onDone)
+        window.removeEventListener('rahyar-tts-error', onTtsError)
+        resolve()
+      }
+      const onTtsError = () => {
+        // R3-P0 §3: خطای صادقانهٔ بومی (نبود voice data/شکست init) — بدون انتظار تا ۲۵ ثانیه
+        window.removeEventListener('rahyar-tts-done', onDone)
         resolve()
       }
       window.addEventListener('rahyar-tts-done', onDone)
+      window.addEventListener('rahyar-tts-error', onTtsError)
       try {
         b.speak(text.slice(0, 600), langBcp47(lang))
       } catch {
         window.removeEventListener('rahyar-tts-done', onDone)
+        window.removeEventListener('rahyar-tts-error', onTtsError)
         resolve()
         return
       }
       // ایمنی: اگر پس از ۲۵ ثانیه رویداد پایان نیامد، رد شو
       window.setTimeout(() => {
         window.removeEventListener('rahyar-tts-done', onDone)
+        window.removeEventListener('rahyar-tts-error', onTtsError)
         resolve()
       }, 25_000)
       return

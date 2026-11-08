@@ -15,7 +15,7 @@ public class VoiceEventsTest {
     @Test
     public void eventNamesMatchWebContract() {
         // قرارداد وب: rahyar-voice-partial / final / error / end + rahyar-tts-done
-        String[] names = {"rahyar-voice-partial", "rahyar-voice-final", "rahyar-voice-error", "rahyar-voice-end", "rahyar-tts-done"};
+        String[] names = {"rahyar-voice-partial", "rahyar-voice-final", "rahyar-voice-error", "rahyar-voice-end", "rahyar-tts-done", "rahyar-tts-error"};
         for (String n : names) {
             String js = VoiceHelper.eventJs(n, null);
             assertTrue(js.contains("'" + n + "'"));

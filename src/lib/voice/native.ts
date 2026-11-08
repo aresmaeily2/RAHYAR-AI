@@ -11,6 +11,7 @@
 //   window.dispatchEvent(CustomEvent('rahyar-voice-error',   {detail:{code}}))
 //   window.dispatchEvent(CustomEvent('rahyar-voice-end'))
 //   window.dispatchEvent(CustomEvent('rahyar-tts-done',      {detail:{id}}))
+//   window.dispatchEvent(CustomEvent('rahyar-tts-error',     {detail:{code}}))  // R3-P0 §3: init_failed | missing_data | not_supported | error
 
 'use client'
 

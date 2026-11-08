@@ -6,6 +6,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -13,9 +15,11 @@ import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
 import android.webkit.WebView;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * صوت بومی — تشخیص گفتار اندروید (fa-IR/en-US) و خواندن پاسخ با TTS سیستم.
@@ -26,11 +30,24 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *   rahyar-voice-error   {code}     no_match | busy | denied | unavailable | error
  *   rahyar-voice-end                پایان شنود
  *   rahyar-voice-perm    {state}    granted | denied   (پس از دیالوگ مجوز)
- *   rahyar-tts-done                 پایان خواندن
+ *   rahyar-tts-done                 پایان واقعی خواندن (یا پایان خطای نهایی)
+ *   rahyar-tts-error     {code}     init_failed | missing_data | not_supported | error
  *
- * حریم خصوصی (مأموریت — بند ۲/۱۲): شنود فقط با لمس دکمهٔ میکروفون آغاز می‌شود؛
- * صدا مستقیماً به سرویس گفتار سیستم‌عامل می‌رود، هیچ‌گاه ذخیره یا به هیچ سروری
- * ارسال نمی‌شود. شنود پس از پایان جمله یا لغو کاربر فوراً تمام می‌شود.
+ * R3-P0 §3 (مأموریت V1-P3-R3 — اصلاح TTS و چرخهٔ عمر):
+ *  - درخواست‌های TTS تا آماده‌شدن موتور در صف امن (TtsBuffer) می‌مانند — متن پاسخ
+ *    هرگز به‌خاطر آماده‌نبودن موتور گم نمی‌شود (باگ قبلی: emit فوری tts-done + دور ریختن متن).
+ *  - پاسخ‌های متوالی با QUEUE_ADD به‌ترتیب پخش می‌شوند؛ پاسخ بعدی با قبلی تداخل نمی‌کند.
+ *  - نتیجهٔ tts.setLanguage بررسی می‌شود؛ نبود صدای فارسی/انگلیسی روی دستگاه = خطای
+ *    صادقانه (rahyar-tts-error) نه موفقیت قلابی.
+ *  - رویداد tts-done فقط در پایان واقعی پخش یا خطای نهایی ارسال می‌شود.
+ *  - stopSpeaking صف را نیز پاک می‌کند؛ destroy همهٔ callbackها و صف را ایمن می‌بندد.
+ *  - همهٔ رویدادهای وب از رشتهٔ UI ارسال می‌شوند (callbackهای STT/TTS روی رشتهٔ
+ *    binder می‌آیند — ارسال مستقیم به WebView روی رشتهٔ اشتباه بود).
+ *
+ * حریم خصوصی (بازنویسی صادقانهٔ R3-P0 §4): شنود فقط با لمس دکمهٔ میکروفون آغاز می‌شود؛
+ * رهیار خودش هیچ صدایی ذخیره نمی‌کند. با این حال «سرویس گفتار سیستم‌عامل» ممکن است بسته
+ * به دستگاه صدا را روی‌دستگاه یا آنلاین پردازش کند — مسیر واقعی در sttEngineMode
+ * گزارش می‌شود و ادعای «صدا هرگز ارسال نمی‌شود» صحیح نیست (مستند: V1_P3R3_PRIVACY_REVIEW.md).
  *
  * یادداشت مجوز: SpeechRecognizer به RECORD_AUDIO نیاز ندارد — فرایند تشخیص
  * توسط سرویس گفتار سیستم انجام می‌شود (قرارداد پلتفرم)؛ ما با این حال مجوز را
@@ -39,13 +56,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public final class VoiceHelper implements RahyarBridge.VoiceDelegate {
 
-    /** JS رویداد — خالص و تست‌پذیر (خروجی باید evaluateJavascript-safe باشد) */
-    /**
-     * F2-TEST-HOOK (فقط دیباگ): ساخت همین رویداد «نتیجهٔ قطعی شنیدار» برای تزریق
+    /** F2-TEST-HOOK (فقط دیباگ): ساخت همین رویداد «نتیجهٔ قطعی شنیدار» برای تزریق
      * فرمان متنی از adb روی شبیه‌ساز بدون میکروفون. مسیر اجرا (پارسر + موتور اجرای
      * app.js) کاملاً واقعی است؛ تنها مرحلهٔ STT کنار گذاشته می‌شود. در بیلد Release
-     * هیچ مسیر تزریقی وجود ندارد.
-     */
+     * هیچ مسیر تزریقی وجود ندارد. */
     public static String debugFinalEvent(String text) {
         return eventJs("rahyar-voice-final", "{\"text\":\"" + jsString(text) + "\"}");
     }
@@ -71,19 +85,74 @@ public final class VoiceHelper implements RahyarBridge.VoiceDelegate {
         return b.toString();
     }
 
+    // ── R3-P0 §3: منطق خالص TTS — JVM-آزمون‌پذیر ──
+
+    /** ظرفیت صف TTS — پاسخ‌های متوالی؛ سرریز = قدیمی‌ترین حذف می‌شود */
+    static final int MAX_TTS_QUEUE = 8;
+    static final String TTS_LANG_OK = "ok";
+    static final String TTS_LANG_MISSING_DATA = "missing_data";
+    static final String TTS_LANG_NOT_SUPPORTED = "not_supported";
+
+    /**
+     * صف امن TTS — خالص و JVM-آزمون‌پذیر.
+     * FIFO با ظرفیت محدود؛ سرریز = قدیمی‌ترین گفته دور ریخته می‌شود و تعدادش
+     * برمی‌گردد (هیچ بی‌خبری نیست).
+     */
+    static final class TtsBuffer {
+        private final ArrayDeque<String[]> q = new ArrayDeque<>();
+        private final int cap;
+        TtsBuffer(int cap) { this.cap = Math.max(1, cap); }
+        /** خروجی: تعداد گفتهٔ دور ریخته‌شده برای جا باز کردن (۰ یا ۱) */
+        synchronized int push(String text, String langBcp47) {
+            int evicted = 0;
+            if (q.size() >= cap) { q.pollFirst(); evicted = 1; }
+            q.addLast(new String[]{text == null ? "" : text,
+                    (langBcp47 == null || langBcp47.isEmpty()) ? "fa-IR" : langBcp47});
+            return evicted;
+        }
+        synchronized String[] poll() { return q.pollFirst(); }
+        synchronized void clear() { q.clear(); }
+        synchronized int size() { return q.size(); }
+    }
+
+    /** زبان BCP-47 → Locale؛ تهی/نامعتبر = فارسی (رفتار قراردادی وب) */
+    static Locale localeFor(String langBcp47) {
+        if (langBcp47 == null || langBcp47.trim().isEmpty()) return new Locale("fa");
+        if (langBcp47.contains("-")) {
+            String[] p = langBcp47.split("-", 2);
+            return new Locale(p[0], p[1]);
+        }
+        return new Locale(langBcp47);
+    }
+
+    /** نتیجهٔ tts.setLanguage → حکم صادقانه (ok | missing_data | not_supported) */
+    static String languageVerdict(int setLanguageResult) {
+        if (setLanguageResult >= TextToSpeech.LANG_AVAILABLE) return TTS_LANG_OK;
+        if (setLanguageResult == TextToSpeech.LANG_MISSING_DATA) return TTS_LANG_MISSING_DATA;
+        return TTS_LANG_NOT_SUPPORTED;
+    }
+
+    // ── نمونه ──
+
     private final WebView web;
     private final Activity activity;
+    private final Handler ui = new Handler(Looper.getMainLooper());
     private SpeechRecognizer recognizer;
     private TextToSpeech tts;
     private volatile boolean ttsReady = false;
     private final AtomicBoolean listening = new AtomicBoolean(false);
+    private final AtomicReference<String> pendingUtterance = new AtomicReference<>(null);
+    private final TtsBuffer ttsBuffer = new TtsBuffer(MAX_TTS_QUEUE);
     private String lastLang = "fa-IR";
-    /** سرعت خواندن — پیش‌فرض سیستم؛ با setSpeechRate از تنظیمات صوتی تغییر می‌کند (بند ۵ مأموریت V1) */
+    /** سرعت خواندن — پیش‌فرض سیستم؛ با setSpeechRate از تنظیمات صوتی تغییر می‌کند */
     private volatile float speechRate = 1.0f;
 
     public VoiceHelper(WebView web, Activity activity) {
         this.web = web;
         this.activity = activity;
+        // R3-P0 §3: آماده‌سازی زودهنگام موتور — اولین درخواستِ بلافاصله پس از شروع
+        // برنامه به‌جای دور ریختن، در صف امن می‌ماند تا موتور آماده شود
+        initTts();
     }
 
     /** تنظیم سرعت خواندن TTS — بازهٔ مجاز ۰.۵ تا ۲.۵ (خارج بازه = بی‌اثر) */
@@ -110,8 +179,8 @@ public final class VoiceHelper implements RahyarBridge.VoiceDelegate {
 
     /** پاسخ دیالوگ مجوز — از onRequestPermissions نتیجهٔ اکتیویتی */
     public void onPermissionResult(boolean granted) {
-        web.evaluateJavascript(eventJs("rahyar-voice-perm",
-                "{\"state\":\"" + (granted ? "granted" : "denied") + "\"}"), null);
+        postToWeb(eventJs("rahyar-voice-perm",
+                "{\"state\":\"" + (granted ? "granted" : "denied") + "\"}"));
     }
 
     @Override
@@ -151,7 +220,7 @@ public final class VoiceHelper implements RahyarBridge.VoiceDelegate {
             @Override public void onPartialResults(Bundle partialResults) {
                 String t = firstText(partialResults);
                 if (t != null && !t.isEmpty()) {
-                    web.evaluateJavascript(eventJs("rahyar-voice-partial", "{\"text\":\"" + jsString(t) + "\"}"), null);
+                    postToWeb(eventJs("rahyar-voice-partial", "{\"text\":\"" + jsString(t) + "\"}"));
                 }
             }
             @Override public void onEvent(int eventType, Bundle params) { /* رویداد جانبی */ }
@@ -182,7 +251,7 @@ public final class VoiceHelper implements RahyarBridge.VoiceDelegate {
                 listening.set(false);
                 String t = firstText(results);
                 if (t != null && !t.trim().isEmpty()) {
-                    web.evaluateJavascript(eventJs("rahyar-voice-final", "{\"text\":\"" + jsString(t.trim()) + "\"}"), null);
+                    postToWeb(eventJs("rahyar-voice-final", "{\"text\":\"" + jsString(t.trim()) + "\"}"));
                 } else {
                     emitError("no_match");
                 }
@@ -234,58 +303,109 @@ public final class VoiceHelper implements RahyarBridge.VoiceDelegate {
         return list.get(0);
     }
 
+    // ── ارسال رویداد به وب — همیشه از رشتهٔ UI ──
+
+    private void postToWeb(String js) {
+        ui.post(new Runnable() {
+            @Override public void run() {
+                try { web.evaluateJavascript(js, null); } catch (Exception ignored) {}
+            }
+        });
+    }
+
     private void emitError(String code) {
-        web.evaluateJavascript(eventJs("rahyar-voice-error", "{\"code\":\"" + jsString(code) + "\"}"), null);
+        postToWeb(eventJs("rahyar-voice-error", "{\"code\":\"" + jsString(code) + "\"}"));
     }
 
     private void emitEnd() {
-        web.evaluateJavascript(eventJs("rahyar-voice-end", null), null);
+        postToWeb(eventJs("rahyar-voice-end", null));
     }
 
-    // ── خروجی صوتی (TTS) ──
+    // ── خروجی صوتی (TTS) — R3-P0 §3 ──
 
     public void initTts() {
         if (tts != null) return;
         tts = new TextToSpeech(web.getContext(), new TextToSpeech.OnInitListener() {
             @Override public void onInit(int status) {
-                ttsReady = (status == TextToSpeech.SUCCESS);
+                if (status == TextToSpeech.SUCCESS) {
+                    ttsReady = true;
+                    // صفِ مانده تا آماده‌شدن موتور — به‌ترتیب پخش می‌شود
+                    String[] next = ttsBuffer.poll();
+                    if (next != null) speakNow(next[0], next[1]);
+                } else {
+                    // شکست init = خطای نهایی برای همهٔ صف — صادقانه، بدون tts-done قلابی
+                    ttsReady = false;
+                    emitTtsError("init_failed");
+                    ttsBuffer.clear();
+                    emitTtsDone();
+                }
             }
+        });
+        // شنوندهٔ پیشرفت یک‌بار در init ثبت می‌شود — برای همهٔ گفته‌ها معتبر است
+        tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+            @Override public void onStart(String utteranceId) { /* شروع پخش */ }
+            @Override public void onDone(String utteranceId) { finishUtterance(utteranceId); }
+            @Override public void onError(String utteranceId) { finishUtterance(utteranceId); }
+            @Override public void onError(String utteranceId, int errorCode) { finishUtterance(utteranceId); }
         });
     }
 
-    /** خواندن متن — پایان با رویداد rahyar-tts-done */
+    /** خواندن متن — اگر موتور آماده نیست، در صف امن می‌ماند (متن گم نمی‌شود) */
     @Override
     public void speak(String text, String langBcp47) {
         if (tts == null) initTts();
         if (tts == null || !ttsReady) {
-            // TTS هنوز آماده نیست — یک‌بار دیگر در فراخوان بعدی آماده می‌شود
+            ttsBuffer.push(text, langBcp47);
+            return; // پایان واقعی بعد از پخشِ صف — بدون tts-done الکی
+        }
+        speakNow(text, langBcp47);
+    }
+
+    private void speakNow(String text, String langBcp47) {
+        if (text == null || text.trim().isEmpty()) {
             emitTtsDone();
             return;
         }
         try {
-            Locale l;
-            if (langBcp47 != null && langBcp47.contains("-")) {
-                String[] p = langBcp47.split("-", 2);
-                l = new Locale(p[0], p[1]);
-            } else {
-                l = new Locale(langBcp47 == null || langBcp47.isEmpty() ? "fa" : langBcp47);
+            Locale l = localeFor(langBcp47);
+            int res = tts.setLanguage(l);
+            String verdict = languageVerdict(res);
+            if (!TTS_LANG_OK.equals(verdict)) {
+                // صدای این زبان نصب/پشتیبانی نیست — موفقیت قلابی ممنوع (بند ۶/۷ §3)
+                emitTtsError(verdict);
+                emitTtsDone();
+                return;
             }
-            tts.setLanguage(l);
-            tts.setSpeechRate(speechRate); // V1: سرعت انتخابی کاربر (تنظیمات صوتی)
+            tts.setSpeechRate(speechRate);
             String id = "rahyar-tts-" + System.nanoTime();
-            tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
-                @Override public void onStart(String utteranceId) { /* شروع */ }
-                @Override public void onDone(String utteranceId) { emitTtsDone(); }
-                @Override public void onError(String utteranceId) { emitTtsDone(); }
-            });
-            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, id);
+            pendingUtterance.set(id);
+            // QUEUE_ADD: پاسخ بعدی هرگز پاسخ جاری را قطع نمی‌کند (بند ۲/۹ §3)
+            tts.speak(text, TextToSpeech.QUEUE_ADD, null, id);
         } catch (Exception e) {
+            pendingUtterance.set(null);
+            emitTtsError("error");
+            emitTtsDone();
+        }
+    }
+
+    /** پایان واقعی یک گفته — سپس صف؛ اگر صف خالی است، tts-done واقعی */
+    private void finishUtterance(String utteranceId) {
+        String cur = pendingUtterance.get();
+        if (cur != null && !cur.equals(utteranceId)) return; // گفتهٔ قدیمی/نامرتبط — بی‌اثر
+        String[] next = ttsBuffer.poll();
+        if (next != null) {
+            speakNow(next[0], next[1]);
+        } else {
+            pendingUtterance.set(null);
             emitTtsDone();
         }
     }
 
     @Override
     public void stopSpeaking() {
+        // بند ۳ §3: قطع خواندن صف را نیز پاک می‌کند — هیچ گفتهٔ پنهانی بعدی پخش نمی‌شود
+        ttsBuffer.clear();
+        pendingUtterance.set(null);
         if (tts != null) {
             try { tts.stop(); } catch (Exception ignored) {}
         }
@@ -293,13 +413,24 @@ public final class VoiceHelper implements RahyarBridge.VoiceDelegate {
     }
 
     private void emitTtsDone() {
-        web.evaluateJavascript(eventJs("rahyar-tts-done", null), null);
+        postToWeb(eventJs("rahyar-tts-done", null));
     }
 
+    private void emitTtsError(String code) {
+        postToWeb(eventJs("rahyar-tts-error", "{\"code\":\"" + jsString(code) + "\"}"));
+    }
+
+    /** بند ۴ §3: destroy همهٔ callbackها و صف را ایمن می‌بندد */
     public void destroy() {
         destroyRecognizer();
+        ttsBuffer.clear();
+        pendingUtterance.set(null);
         if (tts != null) {
-            try { tts.stop(); tts.shutdown(); } catch (Exception ignored) {}
+            try {
+                tts.setOnUtteranceProgressListener(null);
+                tts.stop();
+                tts.shutdown();
+            } catch (Exception ignored) {}
             tts = null;
             ttsReady = false;
         }

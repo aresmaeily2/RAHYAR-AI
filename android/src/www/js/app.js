@@ -282,6 +282,9 @@
       vDeletedConfirm: 'حذف انجام شد.',
       vTypeHint: 'یا دستور را تایپ کن…', vSend: 'اجرا',
       vMicOffHint: 'شنیدن صوتی روی این دستگاه در دسترس نیست — فرمان را تایپ کن.',
+      ttsErrInit: 'موتور خواندن صوتی آماده نشد — پاسخ متنی نمایش داده می‌شود.',
+      ttsErrLang: 'صدای این زبان روی این دستگاه نصب نیست — پاسخ متنی نمایش داده می‌شود.',
+      ttsErrGeneric: 'خطای خواندن صوتی — پاسخ متنی نمایش داده می‌شود.',
       // F5-مأموریت ۷: پیامک بانکی
       smsSec: 'پیامک بانکی',
       smsDesc: 'با رضایت شما، پیامک‌های بانکی (واریز/برداشت/خرید) دریافت و به‌صورت پیش‌نمایش در اپ نشان داده می‌شوند. ثبت نهایی فقط با تأیید شما انجام می‌شود. پیامک‌های شخصی و غیرمالی هرگز خوانده یا ذخیره نمی‌شوند.',
@@ -316,6 +319,9 @@
       vDeletedConfirm: 'Deleted.',
       vTypeHint: 'or type a command…', vSend: 'Run',
       vMicOffHint: 'Voice listening is unavailable on this device — type your command.',
+      ttsErrInit: 'Speech engine failed to initialize — showing the text reply instead.',
+      ttsErrLang: 'No voice for this language is installed on this device — showing the text reply instead.',
+      ttsErrGeneric: 'Speech playback failed — showing the text reply instead.',
       // F5: bank SMS
       smsSec: 'Bank SMS',
       smsDesc: 'With your explicit consent, bank SMS (deposit/withdrawal/purchase) are received and shown as previews in the app. Nothing is recorded without your confirmation. Personal and non-financial SMS are never read or stored.',
@@ -600,6 +606,14 @@
     else { setPanel(tv('errDenied'), '', ''); }
   });
   window.addEventListener('rahyar-tts-done', function () {
+    V.busyTts = false;
+  });
+  window.addEventListener('rahyar-tts-error', function (e) {
+    // R3-P0 §3: خطای صادقانهٔ TTS — نبود صدای فارسی/انگلیسی یا شکست موتور؛
+    // هرگز موفقیت قلابی نمایش داده نمی‌شود
+    var code = (e.detail && e.detail.code) || 'error';
+    var map = { init_failed: 'ttsErrInit', missing_data: 'ttsErrLang', not_supported: 'ttsErrLang', error: 'ttsErrGeneric' };
+    setPanel(tv(map[code] || 'ttsErrGeneric'), '', '');
     V.busyTts = false;
   });
 
