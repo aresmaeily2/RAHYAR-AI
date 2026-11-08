@@ -88,7 +88,7 @@ d=json.load(sys.stdin)
 rs=d if isinstance(d,list) else d.get('reminders',[])
 after=set(r.get('id','') for r in rs)
 gone=before-after
-print(' reminders-with-جلسه =',len([r for r in rs if 'جلسه' in (r.get('message') or '')]),'(expect 0 — canceled)')
+print(' reminders-with-جلسه-مهم =',len([r for r in rs if 'جلسه مهم' in (r.get('message') or '')]),'(expect 0 — canceled; V1-P3: only this scenario reminder, leftovers excluded)')
 print(' exact-removed-ids =',sorted(gone) or 'NONE','(expect the just-added id)')"
 
 echo "===== V1-P2 SCENARIOS DONE $(date -u '+%H:%M:%S') ====="
