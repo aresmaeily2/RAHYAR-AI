@@ -1,0 +1,23 @@
+شواهد V1-P3-R3 — اسکن کامل تاریخچه (بدون هیچ مقدار محرمانه)
+REV=v1/voice-acceptance-r3
+BLOBS_SCANNED=2685
+FORBIDDEN_PATH_HITS=1
+  PATH scripts/p06r-keystore-recovery-test.py blob=8abc86a74331
+HARD_REGISTER_FP_HITS=0
+  C3: 1840 blobs (soft — common word) e.g. ['.dockerignore', 'android/README.md', 'android/app/build.gradle']
+PEM_MARKER_BLOBS=2 (manual review list)
+  PEM scripts/f7-package.sh
+  PEM scripts/f7-package.sh
+SCAN_VERDICT=REVIEW-REQUIRED
+
+
+## بازبینی دستی (طبقه‌بندی)
+
+1) FORBIDDEN_PATH scripts/p06r-keystore-recovery-test.py — false positive نام‌فایل:
+   ابزار ممیزی read-only کمپین P0-6R (آزمون کنترل‌شدهٔ بازیابی keystore)؛ فقط مسیرهای تاریخی را
+   با fp رجیستر مقایسه می‌کند و هیچ مقداری ندارد/چاپ نمی‌کند. محتوای blob با رجیستر سخت: صفر hit.
+2) PEM_MARKER scripts/f7-package.sh (×۲ در یک blob) — false positive محتوا:
+   عبارت‌های "BEGIN PRIVATE KEY"/"BEGIN RSA PRIVATE" در این اسکریپت «الگوی grep برای بررسی نشتی
+   داخل ZIPهای بستهٔ تحویل» است — هیچ کلید واقعی در فایل نیست.
+3) C3 (soft) در ۱۸۴۰ blob — کلمهٔ رایج؛ طبق سیاست گارد، سخت‌گیر نیست.
+نتیجه: هیچ secret واقعی قابل‌دسترس در تاریخچهٔ r3 یافته نشد — SCAN_VERDICT نهایی: CLEAN (با طبقه‌بندی مستند FPها).
