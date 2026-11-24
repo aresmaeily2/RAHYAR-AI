@@ -1,0 +1,88 @@
+name: RahyAr CI — Android Native Verification
+
+on:
+  push:
+    branches-ignore:
+      - main
+    paths:
+      - "apps/android/**"
+      - "android/**"
+      - "packages/**"
+      - ".github/workflows/ci-android.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/android/**"
+      - "android/**"
+      - "packages/**"
+      - ".github/workflows/ci-android.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-android-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  android-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Exact Commit
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+          cache: "gradle"
+
+      - name: Setup Android SDK (API 36)
+        uses: android-actions/setup-android@v3
+
+      - name: Locate Android Project Root
+        id: locate
+        run: |
+          if [ -d "apps/android" ]; then
+            echo "dir=apps/android" >> "$GITHUB_OUTPUT"
+          elif [ -d "android/app" ]; then
+            echo "dir=android" >> "$GITHUB_OUTPUT"
+          else
+            echo "dir=NONE" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify Gradle Wrapper & Static Lint (Strict)
+        if: steps.locate.outputs.dir != 'NONE'
+        working-directory: ${{ steps.locate.outputs.dir }}
+        run: |
+          chmod +x ./gradlew
+          ./gradlew lintDebug testDebugUnitTest --stacktrace --no-daemon
+
+      - name: Build Debug APK (Reproducible Unsigned Artifact — Never Fake Release)
+        if: steps.locate.outputs.dir != 'NONE'
+        working-directory: ${{ steps.locate.outputs.dir }}
+        run: |
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Package Evidence, Test Reports & SHA-256 Hashes
+        if: always() && steps.locate.outputs.dir != 'NONE'
+        run: |
+          mkdir -p ci-android-artifacts
+          echo "COMMIT_SHA=${{ github.sha }}" > ci-android-artifacts/provenance.txt
+          find "${{ steps.locate.outputs.dir }}" -name "*.apk" -exec cp {} ci-android-artifacts/ \; || true
+          find "${{ steps.locate.outputs.dir }}" -path "*/test-results/*" -name "*.xml" -exec cp {} ci-android-artifacts/ \; || true
+          cd ci-android-artifacts
+          sha256sum * > SHA256SUMS-${{ github.sha }}.txt || true
+          cat SHA256SUMS-${{ github.sha }}.txt || true
+
+      - name: Upload Android CI Artifacts
+        if: always() && steps.locate.outputs.dir != 'NONE'
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-ci-evidence-${{ github.sha }}
+          path: ci-android-artifacts/
+          retention-days: 30

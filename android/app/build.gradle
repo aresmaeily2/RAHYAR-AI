@@ -21,6 +21,15 @@ def ksProps = new java.util.Properties()
 if (ksFile.exists()) {
     ksFile.withInputStream { ksProps.load(it) }
 }
+// SEC-11: گارد fail-closed — هر task بیلد/باندل Release بدون keystore.properties متوقف می‌شود
+gradle.taskGraph.whenReady { graph ->
+    def needsReleaseSign = graph.allTasks.any { t ->
+        (t.name.contains('assemble') || t.name.contains('bundle')) && t.name.contains('Release')
+    }
+    if (needsReleaseSign && !ksFile.exists()) {
+        throw new GradleException('SEC-11 FAIL-CLOSED: keystore.properties is required for Release APK/AAB builds.')
+    }
+}
 
 android {
     namespace 'com.rahyarai.app'
@@ -78,8 +87,10 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
-            // امضای release فقط وقتی keystore.properties موجود باشد (نصب‌پذیر)
+            // SEC-11: فعال‌سازی R8 minify/shrink و امضای fail-closed برای بیلد Release
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
             if (ksFile.exists()) {
                 signingConfig signingConfigs.release
             }
@@ -87,8 +98,8 @@ android {
     }
 
     lint {
-        abortOnError false
-        checkReleaseBuilds false
+        abortOnError true
+        checkReleaseBuilds true
     }
 
     testOptions {

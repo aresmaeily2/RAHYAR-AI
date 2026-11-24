@@ -3,6 +3,7 @@ import ZAI from 'z-ai-web-dev-sdk'
 import { db } from '@/lib/db'
 import { safeUrl, globalSearchLimit } from '@/lib/security'
 import { aiKillSwitchOn } from '@/lib/ai/gateway'
+import { defuseUserWall } from '@/lib/prompt-defense'
 import type { SourceT } from '@/lib/types'
 
 /**
@@ -78,8 +79,8 @@ async function recordSearchUsage(args: {
 export async function performWebSearch(userId: string, query: string, limit = 5): Promise<WebSearchResult> {
   const started = Date.now()
   const q = query.slice(0, 300)
-  // ۱) کلید قطع اضطراری — جستجوی وب هم قابلیت مدل‌محور است
-  if (await aiKillSwitchOn()) return { sources: [], context: '' }
+  // ۱) کلید قطع اضطراری فردی/سراسری — جستجوی وب هم قابلیت مدل‌محور است (SEC-03)
+  if (await aiKillSwitchOn(userId)) return { sources: [], context: '' }
   // ۲) سقف سراسری نمونه — حتی خارج از مدل زبانی
   if (!globalSearchLimit().ok) return { sources: [], context: '' }
   try {
@@ -95,9 +96,9 @@ export async function performWebSearch(userId: string, query: string, limit = 5)
 
     for (const item of items) {
       const url = typeof item.url === 'string' ? item.url.trim() : ''
-      const title = (item.name ?? '').toString().slice(0, 120)
-      const snippet = (item.snippet ?? '').toString().slice(0, 320)
-      const host = (item.host_name ?? '').toString().slice(0, 80)
+      const title = defuseUserWall((item.name ?? '').toString().slice(0, 120))
+      const snippet = defuseUserWall((item.snippet ?? '').toString().slice(0, 320))
+      const host = defuseUserWall((item.host_name ?? '').toString().slice(0, 80))
       if (!url || !safeUrl(url) || !title) continue
       sources.push({ title, url, host })
       lines.push(`- «${title}» (${host}): ${snippet}`)

@@ -85,7 +85,8 @@ public class MainActivity extends Activity {
             }
             @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest req) {
                 String u = req.getUrl().toString();
-                return !(u.startsWith(baseUrl)); // هر مقصد خارج از مبنای سرور در مرورگر سیستم
+                // SEC-04: تطابق دقیق scheme + host + port (جلوگیری از host-prefix bypass مانند rahyar.ir.evil.com)
+                return !isSameWebOrigin(u, baseUrl);
             }
         });
 
@@ -265,5 +266,25 @@ public class MainActivity extends Activity {
             web.destroy();
         }
         super.onDestroy();
+    }
+
+    /**
+     * SEC-04: مقایسهٔ دقیق مبدأ وب (scheme + host + effective port)
+     * جلوگیری از دورزدن host-prefix مانند https://rahyar.ir.evil.com
+     */
+    static boolean isSameWebOrigin(String targetUrl, String allowedBaseUrl) {
+        if (targetUrl == null || allowedBaseUrl == null) return false;
+        android.net.Uri target = android.net.Uri.parse(targetUrl);
+        android.net.Uri base = android.net.Uri.parse(allowedBaseUrl);
+        String ts = target.getScheme();
+        String bs = base.getScheme();
+        String th = target.getHost();
+        String bh = base.getHost();
+        if (ts == null || bs == null || th == null || bh == null) return false;
+        if (!ts.equalsIgnoreCase(bs)) return false;
+        if (!th.equalsIgnoreCase(bh)) return false;
+        int tp = target.getPort() != -1 ? target.getPort() : ("https".equalsIgnoreCase(ts) ? 443 : 80);
+        int bp = base.getPort() != -1 ? base.getPort() : ("https".equalsIgnoreCase(bs) ? 443 : 80);
+        return tp == bp;
     }
 }

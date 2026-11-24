@@ -1,0 +1,105 @@
+name: RahyAr CI — Windows Desktop (Tauri 2) Verification
+
+on:
+  push:
+    branches-ignore:
+      - main
+    paths:
+      - "apps/desktop-win/**"
+      - "packages/**"
+      - ".github/workflows/ci-windows-tauri.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/desktop-win/**"
+      - "packages/**"
+      - ".github/workflows/ci-windows-tauri.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  windows-tauri-verify:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Exact Commit
+        uses: actions/checkout@v4
+
+      - name: Check Windows Desktop Project Presence
+        id: check
+        shell: pwsh
+        run: |
+          if (Test-Path "apps/desktop-win/src-tauri/Cargo.toml") {
+            "present=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            "present=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Output "apps/desktop-win not scaffolded yet (scheduled for Mission 3 prototypes)."
+          }
+
+      - name: Setup Node 22
+        if: steps.check.outputs.present == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Rust Stable
+        if: steps.check.outputs.present == 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Frontend Install, Typecheck, Lint & Unit Tests
+        if: steps.check.outputs.present == 'true'
+        working-directory: apps/desktop-win
+        shell: pwsh
+        run: |
+          npm ci
+          npm run typecheck
+          npm run lint
+          npm test
+
+      - name: Rust Format, Clippy (Zero Warnings) & Unit Tests
+        if: steps.check.outputs.present == 'true'
+        working-directory: apps/desktop-win/src-tauri
+        shell: pwsh
+        run: |
+          cargo fmt --all -- --check
+          cargo clippy --all-targets -- -D warnings
+          cargo test --locked
+
+      - name: Rust Dependency Security Audit
+        if: steps.check.outputs.present == 'true'
+        working-directory: apps/desktop-win/src-tauri
+        shell: pwsh
+        run: |
+          cargo install cargo-audit --locked
+          cargo audit
+
+      - name: Build Windows Tauri Bundle & Compute SHA-256
+        if: steps.check.outputs.present == 'true'
+        working-directory: apps/desktop-win
+        shell: pwsh
+        run: |
+          npm run tauri build -- --no-sign
+          New-Item -ItemType Directory -Force -Path ..\..\ci-win-artifacts | Out-Null
+          "COMMIT_SHA=$env:GITHUB_SHA" | Out-File ..\..\ci-win-artifacts\provenance.txt
+          Get-ChildItem -Recurse src-tauri\target\release\bundle -File | ForEach-Object {
+            Copy-Item $_.FullName ..\..\ci-win-artifacts\
+          }
+          Get-ChildItem ..\..\ci-win-artifacts\* -File | Get-FileHash -Algorithm SHA256 |
+            Format-Table -AutoSize | Out-File ..\..\ci-win-artifacts\SHA256SUMS-$env:GITHUB_SHA.txt
+
+      - name: Upload Windows CI Evidence
+        if: always() && steps.check.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-ci-evidence-${{ github.sha }}
+          path: ci-win-artifacts/
+          retention-days: 30

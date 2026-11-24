@@ -20,14 +20,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'برای حذف، عبارت تأیید لازم است' }, { status: 400 })
     }
 
-    const [tasks, reminders, chat, memories, accounts, aiUsage, actionLogs] = await Promise.all([
+    // SEC-07: پاک‌سازی کاملاً اتمیک در یک تراکنش واحد + پوشش کامل FinanceBudget و Setting
+    const [
+      tasks,
+      reminders,
+      chat,
+      memories,
+      transactions,
+      accounts,
+      budgets,
+      settings,
+      aiUsage,
+      actionLogs,
+    ] = await db.$transaction([
       db.task.deleteMany({ where: { userId: user.id } }),
       db.reminder.deleteMany({ where: { userId: user.id } }),
       db.chatMessage.deleteMany({ where: { userId: user.id } }),
       db.memory.deleteMany({ where: { userId: user.id } }),
+      db.financeTransaction.deleteMany({ where: { userId: user.id } }),
       db.financeAccount.deleteMany({ where: { userId: user.id } }),
-      // ارتقای نهایی (GU-PRIV1): حق فراموشی کامل‌تر — فراداده‌های مصرف مدل و
-      // دفتر اقدامات هم دادهٔ شخصی محسوب می‌شوند و با پاک‌سازی کامل حذف می‌شوند.
+      db.financeBudget.deleteMany({ where: { userId: user.id } }),
+      db.setting.deleteMany({ where: { userId: user.id } }),
       db.aiUsage.deleteMany({ where: { userId: user.id } }),
       db.actionLog.deleteMany({ where: { userId: user.id } }),
     ])
@@ -39,7 +52,10 @@ export async function POST(req: NextRequest) {
         reminders: reminders.count,
         chatMessages: chat.count,
         memories: memories.count,
+        financeTransactions: transactions.count,
         financeAccounts: accounts.count,
+        financeBudgets: budgets.count,
+        settings: settings.count,
         aiUsage: aiUsage.count,
         actionLogs: actionLogs.count,
       },
