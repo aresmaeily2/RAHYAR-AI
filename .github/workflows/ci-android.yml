@@ -118,3 +118,48 @@ jobs:
           name: android-native-apk-${{ github.sha }}
           path: ci-android-artifacts/
           retention-days: 30
+
+  android-emulator-acceptance:
+    needs: android-native-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Exact Commit
+        uses: actions/checkout@v4
+
+      - name: Download Built Debug & Signed Release APKs
+        uses: actions/download-artifact@v4
+        with:
+          name: android-native-apk-${{ github.sha }}
+          path: ci-android-artifacts
+
+      - name: Enable KVM Hardware Acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls -la /dev/kvm
+
+      - name: Setup JDK 21 & Android 15 (API 35) x86_64 Google APIs Emulator
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Install Android 15 Emulator System Image & Platform Tools
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools emulator platforms;android-35 system-images;android-35;google_apis;x86_64"
+
+      - name: Run Real Android 15 Emulator Acceptance Suite (Debug + Restart + Signed Release + 12 Screenshots)
+        run: |
+          chmod +x scripts/android-emulator-acceptance.sh
+          bash scripts/android-emulator-acceptance.sh emulator-acceptance ci-android-artifacts/RahyAr-Android-v3.0.0-debug.apk ci-android-artifacts/RahyAr-Android-v3.0.0-release.apk
+
+      - name: Upload Real Android Emulator Screenshots, Logcat & Persistence Evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-emulator-acceptance-${{ github.sha }}
+          path: emulator-acceptance/
+          retention-days: 30
