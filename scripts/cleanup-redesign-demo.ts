@@ -9,7 +9,7 @@ import crypto from 'crypto'
 import { readFileSync, existsSync } from 'fs'
 
 const db = new PrismaClient()
-const AUDIT_TOKEN = 'lWNNErf30wFC61zxJtXkwOrGukTvRnU50S9zJlrwf5I'
+const AUDIT_TOKEN = process.env.RAHYAR_AUDIT_TOKEN ?? ''
 
 function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex')

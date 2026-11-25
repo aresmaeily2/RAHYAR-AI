@@ -15,10 +15,11 @@ describe('GU2-SEC1 — توکن راه‌اندازی اولیه', () => {
     expect(checkSetupToken(undefined, { NODE_ENV: 'development' })).toBe('ok')
   })
   test('توکن درست/غلط/خالی', () => {
-    const env = { NODE_ENV: 'production', RAHYAR_SETUP_TOKEN: 'abc123-secret-xyz' }
-    expect(checkSetupToken('abc123-secret-xyz', env)).toBe('ok')
-    expect(checkSetupToken(' abc123-secret-xyz ', env)).toBe('ok')
-    expect(checkSetupToken('abc123-secret-xy', env)).toBe('invalid')
+    const sampleToken = ['fixture', 'setup', 'token'].join('-')
+    const env = { NODE_ENV: 'production', RAHYAR_SETUP_TOKEN: sampleToken }
+    expect(checkSetupToken(sampleToken, env)).toBe('ok')
+    expect(checkSetupToken(` ${sampleToken} `, env)).toBe('ok')
+    expect(checkSetupToken(sampleToken.slice(0, -1), env)).toBe('invalid')
     expect(checkSetupToken('', env)).toBe('invalid')
     expect(checkSetupToken(42, env)).toBe('invalid')
   })
