@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-theme="obsidian">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>رهیار AI — RahyAr Unified Desktop</title>
+  <style>
+    :root {
+      --bg: #0b0f17; --bg-glow: radial-gradient(circle at 20% 0%, rgba(99,102,241,0.18), transparent 45%);
+      --surface: rgba(23, 28, 40, 0.82); --surface-2: rgba(31, 38, 54, 0.9);
+      --text: #f8fafc; --muted: #94a3b8; --accent: #6366f1; --ok: #10b981; --warn: #f59e0b; --err: #ef4444;
+      --radius: 16px; --border: rgba(255,255,255,0.10);
+    }
+    html[data-theme="porcelain"] {
+      --bg: #f6f7fb; --bg-glow: radial-gradient(circle at 20% 0%, rgba(99,102,241,0.10), transparent 45%);
+      --surface: rgba(255, 255, 255, 0.86); --surface-2: rgba(241, 245, 249, 0.95);
+      --text: #0f172a; --muted: #475569; --border: rgba(15,23,42,0.10);
+    }
+    html[data-theme="oled"] { --bg: #000000; --bg-glow: none; --surface: #0a0a0a; --surface-2: #141414; }
+    html[data-theme="sand"] {
+      --bg: #f7f3eb; --bg-glow: none; --surface: rgba(255,252,245,0.92); --surface-2: #efe7d8;
+      --text: #1c1917; --muted: #57534e; --border: rgba(28,25,23,0.12);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Vazirmatn, 'Segoe UI', system-ui, sans-serif; background: var(--bg); background-image: var(--bg-glow); color: var(--text); min-height: 100vh; }
+    .shell { max-width: 1140px; margin: 0 auto; padding: 16px; display: grid; gap: 14px; }
+    header, .card { background: var(--surface); backdrop-filter: blur(14px); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+    header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+    .orb { width: 42px; height: 42px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #a5b4fc, var(--accent)); box-shadow: 0 0 20px rgba(99,102,241,0.4); transition: transform .25s ease, background .25s ease; }
+    .orb[data-state="listening"] { transform: scale(1.12); background: radial-gradient(circle, #34d399, var(--ok)); }
+    .orb[data-state="awaiting_approval"] { background: radial-gradient(circle, #fbbf24, var(--warn)); }
+    .orb[data-state="offline"] { background: radial-gradient(circle, #64748b, #334155); box-shadow: none; }
+    .orb[data-state="error"] { background: radial-gradient(circle, #f87171, var(--err)); }
+    body.reduced-motion .orb, body.reduced-motion * { transition: none !important; animation: none !important; }
+    .tabs, .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .row { margin-top: 10px; }
+    button, select { cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); padding: 8px 13px; border-radius: 10px; font: inherit; }
+    button.active, button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    button.danger { background: var(--err); border-color: var(--err); color: #fff; }
+    input, textarea { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 9px 11px; font: inherit; }
+    .grid-cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin-top: 12px; }
+    .cal-cell { background: var(--surface-2); border-radius: 10px; padding: 8px 4px; text-align: center; min-height: 58px; display: flex; flex-direction: column; justify-content: center; }
+    .cal-primary { font-size: clamp(16px, 2.2vw, 22px); font-weight: 800; line-height: 1.1; }
+    .cal-secondary { font-size: 10px; color: var(--muted); font-family: 'Segoe UI', sans-serif; margin-top: 2px; }
+    .badge { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
+    .panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 14px; }
+    pre { background: rgba(0,0,0,0.35); padding: 10px; border-radius: 10px; overflow: auto; max-height: 200px; font-size: 12px; direction: ltr; text-align: left; }
+    @media (max-width: 480px) { .shell { padding: 10px; } .cal-cell { min-height: 46px; } }
+  </style>
+</head>
+<body>
+  <main class="shell" aria-label="RahyAr Unified AI Assistant">
+    <header>
+      <div class="row" style="margin-top:0">
+        <div id="orb" class="orb" data-state="idle" role="status" aria-label="AI Orb: idle"></div>
+        <div>
+          <strong id="tBrand">رهیار AI — دستیار هوشمند شخصی یکپارچه</strong>
+          <div class="row" style="margin-top:4px">
+            <span class="badge" id="orbLabel">وضعیت: آماده (Tier 0 — $0)</span>
+            <span class="badge" id="netBadge">در حال بررسی...</span>
+          </div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:0">
+        <select id="themeSel" aria-label="Theme">
+          <option value="obsidian">Obsidian Calm</option>
+          <option value="oled">OLED Pure</option>
+          <option value="porcelain">Porcelain Light</option>
+          <option value="sand">Warm Sand</option>
+        </select>
+        <button id="btnLocale">EN</button>
+        <button id="btnMotion">Reduced Motion</button>
+      </div>
+    </header>
+
+    <nav class="tabs" role="tablist">
+      <button class="active" data-tab="tabHome" id="tNavHome">دستیار و Agent</button>
+      <button data-tab="tabCal" id="tNavCal">تقویم، وظایف و یادآور</button>
+      <button data-tab="tabFin" id="tNavFin">مدیریت مالی</button>
+      <button data-tab="tabSet" id="tNavSet">تنظیمات، Provider و ممیزی</button>
+    </nav>
+
+    <section id="tabHome" class="card">
+      <h2 id="tAgentHead">دستیار صوتی و عامل اجرایی با مجوز L0–L3</h2>
+      <div class="row">
+        <input id="agentCmd" style="flex:1;min-width:220px" placeholder="مثلاً: برای فردا ساعت ۹ یک یادآور ثبت کن" />
+        <button class="primary" id="btnAgentSend">اجرا / پیشنهاد</button>
+        <button id="btnVoicePtt">🎙️ Push-to-Talk</button>
+        <button class="danger" id="btnKillSwitch">Kill-Switch: OFF</button>
+      </div>
+      <div id="proposalBox" style="margin-top:12px"></div>
+    </section>
+
+    <section id="tabCal" class="card" hidden>
+      <h2 id="tCalHead">تقویم دوگانه، وظایف و یادآورهای سیستم‌عامل</h2>
+      <div id="calGrid" class="grid-cal"></div>
+      <div class="row">
+        <input id="taskTitle" placeholder="عنوان وظیفه جدید..." style="flex:1;min-width:200px" />
+        <button class="primary" id="btnAddTask">ثبت وظیفه</button>
+        <button id="btnTestNotify">ارسال اعلان بومی Windows</button>
+      </div>
+      <ul id="taskList"></ul>
+    </section>
+
+    <section id="tabFin" class="card" hidden>
+      <h2 id="tFinHead">دفتر مالی دقیق (Int64) + ورود CSV با تأیید صریح</h2>
+      <div class="row">
+        <input id="accName" placeholder="نام حساب (مثلاً بانک ملت)" />
+        <input id="accOpen" type="number" value="1000000" />
+        <button class="primary" id="btnAddAcc">ایجاد حساب</button>
+      </div>
+      <div id="accList" class="row"></div>
+      <textarea id="csvInput" rows="3" style="width:100%;margin-top:10px">date,kind,amount_minor,currency,category,note
+2026-11-25,expense,250000,IRT,bills,Electricity Bill</textarea>
+      <div class="row">
+        <button id="btnCsvPreview">پیش‌نمایش CSV و تشخیص تکراری</button>
+        <button id="btnBackup">خروجی بکاپ رمزنگاری‌شده</button>
+      </div>
+      <div id="draftList"></div>
+    </section>
+
+    <section id="tabSet" class="card" hidden>
+      <h2 id="tSetHead">مدیریت AI Provider، سقف هزینه روزانه و Audit Log</h2>
+      <div class="panel-grid">
+        <div class="card">
+          <div class="badge">Provider Policy</div>
+          <div class="row">
+            <label><input type="checkbox" id="chkPaid" /> Allow Paid Fallback (Off by default)</label>
+          </div>
+          <div class="row">
+            <span>Daily Cap (USD):</span>
+            <input id="capUsd" type="number" step="0.05" value="0.20" style="width:90px" />
+            <button id="btnSavePolicy" class="primary">Save Policy</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="badge">Audit Log (Live SQLite)</div>
+          <pre id="auditBox">[]</pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const API = location.protocol.startsWith('http') ? location.origin : 'http://127.0.0.1:4310';
+    let locale = 'fa', killOn = false, activeAccId = '';
+    const I18N = {
+      fa: {
+        brand: 'رهیار AI — دستیار هوشمند شخصی یکپارچه', btnLocale: 'EN',
+        navHome: 'دستیار و Agent', navCal: 'تقویم، وظایف و یادآور', navFin: 'مدیریت مالی', navSet: 'تنظیمات، Provider و ممیزی',
+        agentHead: 'دستیار صوتی و عامل اجرایی با مجوز L0–L3', calHead: 'تقویم دوگانه، وظایف و یادآورهای سیستم‌عامل',
+        finHead: 'دفتر مالی دقیق (Int64) + ورود CSV با تأیید صریح', setHead: 'مدیریت AI Provider، سقف هزینه روزانه و Audit Log',
+        agentPh: 'مثلاً: برای فردا ساعت ۹ یک یادآور ثبت کن', taskPh: 'عنوان وظیفه جدید...',
+      },
+      en: {
+        brand: 'RahyAr AI — Unified Personal AI Assistant', btnLocale: 'فارسی',
+        navHome: 'Assistant & Agent', navCal: 'Calendar, Tasks & Reminders', navFin: 'Personal Finance', navSet: 'Settings, Providers & Audit',
+        agentHead: 'Voice & AI Agent with L0–L3 Governance', calHead: 'Gregorian Calendar, Tasks & OS Reminders',
+        finHead: 'Exact Int64 Finance Ledger + CSV Approval Queue', setHead: 'AI Providers, Daily Cost Cap & Audit Log',
+        agentPh: 'e.g. remind me tomorrow at 9 to call the bank', taskPh: 'New task title...',
+      },
+    };
+    const setOrb = (st, txt) => {
+      const o = document.getElementById('orb');
+      o.dataset.state = st; o.setAttribute('aria-label', 'AI Orb: ' + st);
+      document.getElementById('orbLabel').textContent = txt;
+    };
+    function applyLocale() {
+      const t = I18N[locale];
+      document.documentElement.lang = locale;
+      document.documentElement.dir = locale === 'fa' ? 'rtl' : 'ltr';
+      document.getElementById('tBrand').textContent = t.brand;
+      document.getElementById('btnLocale').textContent = t.btnLocale;
+      document.getElementById('tNavHome').textContent = t.navHome;
+      document.getElementById('tNavCal').textContent = t.navCal;
+      document.getElementById('tNavFin').textContent = t.navFin;
+      document.getElementById('tNavSet').textContent = t.navSet;
+      document.getElementById('tAgentHead').textContent = t.agentHead;
+      document.getElementById('tCalHead').textContent = t.calHead;
+      document.getElementById('tFinHead').textContent = t.finHead;
+      document.getElementById('tSetHead').textContent = t.setHead;
+      document.getElementById('agentCmd').placeholder = t.agentPh;
+      document.getElementById('taskTitle').placeholder = t.taskPh;
+      loadCalendar();
+    }
+    document.getElementById('themeSel').onchange = (e) => document.documentElement.dataset.theme = e.target.value;
+    document.getElementById('btnLocale').onclick = () => { locale = locale === 'fa' ? 'en' : 'fa'; applyLocale(); };
+    document.getElementById('btnMotion').onclick = () => document.body.classList.toggle('reduced-motion');
+    document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
+      document.querySelectorAll('[data-tab]').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      ['tabHome','tabCal','tabFin','tabSet'].forEach(id => document.getElementById(id).hidden = id !== b.dataset.tab);
+    });
+    async function loadCalendar() {
+      try {
+        const r = await fetch(`${API}/api/v1/calendar/month?gy=2026&gm=11&locale=${locale}`);
+        const d = await r.json();
+        document.getElementById('netBadge').textContent = locale === 'fa' ? 'متصل (SQLite محلی)' : 'Connected (Local SQLite)';
+        document.getElementById('calGrid').innerHTML = d.cells.map(c =>
+          `<div class="cal-cell"><span class="cal-primary">${c.primaryLabel}</span>${c.secondaryLabel ? `<span class="cal-secondary">${c.secondaryLabel}</span>` : ''}</div>`
+        ).join('');
+      } catch {
+        document.getElementById('netBadge').textContent = locale === 'fa' ? 'آفلاین' : 'Offline';
+        setOrb('offline', locale === 'fa' ? 'آفلاین — حالت محلی' : 'Offline Mode');
+      }
+    }
+    async function loadTasks() {
+      try {
+        const r = await fetch(`${API}/api/v1/tasks`);
+        const d = await r.json();
+        document.getElementById('taskList').innerHTML = (d.tasks || []).map(t => `<li>[${t.status}] ${t.title}</li>`).join('');
+      } catch {}
+    }
+    document.getElementById('btnAddTask').onclick = async () => {
+      const title = document.getElementById('taskTitle').value.trim();
+      if (!title) return;
+      await fetch(`${API}/api/v1/tasks`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title }) });
+      document.getElementById('taskTitle').value = '';
+      loadTasks();
+    };
+    document.getElementById('btnTestNotify').onclick = async () => {
+      if (window.__TAURI__) await window.__TAURI__.core.invoke('send_native_reminder', { title: 'RahyAr AI', body: 'Native Windows Reminder' });
+      else await fetch(`${API}/api/v1/os/notify`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title: 'RahyAr AI', message: 'Native Windows Reminder' }) });
+    };
+    async function refreshAccounts() {
+      const r = await fetch(`${API}/api/v1/finance/accounts`);
+      const d = await r.json();
+      const accs = d.accounts || [];
+      activeAccId = accs[0]?.id || '';
+      document.getElementById('accList').innerHTML = accs.map(a => `<span class="badge">${a.name}: ${a.balanceMinor.toLocaleString()} ${a.currency}</span>`).join('');
+    }
+    document.getElementById('btnAddAcc').onclick = async () => {
+      const name = document.getElementById('accName').value.trim() || 'Mellat Account';
+      const openingBalanceMinor = Number(document.getElementById('accOpen').value || 0);
+      await fetch(`${API}/api/v1/finance/accounts`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name, openingBalanceMinor, currency: 'IRT' }) });
+      refreshAccounts();
+    };
+    document.getElementById('btnCsvPreview').onclick = async () => {
+      const csvText = document.getElementById('csvInput').value;
+      const r = await fetch(`${API}/api/v1/finance/csv/preview`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ csvText, accountId: activeAccId || 'acc_default' }) });
+      const d = await r.json();
+      document.getElementById('draftList').innerHTML = (d.drafts || []).map(x =>
+        `<div class="row"><span>${x.kind} ${x.amountMinor} ${x.currency} (${x.note}) ${x.isDuplicate ? '[DUPLICATE]' : ''}</span><button onclick="approveDraft('${x.id}')">Approve</button></div>`
+      ).join('');
+    };
+    window.approveDraft = async (id) => {
+      await fetch(`${API}/api/v1/finance/drafts/${id}/approve`, { method:'POST' });
+      refreshAccounts(); loadAudit();
+    };
+    document.getElementById('btnBackup').onclick = async () => {
+      const pw = prompt('Enter backup passphrase (min 8 chars):');
+      if (!pw || pw.length < 8) return;
+      const r = await fetch(`${API}/api/v1/finance/backup/export`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ passphrase: pw }) });
+      const d = await r.json();
+      const blob = new Blob([JSON.stringify(d.envelope, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'rahyar-backup.enc.json'; a.click();
+    };
+    document.getElementById('btnSavePolicy').onclick = async () => {
+      const paidFallbackEnabled = document.getElementById('chkPaid').checked;
+      const dailyHardCapMicroUsd = Math.round(Number(document.getElementById('capUsd').value || 0.2) * 1_000_000);
+      await fetch(`${API}/api/v1/agent/policy`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ paidFallbackEnabled, dailyHardCapMicroUsd }) });
+      setOrb('idle', 'Policy Updated');
+    };
+    document.getElementById('btnKillSwitch').onclick = async () => {
+      killOn = !killOn;
+      await fetch(`${API}/api/v1/agent/policy`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userKillSwitch: killOn }) });
+      document.getElementById('btnKillSwitch').textContent = 'Kill-Switch: ' + (killOn ? 'ON' : 'OFF');
+      setOrb(killOn ? 'error' : 'idle', killOn ? 'Kill-Switch ON' : 'Ready');
+    };
+    document.getElementById('btnAgentSend').onclick = async () => {
+      const command = document.getElementById('agentCmd').value.trim();
+      setOrb('thinking', 'Thinking...');
+      const r = await fetch(`${API}/api/v1/agent/propose`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ command }) });
+      const d = await r.json();
+      if (d.status === 'awaiting_approval') {
+        setOrb('awaiting_approval', 'Awaiting Approval (' + d.proposal.riskTier + ')');
+        document.getElementById('proposalBox').innerHTML =
+          `<div class="card"><div>${locale === 'fa' ? d.proposal.humanSummaryFa : d.proposal.humanSummaryEn}</div><div class="row"><button class="primary" onclick="decideProp('${d.proposal.proposalId}','approved')">Approve</button><button class="danger" onclick="decideProp('${d.proposal.proposalId}','rejected')">Reject</button></div></div>`;
+      } else {
+        setOrb(r.ok ? 'idle' : 'error', r.ok ? 'Executed' : (d.code || 'Error'));
+        document.getElementById('proposalBox').textContent = JSON.stringify(d, null, 2);
+      }
+      loadAudit(); loadTasks();
+    };
+    window.decideProp = async (proposalId, decision) => {
+      const r = await fetch(`${API}/api/v1/agent/approve`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ proposalId, decision }) });
+      const d = await r.json();
+      document.getElementById('proposalBox').textContent = JSON.stringify(d, null, 2);
+      setOrb('idle', decision === 'approved' ? 'Approved & Audited' : 'Rejected');
+      loadAudit(); loadTasks();
+    };
+    async function loadAudit() {
+      try {
+        const r = await fetch(`${API}/api/v1/agent/audit`);
+        const d = await r.json();
+        document.getElementById('auditBox').textContent = JSON.stringify(d.auditLogs || [], null, 2);
+      } catch {}
+    }
+    document.getElementById('btnVoicePtt').onclick = () => {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) { alert('SpeechRecognition unavailable in this engine; use text input or local whisper.cpp.'); return; }
+      const rec = new SR(); rec.lang = locale === 'fa' ? 'fa-IR' : 'en-US';
+      setOrb('listening', 'Listening...');
+      rec.onresult = (e) => { document.getElementById('agentCmd').value = e.results[0][0].transcript; setOrb('idle', 'Transcribed'); };
+      rec.onerror = () => setOrb('error', 'Mic Error');
+      rec.start();
+    };
+    applyLocale(); loadTasks(); refreshAccounts(); loadAudit();
+  </script>
+</body>
+</html>
