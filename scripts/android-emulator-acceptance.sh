@@ -53,7 +53,14 @@ stop_avd() {
 dump_sqlite() {
   local out_db="$1"
   local out_json="$2"
+  rm -f "${out_db}" "${out_db}-wal" "${out_db}-shm"
   adb exec-out "run-as $PKG cat databases/rahyar_native.db" > "$out_db"
+  if adb shell "run-as $PKG test -f databases/rahyar_native.db-wal" >/dev/null 2>&1; then
+    adb exec-out "run-as $PKG cat databases/rahyar_native.db-wal" > "${out_db}-wal"
+  fi
+  if adb shell "run-as $PKG test -f databases/rahyar_native.db-shm" >/dev/null 2>&1; then
+    adb exec-out "run-as $PKG cat databases/rahyar_native.db-shm" > "${out_db}-shm"
+  fi
   python3 - "$out_db" "$out_json" <<'PY'
 import sqlite3, json, sys
 conn = sqlite3.connect(sys.argv[1])
@@ -62,6 +69,7 @@ res = {}
 for tbl in ["tasks", "reminders", "finance_accounts", "finance_txs", "agent_audit", "app_prefs"]:
     rows = cur.execute(f"SELECT * FROM {tbl}").fetchall()
     res[tbl] = {"count": len(rows), "rows": rows}
+conn.close()
 with open(sys.argv[2], "w", encoding="utf-8") as f:
     json.dump(res, f, ensure_ascii=False, indent=2)
 print("SQLITE_DUMP:", {k: v["count"] for k, v in res.items()})
@@ -203,5 +211,5 @@ if [ -f "$RELEASE_APK" ]; then
 fi
 
 stop_avd
-rm -f "$OUT_DIR/rahyar-before-restart.db" "$OUT_DIR/rahyar-after-restart.db"
+rm -f "$OUT_DIR/rahyar-before-restart.db"* "$OUT_DIR/rahyar-after-restart.db"*
 echo "ALL_ANDROID_EMULATOR_ACCEPTANCE_TESTS=PASS"
