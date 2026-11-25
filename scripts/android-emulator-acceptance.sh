@@ -10,6 +10,9 @@ PKG="ai.rahyar.android"
 mkdir -p "$OUT_DIR/screenshots"
 
 export ANDROID_SDK_ROOT="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+export ANDROID_USER_HOME="$HOME/.android"
+export ANDROID_AVD_HOME="$HOME/.android/avd"
+mkdir -p "$ANDROID_AVD_HOME"
 export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/emulator:$PATH"
 
 boot_avd() {
@@ -29,9 +32,14 @@ boot_avd() {
     fi
     sleep 2
   done
-  sleep 8
+  sleep 10
   adb shell input keyevent 82 || true
   adb shell wm dismiss-keyguard || true
+  adb shell am force-stop com.google.android.googlesdksetup || true
+  adb shell am force-stop com.google.android.setupwizard || true
+  adb shell settings put global window_animation_scale 0 || true
+  adb shell settings put global transition_animation_scale 0 || true
+  adb shell settings put global animator_duration_scale 0 || true
   adb devices -l > "$OUT_DIR/adb-devices-${tag}.txt"
   cat "$OUT_DIR/adb-devices-${tag}.txt"
 }
@@ -62,7 +70,12 @@ PY
 
 # 1. Create AVD (Android 15 API 35, x86_64, Google APIs, 4GB RAM, 8GB Storage)
 echo "no" | avdmanager create avd -f -n "$AVD_NAME" -k "system-images;android-35;google_apis;x86_64" -d pixel_6
-CFG="$HOME/.android/avd/${AVD_NAME}.avd/config.ini"
+CFG="$ANDROID_AVD_HOME/${AVD_NAME}.avd/config.ini"
+if [ ! -f "$CFG" ]; then
+  CFG=$(find "$HOME" -path "*/${AVD_NAME}.avd/config.ini" 2>/dev/null | head -n 1)
+  export ANDROID_AVD_HOME="$(dirname "$(dirname "$CFG")")"
+fi
+echo "AVD_CONFIG=$CFG (ANDROID_AVD_HOME=$ANDROID_AVD_HOME)"
 sed -i '/^hw\.ramSize=/d;/^disk\.dataPartition\.size=/d' "$CFG"
 printf "hw.ramSize=4096\ndisk.dataPartition.size=8192M\nhw.keyboard=yes\n" >> "$CFG"
 cp "$CFG" "$OUT_DIR/avd-config.ini"

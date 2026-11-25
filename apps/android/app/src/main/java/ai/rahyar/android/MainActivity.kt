@@ -312,7 +312,12 @@ private fun RahyarApp(
             Scaffold(
                 topBar = {
                     Surface(tonalElevation = 4.dp, shadowElevation = 2.dp) {
-                        Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .statusBarsPadding()
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
                             Row(
                                 Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
