@@ -101,7 +101,7 @@ pub fn run() {
             let open_i = MenuItem::with_id(app, "open", "Open RahyAr / باز کردن رهیار", true, None::<&str>)?;
             let quit_i = MenuItem::with_id(app, "quit", "Quit / خروج", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&open_i, &quit_i])?;
-            TrayIconBuilder::new()
+            let mut tray = TrayIconBuilder::new()
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "open" => {
@@ -112,8 +112,11 @@ pub fn run() {
                     }
                     "quit" => app.exit(0),
                     _ => {}
-                })
-                .build(app)?;
+                });
+            if let Some(icon) = app.default_window_icon() {
+                tray = tray.icon(icon.clone());
+            }
+            tray.build(app)?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

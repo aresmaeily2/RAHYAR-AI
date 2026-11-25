@@ -35,35 +35,38 @@ jobs:
         with:
           packages: "platforms;android-36 build-tools;36.0.0 platform-tools"
 
-      - name: Setup Gradle 8.13
+      - name: Setup Gradle Wrapper Cache
         uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.13"
 
-      - name: Run Gradle Clean, Lint, JVM Unit Tests, Debug & Release Builds
+      - name: Verify Gradle Wrapper & Run Clean, Lint, JVM Unit Tests & Debug APK Build
         working-directory: apps/android
         run: |
-          gradle clean lintDebug testDebugUnitTest assembleDebug assembleRelease --stacktrace --no-daemon
+          set -euo pipefail
+          chmod +x ./gradlew
+          ./gradlew --version
+          ./gradlew clean lintDebug testDebugUnitTest assembleDebug --stacktrace --no-daemon
 
-      - name: Verify APK with aapt2, zipalign & apksigner
+      - name: Verify Debug APK with aapt2, zipalign & apksigner
         run: |
+          set -euo pipefail
           mkdir -p ci-android-artifacts
           BT="${ANDROID_HOME}/build-tools/36.0.0"
           DEBUG_APK="apps/android/app/build/outputs/apk/debug/app-debug.apk"
-          REL_APK="apps/android/app/build/outputs/apk/release/app-release-unsigned.apk"
-          cp "$DEBUG_APK" ci-android-artifacts/RahyAr-Android-v3.0.0-debug.apk
-          if [ -f "$REL_APK" ]; then
-            cp "$REL_APK" ci-android-artifacts/RahyAr-Android-v3.0.0-release-unsigned.apk
+          if [ ! -f "$DEBUG_APK" ]; then
+            echo "ERROR: Debug APK not found at $DEBUG_APK"
+            exit 1
           fi
+          cp "$DEBUG_APK" ci-android-artifacts/RahyAr-Android-v3.0.0-debug.apk
           echo "COMMIT_SHA=${{ github.sha }}" > ci-android-artifacts/provenance.txt
+          echo "NOTE=Unsigned release APK is intentionally NOT published (Owner Decision #4)." >> ci-android-artifacts/provenance.txt
           "$BT/aapt2" dump badging ci-android-artifacts/RahyAr-Android-v3.0.0-debug.apk > ci-android-artifacts/aapt2-badging.txt
-          "$BT/zipalign" -c -v 4 ci-android-artifacts/RahyAr-Android-v3.0.0-debug.apk | tail -n 5 > ci-android-artifacts/zipalign-check.txt
+          "$BT/zipalign" -c -v 4 ci-android-artifacts/RahyAr-Android-v3.0.0-debug.apk | tail -n 10 > ci-android-artifacts/zipalign-check.txt
           "$BT/apksigner" verify --verbose --print-certs ci-android-artifacts/RahyAr-Android-v3.0.0-debug.apk > ci-android-artifacts/apksigner-verify.txt
           cat ci-android-artifacts/apksigner-verify.txt
-          cd ci-android-artifacts && sha256sum * > SHA256SUMS-${{ github.sha }}.txt
+          cd ci-android-artifacts && sha256sum RahyAr-Android-v3.0.0-debug.apk provenance.txt aapt2-badging.txt zipalign-check.txt apksigner-verify.txt > SHA256SUMS-${{ github.sha }}.txt
           cat SHA256SUMS-${{ github.sha }}.txt
 
-      - name: Upload Android Native APK & Verification Artifacts
+      - name: Upload Android Native Debug APK & Verification Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:

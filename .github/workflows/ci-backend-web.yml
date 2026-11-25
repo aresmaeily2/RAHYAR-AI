@@ -48,17 +48,24 @@ jobs:
 
       - name: TypeScript & ESLint Static Analysis
         run: |
+          set -euo pipefail
           bun run typecheck | tee ci-artifacts/tsc-${{ github.sha }}.log
           bun run lint | tee ci-artifacts/eslint-${{ github.sha }}.log
 
       - name: Run Existing Unit Suite (198 tests)
-        run: bun test tests/unit 2>&1 | tee ci-artifacts/unit-tests-${{ github.sha }}.log
+        run: |
+          set -euo pipefail
+          bun test tests/unit 2>&1 | tee ci-artifacts/unit-tests-${{ github.sha }}.log
 
       - name: Run Behavioral Security Suite (SEC-01..SEC-14 + AES Rotation)
-        run: node --test tests/security/m2-closeout-security.test.mjs 2>&1 | tee ci-artifacts/security-tests-${{ github.sha }}.log
+        run: |
+          set -euo pipefail
+          node --test tests/security/m2-closeout-security.test.mjs 2>&1 | tee ci-artifacts/security-tests-${{ github.sha }}.log
 
       - name: Run Mission 3 Prototypes E2E Suite (1,200 Calendar Vectors + Finance + 20 Agent Scenarios)
-        run: bun test tests/m3-prototypes-e2e.test.ts 2>&1 | tee ci-artifacts/m3-e2e-${{ github.sha }}.log
+        run: |
+          set -euo pipefail
+          bun test tests/m3-prototypes-e2e.test.ts 2>&1 | tee ci-artifacts/m3-e2e-${{ github.sha }}.log
 
       - name: Record Provenance & SHA-256 Hashes
         if: always()
