@@ -7,30 +7,28 @@
   <style>
     :root {
       --bg: #0b0f17; --bg-glow: radial-gradient(circle at 20% 0%, rgba(99,102,241,0.18), transparent 45%);
-      --surface: rgba(23, 28, 40, 0.82); --surface-2: rgba(31, 38, 54, 0.9);
+      --surface: rgba(23, 28, 40, 0.88); --surface-2: rgba(31, 38, 54, 0.94);
       --text: #f8fafc; --muted: #94a3b8; --accent: #6366f1; --ok: #10b981; --warn: #f59e0b; --err: #ef4444;
       --radius: 16px; --border: rgba(255,255,255,0.10);
     }
     html[data-theme="porcelain"] {
       --bg: #f6f7fb; --bg-glow: radial-gradient(circle at 20% 0%, rgba(99,102,241,0.10), transparent 45%);
-      --surface: rgba(255, 255, 255, 0.86); --surface-2: rgba(241, 245, 249, 0.95);
-      --text: #0f172a; --muted: #475569; --border: rgba(15,23,42,0.10);
+      --surface: rgba(255, 255, 255, 0.92); --surface-2: rgba(241, 245, 249, 0.98);
+      --text: #0f172a; --muted: #475569; --border: rgba(15,23,42,0.12);
     }
     html[data-theme="oled"] { --bg: #000000; --bg-glow: none; --surface: #0a0a0a; --surface-2: #141414; }
     html[data-theme="sand"] {
-      --bg: #f7f3eb; --bg-glow: none; --surface: rgba(255,252,245,0.92); --surface-2: #efe7d8;
+      --bg: #f7f3eb; --bg-glow: none; --surface: rgba(255,252,245,0.95); --surface-2: #efe7d8;
       --text: #1c1917; --muted: #57534e; --border: rgba(28,25,23,0.12);
     }
     * { box-sizing: border-box; }
     body { margin: 0; font-family: Vazirmatn, 'Segoe UI', system-ui, sans-serif; background: var(--bg); background-image: var(--bg-glow); color: var(--text); min-height: 100vh; }
-    .shell { max-width: 1140px; margin: 0 auto; padding: 16px; display: grid; gap: 14px; }
+    .shell { max-width: 1160px; margin: 0 auto; padding: 16px; display: grid; gap: 14px; }
     header, .card { background: var(--surface); backdrop-filter: blur(14px); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
     header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
     .orb { width: 42px; height: 42px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #a5b4fc, var(--accent)); box-shadow: 0 0 20px rgba(99,102,241,0.4); transition: transform .25s ease, background .25s ease; }
-    .orb[data-state="listening"] { transform: scale(1.12); background: radial-gradient(circle, #34d399, var(--ok)); }
     .orb[data-state="awaiting_approval"] { background: radial-gradient(circle, #fbbf24, var(--warn)); }
-    .orb[data-state="offline"] { background: radial-gradient(circle, #64748b, #334155); box-shadow: none; }
-    .orb[data-state="error"] { background: radial-gradient(circle, #f87171, var(--err)); }
+    .orb[data-state="blocked"] { background: radial-gradient(circle, #f87171, var(--err)); }
     body.reduced-motion .orb, body.reduced-motion * { transition: none !important; animation: none !important; }
     .tabs, .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .row { margin-top: 10px; }
@@ -39,12 +37,14 @@
     button.danger { background: var(--err); border-color: var(--err); color: #fff; }
     input, textarea { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 9px 11px; font: inherit; }
     .grid-cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin-top: 12px; }
-    .cal-cell { background: var(--surface-2); border-radius: 10px; padding: 8px 4px; text-align: center; min-height: 58px; display: flex; flex-direction: column; justify-content: center; }
-    .cal-primary { font-size: clamp(16px, 2.2vw, 22px); font-weight: 800; line-height: 1.1; }
+    .cal-cell { background: var(--surface-2); border-radius: 10px; padding: 8px 4px; text-align: center; min-height: 56px; display: flex; flex-direction: column; justify-content: center; border: 1px solid var(--border); }
+    .cal-primary { font-size: clamp(15px, 2vw, 20px); font-weight: 800; line-height: 1.1; }
     .cal-secondary { font-size: 10px; color: var(--muted); font-family: 'Segoe UI', sans-serif; margin-top: 2px; }
     .badge { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
-    .panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 14px; }
-    pre { background: rgba(0,0,0,0.35); padding: 10px; border-radius: 10px; overflow: auto; max-height: 200px; font-size: 12px; direction: ltr; text-align: left; }
+    .panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+    ul { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
+    li { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    pre { background: rgba(0,0,0,0.35); padding: 10px; border-radius: 10px; overflow: auto; max-height: 220px; font-size: 12px; direction: ltr; text-align: left; }
     @media (max-width: 480px) { .shell { padding: 10px; } .cal-cell { min-height: 46px; } }
   </style>
 </head>
@@ -54,18 +54,18 @@
       <div class="row" style="margin-top:0">
         <div id="orb" class="orb" data-state="idle" role="status" aria-label="AI Orb: idle"></div>
         <div>
-          <strong id="tBrand">رهیار AI — دستیار هوشمند شخصی یکپارچه</strong>
+          <strong id="tBrand">رهیار AI — دستیار هوشمند شخصی بومی ویندوز</strong>
           <div class="row" style="margin-top:4px">
-            <span class="badge" id="orbLabel">وضعیت: آماده (Tier 0 — $0)</span>
-            <span class="badge" id="netBadge">در حال بررسی...</span>
+            <span class="badge" id="orbLabel">وضعیت: آماده (Tier 0 — محلی)</span>
+            <span class="badge" id="netBadge">SQLite WAL آماده</span>
           </div>
         </div>
       </div>
       <div class="row" style="margin-top:0">
         <select id="themeSel" aria-label="Theme">
-          <option value="obsidian">Obsidian Calm</option>
-          <option value="oled">OLED Pure</option>
+          <option value="obsidian">Obsidian Dark</option>
           <option value="porcelain">Porcelain Light</option>
+          <option value="oled">OLED Pure</option>
           <option value="sand">Warm Sand</option>
         </select>
         <button id="btnLocale">EN</button>
@@ -74,67 +74,88 @@
     </header>
 
     <nav class="tabs" role="tablist">
-      <button class="active" data-tab="tabHome" id="tNavHome">دستیار و Agent</button>
-      <button data-tab="tabCal" id="tNavCal">تقویم، وظایف و یادآور</button>
-      <button data-tab="tabFin" id="tNavFin">مدیریت مالی</button>
-      <button data-tab="tabSet" id="tNavSet">تنظیمات، Provider و ممیزی</button>
+      <button class="active" data-tab="tabHome" id="tNavHome">خانه</button>
+      <button data-tab="tabCal" id="tNavCal">تقویم و وظایف</button>
+      <button data-tab="tabFin" id="tNavFin">مالی (Int64)</button>
+      <button data-tab="tabAgent" id="tNavAgent">دستیار AI و مجوزها</button>
+      <button data-tab="tabSet" id="tNavSet">تنظیمات و ممیزی</button>
     </nav>
 
     <section id="tabHome" class="card">
-      <h2 id="tAgentHead">دستیار صوتی و عامل اجرایی با مجوز L0–L3</h2>
+      <h2 id="tHomeHead">داشبورد یکپارچه رهیار (SQLite بومی + System Tray)</h2>
+      <div class="panel-grid" id="homeSummary"></div>
       <div class="row">
-        <input id="agentCmd" style="flex:1;min-width:220px" placeholder="مثلاً: برای فردا ساعت ۹ یک یادآور ثبت کن" />
-        <button class="primary" id="btnAgentSend">اجرا / پیشنهاد</button>
-        <button id="btnVoicePtt">🎙️ Push-to-Talk</button>
-        <button class="danger" id="btnKillSwitch">Kill-Switch: OFF</button>
+        <button id="btnTestNotify" class="primary">ارسال اعلان بومی Windows</button>
+        <span class="badge" id="dbPathBadge">DB: ...</span>
       </div>
-      <div id="proposalBox" style="margin-top:12px"></div>
     </section>
 
     <section id="tabCal" class="card" hidden>
-      <h2 id="tCalHead">تقویم دوگانه، وظایف و یادآورهای سیستم‌عامل</h2>
+      <h2 id="tCalHead">تقویم دوگانه و مدیریت وظایف پایدار</h2>
+      <div class="row" style="justify-content:space-between">
+        <button id="btnPrevMonth">ماه قبل</button>
+        <strong id="calMonthTitle">...</strong>
+        <button id="btnNextMonth">ماه بعد</button>
+      </div>
       <div id="calGrid" class="grid-cal"></div>
       <div class="row">
         <input id="taskTitle" placeholder="عنوان وظیفه جدید..." style="flex:1;min-width:200px" />
+        <input id="taskDue" value="2026-11-26" style="width:140px" />
         <button class="primary" id="btnAddTask">ثبت وظیفه</button>
-        <button id="btnTestNotify">ارسال اعلان بومی Windows</button>
       </div>
       <ul id="taskList"></ul>
     </section>
 
     <section id="tabFin" class="card" hidden>
-      <h2 id="tFinHead">دفتر مالی دقیق (Int64) + ورود CSV با تأیید صریح</h2>
+      <h2 id="tFinHead">دفتر مالی دقیق (Int64) + صف تأیید CSV</h2>
       <div class="row">
-        <input id="accName" placeholder="نام حساب (مثلاً بانک ملت)" />
-        <input id="accOpen" type="number" value="1000000" />
+        <input id="accName" placeholder="نام حساب (مثلاً حساب جاری)" />
+        <input id="accOpen" type="number" value="5000000" style="width:150px" />
         <button class="primary" id="btnAddAcc">ایجاد حساب</button>
       </div>
       <div id="accList" class="row"></div>
-      <textarea id="csvInput" rows="3" style="width:100%;margin-top:10px">date,kind,amount_minor,currency,category,note
-2026-11-25,expense,250000,IRT,bills,Electricity Bill</textarea>
       <div class="row">
-        <button id="btnCsvPreview">پیش‌نمایش CSV و تشخیص تکراری</button>
-        <button id="btnBackup">خروجی بکاپ رمزنگاری‌شده</button>
+        <input id="txAmount" type="number" value="350000" style="width:140px" />
+        <input id="txNote" placeholder="شرح تراکنش..." style="flex:1;min-width:160px" />
+        <button id="btnAddIncome">+ درآمد</button>
+        <button id="btnAddExpense">- هزینه</button>
+        <button id="btnAddTransfer">⇄ انتقال</button>
+      </div>
+      <textarea id="csvInput" rows="3" style="width:100%;margin-top:10px">date,kind,amount_minor,currency,category,note
+2026-11-25,expense,250000,IRT,bills,Electricity Bill QA</textarea>
+      <div class="row">
+        <button id="btnCsvPreview">پیش‌نمایش CSV و صف تأیید</button>
       </div>
       <div id="draftList"></div>
     </section>
 
+    <section id="tabAgent" class="card" hidden>
+      <h2 id="tAgentHead">عامل اجرایی هوشمند با مجوز L0–L3 و Kill-Switch</h2>
+      <div class="row">
+        <select id="providerSel">
+          <option value="local_tier0">Local Rule Engine (Tier 0 — $0)</option>
+          <option value="ollama_local">Ollama Local (127.0.0.1:11434)</option>
+          <option value="cloud_paid">Paid Cloud (Blocked by default)</option>
+        </select>
+        <label><input type="checkbox" id="chkPaid" /> Allow Paid Fallback</label>
+        <button class="danger" id="btnKillSwitch">Kill-Switch: OFF</button>
+      </div>
+      <div class="row">
+        <input id="agentCmd" style="flex:1;min-width:220px" placeholder="مثلاً: وظیفه تماس با بانک اضافه کن" />
+        <button class="primary" id="btnAgentSend">تحلیل و پیشنهاد</button>
+      </div>
+      <div id="proposalBox" style="margin-top:12px"></div>
+    </section>
+
     <section id="tabSet" class="card" hidden>
-      <h2 id="tSetHead">مدیریت AI Provider، سقف هزینه روزانه و Audit Log</h2>
+      <h2 id="tSetHead">تنظیمات، حریم خصوصی و گزارش ممیزی SQLite</h2>
       <div class="panel-grid">
         <div class="card">
-          <div class="badge">Provider Policy</div>
-          <div class="row">
-            <label><input type="checkbox" id="chkPaid" /> Allow Paid Fallback (Off by default)</label>
-          </div>
-          <div class="row">
-            <span>Daily Cap (USD):</span>
-            <input id="capUsd" type="number" step="0.05" value="0.20" style="width:90px" />
-            <button id="btnSavePolicy" class="primary">Save Policy</button>
-          </div>
+          <div class="badge">Privacy & Permissions</div>
+          <p id="privacyInfo">✓ Local SQLite WAL inside AppData (preserved on uninstall)<br/>✓ Zero telemetry, zero auto cloud calls without approval<br/>✓ Native System Tray + Windows Notification integration</p>
         </div>
         <div class="card">
-          <div class="badge">Audit Log (Live SQLite)</div>
+          <div class="badge">Live SQLite Audit Log</div>
           <pre id="auditBox">[]</pre>
         </div>
       </div>
@@ -142,30 +163,82 @@
   </main>
 
   <script>
+    const HAS_TAURI = Boolean(window.__TAURI__ && window.__TAURI__.core);
+    const invoke = (cmd, args = {}) => window.__TAURI__.core.invoke(cmd, args);
     const API = location.protocol.startsWith('http') ? location.origin : 'http://127.0.0.1:4310';
-    let locale = 'fa', killOn = false, activeAccId = '';
+
+    let locale = 'fa', killOn = false, calY = 2026, calM = 11;
+    let state = { tasks: [], accounts: [], txs: [], audits: [], dbPath: 'local' };
+
+    const LEAP33 = new Set([1,5,9,13,17,22,26,30]);
+    const isJLeap = jy => LEAP33.has(((jy % 33) + 33) % 33);
+    const jMLen = (jy, jm) => jm <= 6 ? 31 : (jm <= 11 ? 30 : (isJLeap(jy) ? 30 : 29));
+    const g2jdn = (gy, gm, gd) => {
+      const a = Math.floor((14 - gm) / 12), y = gy + 4800 - a, m = gm + 12 * a - 3;
+      return gd + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
+    };
+    const EPOCH_JDN = g2jdn(1921, 3, 21);
+    function g2j(gy, gm, gd) {
+      let diff = g2jdn(gy, gm, gd) - EPOCH_JDN, jy = 1300;
+      if (diff >= 0) { while (diff >= (isJLeap(jy) ? 366 : 365)) { diff -= isJLeap(jy) ? 366 : 365; jy++; } }
+      else { while (diff < 0) { jy--; diff += isJLeap(jy) ? 366 : 365; } }
+      let jm = 1; while (jm <= 12 && diff >= jMLen(jy, jm)) { diff -= jMLen(jy, jm); jm++; }
+      return { jy, jm, jd: diff + 1 };
+    }
+    const faDigits = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
+    const uid = p => p + '_' + Math.random().toString(36).slice(2, 10);
+
+    function computeBal(acc) {
+      let b = Number(acc.opening_minor || 0);
+      for (const tx of state.txs) {
+        if (!tx.confirmed) continue;
+        if (tx.kind === 'income' && tx.account_id === acc.id) b += tx.amount_minor;
+        else if (tx.kind === 'expense' && tx.account_id === acc.id) b -= tx.amount_minor;
+        else if (tx.kind === 'transfer') {
+          if (tx.account_id === acc.id) b -= tx.amount_minor;
+          if (tx.to_account_id === acc.id) b += tx.amount_minor;
+        }
+      }
+      return b;
+    }
+
     const I18N = {
       fa: {
-        brand: 'رهیار AI — دستیار هوشمند شخصی یکپارچه', btnLocale: 'EN',
-        navHome: 'دستیار و Agent', navCal: 'تقویم، وظایف و یادآور', navFin: 'مدیریت مالی', navSet: 'تنظیمات، Provider و ممیزی',
-        agentHead: 'دستیار صوتی و عامل اجرایی با مجوز L0–L3', calHead: 'تقویم دوگانه، وظایف و یادآورهای سیستم‌عامل',
-        finHead: 'دفتر مالی دقیق (Int64) + ورود CSV با تأیید صریح', setHead: 'مدیریت AI Provider، سقف هزینه روزانه و Audit Log',
-        agentPh: 'مثلاً: برای فردا ساعت ۹ یک یادآور ثبت کن', taskPh: 'عنوان وظیفه جدید...',
+        brand: 'رهیار AI — دستیار هوشمند شخصی بومی ویندوز', btnLocale: 'EN',
+        navHome: 'خانه', navCal: 'تقویم و وظایف', navFin: 'مالی (Int64)', navAgent: 'دستیار AI و مجوزها', navSet: 'تنظیمات و ممیزی',
+        homeHead: 'داشبورد یکپارچه رهیار (SQLite بومی + System Tray)', calHead: 'تقویم دوگانه و مدیریت وظایف پایدار',
+        finHead: 'دفتر مالی دقیق (Int64) + صف تأیید CSV', agentHead: 'عامل اجرایی هوشمند با مجوز L0–L3 و Kill-Switch',
+        setHead: 'تنظیمات، حریم خصوصی و گزارش ممیزی SQLite', prev: 'ماه قبل', next: 'ماه بعد',
       },
       en: {
-        brand: 'RahyAr AI — Unified Personal AI Assistant', btnLocale: 'فارسی',
-        navHome: 'Assistant & Agent', navCal: 'Calendar, Tasks & Reminders', navFin: 'Personal Finance', navSet: 'Settings, Providers & Audit',
-        agentHead: 'Voice & AI Agent with L0–L3 Governance', calHead: 'Gregorian Calendar, Tasks & OS Reminders',
-        finHead: 'Exact Int64 Finance Ledger + CSV Approval Queue', setHead: 'AI Providers, Daily Cost Cap & Audit Log',
-        agentPh: 'e.g. remind me tomorrow at 9 to call the bank', taskPh: 'New task title...',
+        brand: 'RahyAr AI — Native Windows Personal Assistant', btnLocale: 'فارسی',
+        navHome: 'Home', navCal: 'Calendar & Tasks', navFin: 'Finance (Int64)', navAgent: 'AI Agent & Policy', navSet: 'Settings & Audit',
+        homeHead: 'RahyAr Unified Dashboard (Embedded SQLite + System Tray)', calHead: 'Gregorian Calendar & Persistent Tasks',
+        finHead: 'Exact Int64 Finance Ledger + CSV Approval Queue', agentHead: 'AI Agent with L0–L3 Governance & Kill-Switch',
+        setHead: 'Settings, Privacy & Live SQLite Audit Log', prev: 'Prev Month', next: 'Next Month',
       },
     };
-    const setOrb = (st, txt) => {
-      const o = document.getElementById('orb');
-      o.dataset.state = st; o.setAttribute('aria-label', 'AI Orb: ' + st);
-      document.getElementById('orbLabel').textContent = txt;
-    };
-    function applyLocale() {
+
+    function renderCalendar() {
+      const days = new Date(calY, calM, 0).getDate();
+      const firstJ = g2j(calY, calM, 1);
+      const mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      document.getElementById('calMonthTitle').textContent = locale === 'fa'
+        ? `شمسی ${faDigits(firstJ.jy)}/${faDigits(firstJ.jm)} (${mNames[calM-1]} ${calY})`
+        : `${mNames[calM-1]} ${calY}`;
+      let html = '';
+      for (let d = 1; d <= days; d++) {
+        if (locale === 'fa') {
+          const j = g2j(calY, calM, d);
+          html += `<div class="cal-cell"><span class="cal-primary">${faDigits(j.jd)}</span><span class="cal-secondary">${d}</span></div>`;
+        } else {
+          html += `<div class="cal-cell"><span class="cal-primary">${d}</span></div>`;
+        }
+      }
+      document.getElementById('calGrid').innerHTML = html;
+    }
+
+    function renderAll() {
       const t = I18N[locale];
       document.documentElement.lang = locale;
       document.documentElement.dir = locale === 'fa' ? 'rtl' : 'ltr';
@@ -174,138 +247,190 @@
       document.getElementById('tNavHome').textContent = t.navHome;
       document.getElementById('tNavCal').textContent = t.navCal;
       document.getElementById('tNavFin').textContent = t.navFin;
+      document.getElementById('tNavAgent').textContent = t.navAgent;
       document.getElementById('tNavSet').textContent = t.navSet;
-      document.getElementById('tAgentHead').textContent = t.agentHead;
+      document.getElementById('tHomeHead').textContent = t.homeHead;
       document.getElementById('tCalHead').textContent = t.calHead;
       document.getElementById('tFinHead').textContent = t.finHead;
+      document.getElementById('tAgentHead').textContent = t.agentHead;
       document.getElementById('tSetHead').textContent = t.setHead;
-      document.getElementById('agentCmd').placeholder = t.agentPh;
-      document.getElementById('taskTitle').placeholder = t.taskPh;
-      loadCalendar();
+      document.getElementById('btnPrevMonth').textContent = t.prev;
+      document.getElementById('btnNextMonth').textContent = t.next;
+
+      renderCalendar();
+      const totalBal = state.accounts.reduce((s, a) => s + computeBal(a), 0);
+      const pendingDrafts = state.txs.filter(x => !x.confirmed).length;
+      document.getElementById('homeSummary').innerHTML = `
+        <div class="card"><div class="badge">${locale==='fa'?'وظایف ذخیره شده':'Saved Tasks'}</div><h3>${state.tasks.length}</h3></div>
+        <div class="card"><div class="badge">${locale==='fa'?'مانده تأییدشده':'Confirmed Balance'}</div><h3>${totalBal.toLocaleString()} IRT</h3></div>
+        <div class="card"><div class="badge">${locale==='fa'?'صف تأیید CSV':'Pending CSV'}</div><h3>${pendingDrafts}</h3></div>
+        <div class="card"><div class="badge">${locale==='fa'?'رویداد ممیزی':'Audit Entries'}</div><h3>${state.audits.length}</h3></div>
+      `;
+      document.getElementById('dbPathBadge').textContent = 'SQLite WAL: ' + state.dbPath;
+      document.getElementById('netBadge').textContent = HAS_TAURI ? (locale==='fa'?'SQLite بومی Tauri متصل':'Embedded Tauri SQLite') : 'HTTP Mode';
+
+      document.getElementById('taskList').innerHTML = state.tasks.map(tk =>
+        `<li><span>[${tk.status.toUpperCase()}] ${tk.title} (${tk.due_at_utc || ''})</span>
+          <div class="row" style="margin:0">
+            <button onclick="toggleTask('${tk.id}')">${tk.status==='done'?'Reopen':'Done'}</button>
+            <button onclick="delTask('${tk.id}')">Delete</button>
+          </div></li>`
+      ).join('');
+
+      document.getElementById('accList').innerHTML = state.accounts.map(a =>
+        `<span class="badge">${a.name}: <strong>${computeBal(a).toLocaleString()} ${a.currency}</strong></span>`
+      ).join('');
+
+      const drafts = state.txs.filter(x => !x.confirmed);
+      document.getElementById('draftList').innerHTML = drafts.length === 0 ? '' : drafts.map(d =>
+        `<div class="row"><span class="badge">[UNCONFIRMED] ${d.kind} ${d.amount_minor.toLocaleString()} ${d.currency} (${d.note})</span>
+          <button class="primary" onclick="approveTx('${d.id}')">Approve</button>
+          <button onclick="rejectTx('${d.id}')">Reject</button></div>`
+      ).join('');
+
+      document.getElementById('auditBox').textContent = JSON.stringify(state.audits, null, 2);
     }
-    document.getElementById('themeSel').onchange = (e) => document.documentElement.dataset.theme = e.target.value;
-    document.getElementById('btnLocale').onclick = () => { locale = locale === 'fa' ? 'en' : 'fa'; applyLocale(); };
-    document.getElementById('btnMotion').onclick = () => document.body.classList.toggle('reduced-motion');
+
+    async function syncFromDb() {
+      if (HAS_TAURI) {
+        const [tasks, accounts, txs, audits, status] = await Promise.all([
+          invoke('list_local_tasks'),
+          invoke('list_local_accounts'),
+          invoke('list_local_txs'),
+          invoke('list_local_audits'),
+          invoke('get_db_status'),
+        ]);
+        state = { tasks, accounts, txs, audits, dbPath: status.db_path };
+      }
+      renderAll();
+    }
+
     document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
       document.querySelectorAll('[data-tab]').forEach(x => x.classList.remove('active'));
       b.classList.add('active');
-      ['tabHome','tabCal','tabFin','tabSet'].forEach(id => document.getElementById(id).hidden = id !== b.dataset.tab);
+      ['tabHome','tabCal','tabFin','tabAgent','tabSet'].forEach(id => document.getElementById(id).hidden = id !== b.dataset.tab);
     });
-    async function loadCalendar() {
-      try {
-        const r = await fetch(`${API}/api/v1/calendar/month?gy=2026&gm=11&locale=${locale}`);
-        const d = await r.json();
-        document.getElementById('netBadge').textContent = locale === 'fa' ? 'متصل (SQLite محلی)' : 'Connected (Local SQLite)';
-        document.getElementById('calGrid').innerHTML = d.cells.map(c =>
-          `<div class="cal-cell"><span class="cal-primary">${c.primaryLabel}</span>${c.secondaryLabel ? `<span class="cal-secondary">${c.secondaryLabel}</span>` : ''}</div>`
-        ).join('');
-      } catch {
-        document.getElementById('netBadge').textContent = locale === 'fa' ? 'آفلاین' : 'Offline';
-        setOrb('offline', locale === 'fa' ? 'آفلاین — حالت محلی' : 'Offline Mode');
-      }
-    }
-    async function loadTasks() {
-      try {
-        const r = await fetch(`${API}/api/v1/tasks`);
-        const d = await r.json();
-        document.getElementById('taskList').innerHTML = (d.tasks || []).map(t => `<li>[${t.status}] ${t.title}</li>`).join('');
-      } catch {}
-    }
+    document.getElementById('themeSel').onchange = async e => {
+      document.documentElement.dataset.theme = e.target.value;
+      if (HAS_TAURI) await invoke('set_local_pref', { key: 'theme', val: e.target.value });
+    };
+    document.getElementById('btnLocale').onclick = async () => {
+      locale = locale === 'fa' ? 'en' : 'fa';
+      if (HAS_TAURI) await invoke('set_local_pref', { key: 'locale', val: locale });
+      renderAll();
+    };
+    document.getElementById('btnMotion').onclick = () => document.body.classList.toggle('reduced-motion');
+    document.getElementById('btnPrevMonth').onclick = () => { if (calM===1){calM=12;calY--;} else calM--; renderCalendar(); };
+    document.getElementById('btnNextMonth').onclick = () => { if (calM===12){calM=1;calY++;} else calM++; renderCalendar(); };
+
     document.getElementById('btnAddTask').onclick = async () => {
       const title = document.getElementById('taskTitle').value.trim();
+      const due = document.getElementById('taskDue').value.trim();
       if (!title) return;
-      await fetch(`${API}/api/v1/tasks`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title }) });
+      const task = { id: uid('tsk'), title, status: 'todo', due_at_utc: due || null };
+      if (HAS_TAURI) await invoke('save_local_task', { task });
+      else state.tasks.push(task);
       document.getElementById('taskTitle').value = '';
-      loadTasks();
+      await syncFromDb();
+    };
+    window.toggleTask = async id => {
+      const tk = state.tasks.find(x => x.id === id);
+      if (!tk) return;
+      const updated = { ...tk, status: tk.status === 'done' ? 'todo' : 'done' };
+      if (HAS_TAURI) await invoke('save_local_task', { task: updated });
+      await syncFromDb();
+    };
+    window.delTask = async id => {
+      if (HAS_TAURI) await invoke('delete_local_task', { id });
+      await syncFromDb();
     };
     document.getElementById('btnTestNotify').onclick = async () => {
-      if (window.__TAURI__) await window.__TAURI__.core.invoke('send_native_reminder', { title: 'RahyAr AI', body: 'Native Windows Reminder' });
-      else await fetch(`${API}/api/v1/os/notify`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title: 'RahyAr AI', message: 'Native Windows Reminder' }) });
+      if (HAS_TAURI) await invoke('send_native_reminder', { title: 'RahyAr AI', body: locale==='fa'?'اعلان بومی ویندوز فعال است':'Native Windows Notification Ready' });
     };
-    async function refreshAccounts() {
-      const r = await fetch(`${API}/api/v1/finance/accounts`);
-      const d = await r.json();
-      const accs = d.accounts || [];
-      activeAccId = accs[0]?.id || '';
-      document.getElementById('accList').innerHTML = accs.map(a => `<span class="badge">${a.name}: ${a.balanceMinor.toLocaleString()} ${a.currency}</span>`).join('');
-    }
+
     document.getElementById('btnAddAcc').onclick = async () => {
-      const name = document.getElementById('accName').value.trim() || 'Mellat Account';
-      const openingBalanceMinor = Number(document.getElementById('accOpen').value || 0);
-      await fetch(`${API}/api/v1/finance/accounts`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name, openingBalanceMinor, currency: 'IRT' }) });
-      refreshAccounts();
+      const name = document.getElementById('accName').value.trim() || 'Checking Account';
+      const opening_minor = Math.trunc(Number(document.getElementById('accOpen').value || 0));
+      const account = { id: uid('acc'), name, currency: 'IRT', opening_minor };
+      if (HAS_TAURI) await invoke('save_local_account', { account });
+      document.getElementById('accName').value = '';
+      await syncFromDb();
     };
+    async function quickTx(kind) {
+      if (!state.accounts.length) return;
+      const amt = Math.trunc(Number(document.getElementById('txAmount').value || 0));
+      const note = document.getElementById('txNote').value.trim() || kind;
+      const toId = (kind === 'transfer' && state.accounts.length > 1) ? state.accounts[1].id : null;
+      if (kind === 'transfer' && !toId) return;
+      const tx = { id: uid('tx'), account_id: state.accounts[0].id, to_account_id: toId, kind, amount_minor: amt, currency: 'IRT', category: kind, note, occurred_date: '2026-11-25', confirmed: true };
+      if (HAS_TAURI) await invoke('save_local_tx', { tx });
+      document.getElementById('txNote').value = '';
+      await syncFromDb();
+    }
+    document.getElementById('btnAddIncome').onclick = () => quickTx('income');
+    document.getElementById('btnAddExpense').onclick = () => quickTx('expense');
+    document.getElementById('btnAddTransfer').onclick = () => quickTx('transfer');
+
     document.getElementById('btnCsvPreview').onclick = async () => {
-      const csvText = document.getElementById('csvInput').value;
-      const r = await fetch(`${API}/api/v1/finance/csv/preview`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ csvText, accountId: activeAccId || 'acc_default' }) });
-      const d = await r.json();
-      document.getElementById('draftList').innerHTML = (d.drafts || []).map(x =>
-        `<div class="row"><span>${x.kind} ${x.amountMinor} ${x.currency} (${x.note}) ${x.isDuplicate ? '[DUPLICATE]' : ''}</span><button onclick="approveDraft('${x.id}')">Approve</button></div>`
-      ).join('');
+      if (!state.accounts.length) return;
+      const lines = document.getElementById('csvInput').value.split('\n').slice(1).filter(Boolean);
+      for (const ln of lines) {
+        const p = ln.split(',').map(x => x.trim());
+        if (p.length < 6) continue;
+        const amt = Math.trunc(Number(p[2]));
+        const isDup = state.txs.some(x => x.amount_minor === amt && x.note === p[5] && x.occurred_date === p[0]);
+        if (isDup) continue;
+        const tx = { id: uid('csv'), account_id: state.accounts[0].id, to_account_id: null, kind: p[1], amount_minor: amt, currency: p[3], category: p[4], note: p[5], occurred_date: p[0], confirmed: false };
+        if (HAS_TAURI) await invoke('save_local_tx', { tx });
+      }
+      await syncFromDb();
     };
-    window.approveDraft = async (id) => {
-      await fetch(`${API}/api/v1/finance/drafts/${id}/approve`, { method:'POST' });
-      refreshAccounts(); loadAudit();
-    };
-    document.getElementById('btnBackup').onclick = async () => {
-      const pw = prompt('Enter backup passphrase (min 8 chars):');
-      if (!pw || pw.length < 8) return;
-      const r = await fetch(`${API}/api/v1/finance/backup/export`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ passphrase: pw }) });
-      const d = await r.json();
-      const blob = new Blob([JSON.stringify(d.envelope, null, 2)], { type: 'application/json' });
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'rahyar-backup.enc.json'; a.click();
-    };
-    document.getElementById('btnSavePolicy').onclick = async () => {
-      const paidFallbackEnabled = document.getElementById('chkPaid').checked;
-      const dailyHardCapMicroUsd = Math.round(Number(document.getElementById('capUsd').value || 0.2) * 1_000_000);
-      await fetch(`${API}/api/v1/agent/policy`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ paidFallbackEnabled, dailyHardCapMicroUsd }) });
-      setOrb('idle', 'Policy Updated');
-    };
-    document.getElementById('btnKillSwitch').onclick = async () => {
+    window.approveTx = async id => { if (HAS_TAURI) await invoke('confirm_local_tx', { id }); await syncFromDb(); };
+    window.rejectTx = async id => { if (HAS_TAURI) await invoke('delete_local_tx', { id }); await syncFromDb(); };
+
+    document.getElementById('btnKillSwitch').onclick = () => {
       killOn = !killOn;
-      await fetch(`${API}/api/v1/agent/policy`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userKillSwitch: killOn }) });
       document.getElementById('btnKillSwitch').textContent = 'Kill-Switch: ' + (killOn ? 'ON' : 'OFF');
-      setOrb(killOn ? 'error' : 'idle', killOn ? 'Kill-Switch ON' : 'Ready');
+      document.getElementById('orb').dataset.state = killOn ? 'blocked' : 'idle';
     };
     document.getElementById('btnAgentSend').onclick = async () => {
-      const command = document.getElementById('agentCmd').value.trim();
-      setOrb('thinking', 'Thinking...');
-      const r = await fetch(`${API}/api/v1/agent/propose`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ command }) });
-      const d = await r.json();
-      if (d.status === 'awaiting_approval') {
-        setOrb('awaiting_approval', 'Awaiting Approval (' + d.proposal.riskTier + ')');
-        document.getElementById('proposalBox').innerHTML =
-          `<div class="card"><div>${locale === 'fa' ? d.proposal.humanSummaryFa : d.proposal.humanSummaryEn}</div><div class="row"><button class="primary" onclick="decideProp('${d.proposal.proposalId}','approved')">Approve</button><button class="danger" onclick="decideProp('${d.proposal.proposalId}','rejected')">Reject</button></div></div>`;
-      } else {
-        setOrb(r.ok ? 'idle' : 'error', r.ok ? 'Executed' : (d.code || 'Error'));
-        document.getElementById('proposalBox').textContent = JSON.stringify(d, null, 2);
+      const cmd = document.getElementById('agentCmd').value.trim();
+      if (!cmd) return;
+      const prov = document.getElementById('providerSel').value;
+      const paidOk = document.getElementById('chkPaid').checked;
+      const box = document.getElementById('proposalBox');
+      if (prov === 'cloud_paid' && (killOn || !paidOk)) {
+        const reason = killOn ? 'AI_KILL_SWITCH_ACTIVE' : 'PAID_FALLBACK_BLOCKED';
+        box.innerHTML = `<span class="badge">BLOCKED: ${reason}</span>`;
+        if (HAS_TAURI) await invoke('append_local_audit', { commandText: cmd, provider: prov, tier: 'L3', decision: 'BLOCKED', resultText: reason });
+        await syncFromDb();
+        return;
       }
-      loadAudit(); loadTasks();
+      document.getElementById('orb').dataset.state = 'awaiting_approval';
+      window.__pendingCmd = cmd;
+      box.innerHTML = `<div class="card"><strong>L2 Proposal (Approval Required):</strong> ${cmd}
+        <div class="row"><button class="primary" onclick="approveAgent()">Approve & Save Task</button><button onclick="rejectAgent()">Reject</button></div></div>`;
     };
-    window.decideProp = async (proposalId, decision) => {
-      const r = await fetch(`${API}/api/v1/agent/approve`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ proposalId, decision }) });
-      const d = await r.json();
-      document.getElementById('proposalBox').textContent = JSON.stringify(d, null, 2);
-      setOrb('idle', decision === 'approved' ? 'Approved & Audited' : 'Rejected');
-      loadAudit(); loadTasks();
+    window.approveAgent = async () => {
+      const cmd = window.__pendingCmd || '';
+      if (HAS_TAURI) {
+        await invoke('save_local_task', { task: { id: uid('tsk'), title: cmd, status: 'todo', due_at_utc: '2026-11-26' } });
+        await invoke('append_local_audit', { commandText: cmd, provider: document.getElementById('providerSel').value, tier: 'L2', decision: 'APPROVED', resultText: 'Task persisted' });
+      }
+      document.getElementById('proposalBox').innerHTML = '';
+      document.getElementById('agentCmd').value = '';
+      document.getElementById('orb').dataset.state = 'idle';
+      await syncFromDb();
     };
-    async function loadAudit() {
-      try {
-        const r = await fetch(`${API}/api/v1/agent/audit`);
-        const d = await r.json();
-        document.getElementById('auditBox').textContent = JSON.stringify(d.auditLogs || [], null, 2);
-      } catch {}
-    }
-    document.getElementById('btnVoicePtt').onclick = () => {
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SR) { alert('SpeechRecognition unavailable in this engine; use text input or local whisper.cpp.'); return; }
-      const rec = new SR(); rec.lang = locale === 'fa' ? 'fa-IR' : 'en-US';
-      setOrb('listening', 'Listening...');
-      rec.onresult = (e) => { document.getElementById('agentCmd').value = e.results[0][0].transcript; setOrb('idle', 'Transcribed'); };
-      rec.onerror = () => setOrb('error', 'Mic Error');
-      rec.start();
+    window.rejectAgent = async () => {
+      const cmd = window.__pendingCmd || '';
+      if (HAS_TAURI) await invoke('append_local_audit', { commandText: cmd, provider: document.getElementById('providerSel').value, tier: 'L2', decision: 'REJECTED', resultText: 'No mutation' });
+      document.getElementById('proposalBox').innerHTML = '';
+      document.getElementById('orb').dataset.state = 'idle';
+      await syncFromDb();
     };
-    applyLocale(); loadTasks(); refreshAccounts(); loadAudit();
+
+    syncFromDb();
   </script>
 </body>
 </html>
