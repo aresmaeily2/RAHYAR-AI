@@ -11,6 +11,7 @@
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
         android:supportsRtl="true"
+        android:theme="@android:style/Theme.Material.NoActionBar"
         android:label="RahyAr AI">
 
         <activity

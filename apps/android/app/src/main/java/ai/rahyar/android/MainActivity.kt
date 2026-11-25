@@ -89,9 +89,9 @@ class MainActivity : ComponentActivity() {
                     ) { pad ->
                         Column(Modifier.padding(pad).padding(12.dp)) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                FilterChip(selected = selectedTab == 0, onClick = { selectedTab = 0 }, label = { Text("Proto B") })
-                                FilterChip(selected = selectedTab == 1, onClick = { selectedTab = 1 }, label = { Text("Proto C") })
-                                FilterChip(selected = selectedTab == 2, onClick = { selectedTab = 2 }, label = { Text("Proto A") })
+                                Button(onClick = { selectedTab = 0 }) { Text(if (isFa) "تقویم و وظایف" else "Proto B") }
+                                Button(onClick = { selectedTab = 1 }) { Text(if (isFa) "مالی" else "Proto C") }
+                                Button(onClick = { selectedTab = 2 }) { Text(if (isFa) "دستیار" else "Proto A") }
                             }
                             Spacer(Modifier.height(12.dp))
                             when (selectedTab) {

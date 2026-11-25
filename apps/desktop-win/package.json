@@ -1,0 +1,11 @@
+{
+  "name": "rahyar-desktop-win",
+  "version": "3.0.0-rc.1",
+  "private": true,
+  "scripts": {
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.5.0"
+  }
+}

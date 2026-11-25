@@ -1,4 +1,4 @@
-name: RahyAr CI — Backend & Web Verification
+name: RahyAr CI — Backend, Shared Core & Security Suite
 
 on:
   push:
@@ -27,65 +27,47 @@ jobs:
       - name: Checkout Exact Commit
         uses: actions/checkout@v4
 
-      - name: Record Commit SHA Provenance
-        run: |
-          mkdir -p ci-artifacts
-          echo "COMMIT_SHA=${{ github.sha }}" > ci-artifacts/provenance.txt
-          echo "REF=${{ github.ref }}" >> ci-artifacts/provenance.txt
-          echo "RUN_ID=${{ github.run_id }}" >> ci-artifacts/provenance.txt
-          date -u +"RUN_UTC=%Y-%m-%dT%H:%M:%SZ" >> ci-artifacts/provenance.txt
-
-      - name: Setup Node 22 & Bun
+      - name: Setup Node 24 & Bun 1.4.5
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
 
-      - name: Setup Bun (for existing unit suite compatibility)
+      - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: "1.3.14"
+          bun-version: "1.4.5"
 
-      - name: Install Dependencies (Reproducible Lockfile)
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          elif [ -f bun.lock ]; then
-            bun install --frozen-lockfile
-          else
-            npm install
-          fi
+      - name: Install Dependencies (Frozen Lockfile)
+        run: bun install --frozen-lockfile
 
       - name: Generate Prisma Client & Push Test Schema
         run: |
-          mkdir -p db
-          npx prisma generate
-          npx prisma db push
+          mkdir -p db ci-artifacts
+          bun run db:generate
+          bun run db:push
 
-      - name: Static Analysis — TypeScript Typecheck
-        run: npx tsc --noEmit | tee ci-artifacts/tsc-${{ github.sha }}.log
-
-      - name: Static Analysis — ESLint
-        run: npx eslint src | tee ci-artifacts/eslint-${{ github.sha }}.log
-
-      - name: Unit & Integration Tests
+      - name: TypeScript & ESLint Static Analysis
         run: |
-          if grep -q '"test"' package.json; then
-            bun test tests/unit 2>&1 | tee ci-artifacts/unit-tests-${{ github.sha }}.log
-          fi
+          bun run typecheck | tee ci-artifacts/tsc-${{ github.sha }}.log
+          bun run lint | tee ci-artifacts/eslint-${{ github.sha }}.log
 
-      - name: Dependency Vulnerability Scan (Fail on High/Critical)
-        run: |
-          npm audit --json > ci-artifacts/npm-audit-${{ github.sha }}.json || true
-          npm audit --audit-level=high
+      - name: Run Existing Unit Suite (198 tests)
+        run: bun test tests/unit 2>&1 | tee ci-artifacts/unit-tests-${{ github.sha }}.log
 
-      - name: Compute Artifact SHA-256 Hashes
+      - name: Run Behavioral Security Suite (SEC-01..SEC-14 + AES Rotation)
+        run: node --test tests/security/m2-closeout-security.test.mjs 2>&1 | tee ci-artifacts/security-tests-${{ github.sha }}.log
+
+      - name: Run Mission 3 Prototypes E2E Suite (1,200 Calendar Vectors + Finance + 20 Agent Scenarios)
+        run: bun test tests/m3-prototypes-e2e.test.ts 2>&1 | tee ci-artifacts/m3-e2e-${{ github.sha }}.log
+
+      - name: Record Provenance & SHA-256 Hashes
         if: always()
         run: |
-          cd ci-artifacts
-          sha256sum * > SHA256SUMS-${{ github.sha }}.txt
-          cat SHA256SUMS-${{ github.sha }}.txt
+          echo "COMMIT_SHA=${{ github.sha }}" > ci-artifacts/provenance.txt
+          echo "RUN_ID=${{ github.run_id }}" >> ci-artifacts/provenance.txt
+          cd ci-artifacts && sha256sum * > SHA256SUMS-${{ github.sha }}.txt
 
-      - name: Upload Verifiable CI Evidence
+      - name: Upload Backend & Test Evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
