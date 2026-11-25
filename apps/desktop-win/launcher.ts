@@ -21,7 +21,7 @@ const server = Bun.serve({
   async fetch(req: Request) {
     const url = new URL(req.url)
     if (url.pathname === '/' || url.pathname === '/index.html') {
-      return new Response(uiHtml, {
+      return new Response(String(uiHtml), {
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
           'Content-Security-Policy': "default-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:* http://localhost:*;",
