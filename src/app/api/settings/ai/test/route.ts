@@ -8,6 +8,8 @@ import { rateLimit, tooManyRequests, sameOriginOk, forbiddenOrigin, readJsonSafe
 import { testEndpoint } from '@/lib/ai/providers/openai-compatible'
 import { testHostedModel } from '@/lib/ai/providers/zai'
 import { validateEndpointUrl, endpointHostAllowed } from '@/lib/ai/providers/types'
+import { gatewayAssertAllowed, GatewayDisabledError } from '@/lib/ai/gateway'
+import { decryptSecret } from '@/lib/crypto-secrets'
 import { getUserSetting, SETTING_KEYS } from '@/lib/server-settings'
 import { lookup } from 'node:dns/promises'
 
@@ -17,6 +19,8 @@ export async function POST(req: NextRequest) {
   if (!rl.ok) return tooManyRequests(rl)
   try {
     const user = await requireUser(req)
+    // SEC-01 (F-1): تمام درخواست‌های تست اتصال اجباراً از گارد Kill-Switch درگاه عبور می‌کنند
+    await gatewayAssertAllowed(user.id)
     const body = (await readJsonSafe(req)) as {
       engine?: unknown
       endpointUrl?: unknown
@@ -55,18 +59,22 @@ export async function POST(req: NextRequest) {
     const savedModel = (await getUserSetting(user.id, SETTING_KEYS.aiEndpointModel)) ?? ''
     const formKey = typeof body?.endpointKey === 'string' ? body.endpointKey.trim() : ''
     const useSaved = body?.useSavedKey === true
-    const savedKey = (await getUserSetting(user.id, SETTING_KEYS.aiEndpointKey)) ?? ''
+    const savedKeyRaw = (await getUserSetting(user.id, SETTING_KEYS.aiEndpointKey)) ?? ''
+    const savedKey = decryptSecret(savedKeyRaw)
 
     const result = await testEndpoint({
       userId: user.id,
       endpointUrl: url,
       endpointModel: formModel || savedModel,
-      // کلید فرم اولویت دارد؛ «استفاده از کلید ذخیره‌شده» از DB
+      // کلید فرم اولویت دارد؛ «استفاده از کلید ذخیره‌شده» از DB رمزگشایی می‌شود
       endpointKey: formKey || (useSaved ? savedKey : ''),
     })
     return NextResponse.json(result)
   } catch (e) {
     if (e instanceof AuthRequiredError) return unauthorizedResponse()
+    if (e instanceof GatewayDisabledError) {
+      return NextResponse.json({ ok: false, code: 'AI_KILL_SWITCH_ACTIVE', error: e.message }, { status: 423 })
+    }
     console.error('POST /api/settings/ai/test', e instanceof Error ? e.message : e)
     return NextResponse.json({ ok: false, error: 'تست اتصال انجام نشد' })
   }

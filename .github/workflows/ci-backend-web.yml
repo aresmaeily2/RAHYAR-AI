@@ -1,0 +1,83 @@
+name: RahyAr CI — Backend, Shared Core & Security Suite
+
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: "file:../db/ci-test.db"
+      NODE_ENV: "test"
+    steps:
+      - name: Checkout Exact Commit
+        uses: actions/checkout@v4
+
+      - name: Setup Node 24 & Bun 1.4.5
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.5"
+
+      - name: Install Dependencies (Frozen Lockfile)
+        run: bun install --frozen-lockfile
+
+      - name: Generate Prisma Client & Push Test Schema
+        run: |
+          mkdir -p db ci-artifacts
+          bun run db:generate
+          bun run db:push
+
+      - name: TypeScript & ESLint Static Analysis
+        run: |
+          set -euo pipefail
+          bun run typecheck | tee ci-artifacts/tsc-${{ github.sha }}.log
+          bun run lint | tee ci-artifacts/eslint-${{ github.sha }}.log
+
+      - name: Run Existing Unit Suite (198 tests)
+        run: |
+          set -euo pipefail
+          bun test tests/unit 2>&1 | tee ci-artifacts/unit-tests-${{ github.sha }}.log
+
+      - name: Run Behavioral Security Suite (SEC-01..SEC-14 + AES Rotation)
+        run: |
+          set -euo pipefail
+          node --test tests/security/m2-closeout-security.test.mjs 2>&1 | tee ci-artifacts/security-tests-${{ github.sha }}.log
+
+      - name: Run Mission 3 Prototypes E2E Suite (1,200 Calendar Vectors + Finance + 20 Agent Scenarios)
+        run: |
+          set -euo pipefail
+          bun test tests/m3-prototypes-e2e.test.ts 2>&1 | tee ci-artifacts/m3-e2e-${{ github.sha }}.log
+
+      - name: Record Provenance & SHA-256 Hashes
+        if: always()
+        run: |
+          echo "COMMIT_SHA=${{ github.sha }}" > ci-artifacts/provenance.txt
+          echo "RUN_ID=${{ github.run_id }}" >> ci-artifacts/provenance.txt
+          cd ci-artifacts && sha256sum * > SHA256SUMS-${{ github.sha }}.txt
+
+      - name: Upload Backend & Test Evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-ci-evidence-${{ github.sha }}
+          path: ci-artifacts/
+          retention-days: 30

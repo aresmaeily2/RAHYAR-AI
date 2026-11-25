@@ -82,14 +82,26 @@ export function isTransientError(e: unknown): boolean {
   return /timeout|econn|enotfound|econnreset|socket|fetch failed|network|5\d\d/i.test(msg)
 }
 
-// ── کلید قطع اضطراری ─────────────────────────────────────────
-export async function aiKillSwitchOn(): Promise<boolean> {
+// ── کلید قطع اضطراری (SEC-03: تفکیک سراسری و فردی با userId اجباری) ──
+export async function aiKillSwitchOn(userId?: string): Promise<boolean> {
   if (process.env.RAHYAR_AI_DISABLED === '1') return true
   try {
-    const row = await db.setting.findFirst({ where: { key: 'ai_kill_switch' } })
-    return row?.value === '1'
+    const globalRow = await db.setting.findFirst({ where: { key: 'ai_kill_switch_global', value: '1' } })
+    if (globalRow) return true
+    if (!userId) return false
+    const userRow = await db.setting.findUnique({
+      where: { userId_key: { userId, key: 'ai_kill_switch' } },
+    })
+    return userRow?.value === '1'
   } catch {
     return false
+  }
+}
+
+/** گارد مشترک درگاه برای تمام مسیرها از جمله /api/settings/ai/test (SEC-01) */
+export async function gatewayAssertAllowed(userId: string): Promise<void> {
+  if (await aiKillSwitchOn(userId)) {
+    throw new GatewayDisabledError()
   }
 }
 
@@ -224,8 +236,8 @@ export function quotaMessage(reason: QuotaDenyReason, resetHours: number, lang: 
 export async function gatewayRun(req: GatewayRequest): Promise<GatewayResult> {
   const { provider, ctx } = await resolveEngine(req.userId)
 
-  // کلید قطع فقط فراخوانی «مدل» را می‌بندد؛ قواعد محلی بدون مدل زنده می‌ماند
-  if (provider.consumesQuota && (await aiKillSwitchOn())) {
+  // کلید قطع همه مدل‌های غیرمحلی (چه سهمیه‌دار و چه بدون سهمیه) را مسدود می‌کند (SEC-03)
+  if (provider.id !== 'local_rules' && (await aiKillSwitchOn(req.userId))) {
     await recordUsage({
       route: req.route, task: req.task, userId: req.userId,
       inChars: 0, outChars: 0, latencyMs: 0,
@@ -314,7 +326,7 @@ export async function gatewayRunStream(
 ): Promise<{ stream: ReadableStream<Uint8Array>; providerId: string }> {
   const { provider, ctx } = await resolveEngine(req.userId)
 
-  if (provider.consumesQuota && (await aiKillSwitchOn())) {
+  if (provider.id !== 'local_rules' && (await aiKillSwitchOn(req.userId))) {
     await recordUsage({
       route: req.route, task: req.task, userId: req.userId,
       inChars: 0, outChars: 0, latencyMs: 0,

@@ -4,6 +4,7 @@
 
 import { describe, expect, test } from 'bun:test'
 import { resolveActionDueDate, resolveDueDate, sliceForCap } from '../../src/lib/server-tasks'
+import { tehranIsoDate } from '../../src/lib/persian-date'
 
 describe('resolveDueDate', () => {
   test('ورودی خالی → null', () => {
@@ -72,15 +73,35 @@ describe('sliceForCap — سقف زیرکار (رفع A2/H2)', () => {
 // علت آزمون: مدل زبانی «پنجشنبه» را به روز بعدی اشتباه تبدیل می‌کرد؛
 // از این پس resolveDueDate نام روز را خودش قطعی حل می‌کند.
 describe('resolveDueDate — weekday names (V23-FIX)', () => {
-  test('نام روز فارسی/انگلیسی → Date معتبر در پنجرهٔ ۰ تا ۶ روز', () => {
+  test('نام روز فارسی/انگلیسی → Date معتبر در پنجرهٔ ۰ تا ۶ روز (منطقه زمانی تهران)', () => {
+    const todayTehran = tehranIsoDate()
     for (const w of ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'thursday', 'saturday', 'پنج شنبه']) {
       const d = resolveDueDate(w)
       expect(d).toBeInstanceOf(Date)
-      const today = new Date().toISOString().slice(0, 10)
-      const diffDays = Math.round((d!.getTime() - new Date(today + 'T12:00:00Z').getTime()) / 86400000)
+      const diffDays = Math.round((d!.getTime() - new Date(todayTehran + 'T12:00:00Z').getTime()) / 86400000)
       expect(diffDays).toBeGreaterThanOrEqual(0)
       expect(diffDays).toBeLessThanOrEqual(6)
     }
+  })
+
+  test('رگرسیون بازه 00:00–03:30 تهران، تغییر روز و مرز ماه/سال (§3.2)', () => {
+    // 2026-11-24T21:00:00Z = 2026-11-25 00:30 Asia/Tehran (تاریخ تهران ۱ روز جلوتر از UTC)
+    const midnightTehran = new Date('2026-11-24T21:00:00.000Z')
+    expect(resolveDueDate('امروز', midnightTehran)?.toISOString().slice(0, 10)).toBe('2026-11-25')
+    expect(resolveDueDate('فردا', midnightTehran)?.toISOString().slice(0, 10)).toBe('2026-11-26')
+    const baseTehran = tehranIsoDate(midnightTehran)
+    for (const w of ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه']) {
+      const d = resolveDueDate(w, midnightTehran)!
+      const diff = Math.round((d.getTime() - new Date(baseTehran + 'T12:00:00Z').getTime()) / 86400000)
+      expect(diff).toBeGreaterThanOrEqual(0)
+      expect(diff).toBeLessThanOrEqual(6)
+    }
+    // مرز سال میلادی در نیمه‌شب تهران: 2026-12-31T21:00:00Z = 2027-01-01 00:30 Tehran
+    const newYearTehran = new Date('2026-12-31T21:00:00.000Z')
+    expect(resolveDueDate('امروز', newYearTehran)?.toISOString().slice(0, 10)).toBe('2027-01-01')
+    // مرز قبل از تغییر روز تهران: 2026-11-24T20:29:59Z = 2026-11-24 23:59:59 Tehran
+    const beforeMidnight = new Date('2026-11-24T20:29:59.000Z')
+    expect(resolveDueDate('امروز', beforeMidnight)?.toISOString().slice(0, 10)).toBe('2026-11-24')
   })
 
   test('روز هفته همیشه همان روز هفتهٔ خواسته‌شده است (قرارداد ۰=شنبه)', () => {

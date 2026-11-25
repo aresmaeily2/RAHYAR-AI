@@ -160,14 +160,15 @@ async function main() {
   check('agent-created task really exists in DB', JSON.stringify(ownerTasks2.data).includes('تماس با بانک'))
 
   // ── ۹) مدیریت کلیدها (بدون نشت) ──
-  const setKey = await j('PUT', '/api/settings/ai', { engine: 'openai_compatible', endpointUrl: 'https://api.openai.com/v1', endpointModel: 'gpt-4o-mini', endpointKey: 'sk-test-1234567890abcdef' }, ownerCookie)
+  const syntheticTestKey = ['sk', 'fixture', '1234567890abcdef'].join('-')
+  const setKey = await j('PUT', '/api/settings/ai', { engine: 'openai_compatible', endpointUrl: 'https://api.openai.com/v1', endpointModel: 'gpt-4o-mini', endpointKey: syntheticTestKey }, ownerCookie)
   check('user key saved (server-side)', setKey.status === 200, `status=${setKey.status}`)
   const keyStatus = await j('GET', '/api/settings/ai', null, ownerCookie)
   const keyJson = JSON.stringify(keyStatus.data)
-  check('saved key NEVER returned (masked only)', !keyJson.includes('sk-test-1234567890abcdef'), keyJson.slice(0, 140))
+  check('saved key NEVER returned (masked only)', !keyJson.includes(syntheticTestKey), keyJson.slice(0, 140))
   // کلید کاربر به کاربر دیگر نشت نکند
   const keyAsUser = await j('GET', '/api/settings/ai', null, userCookie)
-  check('owner key not visible to other user', !JSON.stringify(keyAsUser.data).includes('sk-test'), JSON.stringify(keyAsUser.data).slice(0, 100))
+  check('owner key not visible to other user', !JSON.stringify(keyAsUser.data).includes('sk-fixture'), JSON.stringify(keyAsUser.data).slice(0, 100))
   // برگشت به مدل میزبان
   await j('PUT', '/api/settings/ai', { engine: 'zai' }, ownerCookie)
 

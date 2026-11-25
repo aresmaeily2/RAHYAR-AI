@@ -1,0 +1,21 @@
+[package]
+name = "rahyar-desktop-win"
+version = "3.0.0-alpha.1"
+description = "RahyAr AI — Independent Windows Desktop Client (Mission 3 Prototypes B/C/A)"
+edition = "2021"
+
+[lib]
+name = "rahyar_desktop_win_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-notification = "2"
+tauri-plugin-autostart = "2"
+tauri-plugin-global-shortcut = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rusqlite = { version = "0.32", features = ["bundled"] }

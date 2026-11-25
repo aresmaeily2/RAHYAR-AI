@@ -3,6 +3,7 @@ import { requireUser, unauthorizedResponse, AuthRequiredError } from '@/lib/auth
 import { rateLimit, tooManyRequests, sameOriginOk, forbiddenOrigin, readJsonSafe } from '@/lib/security'
 import { getEngineStatus } from '@/lib/ai/providers/registry'
 import { validateEndpointUrl, isAiEngineId, endpointHostAllowed } from '@/lib/ai/providers/types'
+import { encryptSecret } from '@/lib/crypto-secrets'
 import {
   getUserSetting,
   setUserSetting,
@@ -96,7 +97,9 @@ export async function PUT(req: NextRequest) {
       if (body.endpointKey === '-') {
         await deleteUserSetting(user.id, SETTING_KEYS.aiEndpointKey)
       } else if (typeof body.endpointKey === 'string' && body.endpointKey.trim()) {
-        await setUserSetting(user.id, SETTING_KEYS.aiEndpointKey, body.endpointKey.trim().slice(0, 200))
+        // SEC-06: رمزنگاری AES-256-GCM پیش از ذخیره در جدول Setting
+        const encrypted = encryptSecret(body.endpointKey.trim().slice(0, 200))
+        await setUserSetting(user.id, SETTING_KEYS.aiEndpointKey, encrypted)
       }
     }
 

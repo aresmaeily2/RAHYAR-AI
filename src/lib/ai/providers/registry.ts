@@ -13,6 +13,7 @@ import { localRulesProvider } from './local-rules'
 import { openAiCompatibleProvider } from './openai-compatible'
 import { zaiProvider } from './zai'
 import { getUserSetting, SETTING_KEYS } from '@/lib/server-settings'
+import { decryptSecret } from '@/lib/crypto-secrets'
 
 const REGISTRY: Record<AiEngineId, AIProvider> = {
   local_rules: localRulesProvider,
@@ -58,7 +59,7 @@ export async function resolveEngine(userId: string): Promise<ResolvedEngine> {
 
   if (engine === 'openai_compatible') {
     const endpointUrl = (await getUserSetting(userId, SETTING_KEYS.aiEndpointUrl)) ?? ''
-    const endpointKey = (await getUserSetting(userId, SETTING_KEYS.aiEndpointKey)) ?? ''
+    const endpointKey = decryptSecret((await getUserSetting(userId, SETTING_KEYS.aiEndpointKey)) ?? '')
     const endpointModel = (await getUserSetting(userId, SETTING_KEYS.aiEndpointModel)) ?? ''
     const ctx: ProviderCallContext = { userId, endpointUrl, endpointKey, endpointModel }
     if (openAiCompatibleProvider.isConfigured(ctx)) {
@@ -104,7 +105,7 @@ export async function getEngineStatus(userId: string): Promise<{
   const engine: AiEngineId = isAiEngineId(saved) ? saved : zaiConfigured ? 'zai' : 'local_rules'
   const endpointUrl = (await getUserSetting(userId, SETTING_KEYS.aiEndpointUrl)) ?? ''
   const endpointModel = (await getUserSetting(userId, SETTING_KEYS.aiEndpointModel)) ?? ''
-  const key = (await getUserSetting(userId, SETTING_KEYS.aiEndpointKey)) ?? ''
+  const key = decryptSecret((await getUserSetting(userId, SETTING_KEYS.aiEndpointKey)) ?? '')
   const tail = key.length > 4 ? key.slice(-4) : ''
   return {
     engine,

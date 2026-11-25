@@ -74,10 +74,10 @@ export function sliceForCap<T>(items: T[], existingCount: number, cap = MAX_SUBT
 }
 
 /** رزولو تاریخ ورودی: امروز/فردا/پس‌فردا، نام روز هفته (پنجشنبه…، نزدیک‌ترین رخداد) یا YYYY-MM-DD (ظهر UTC برای پایداری) */
-export function resolveDueDate(input?: string | null): Date | null {
+export function resolveDueDate(input?: string | null, now?: Date): Date | null {
   if (!input) return null
   const s = input.trim()
-  const today = tehranIsoDate()
+  const today = tehranIsoDate(now)
   let iso: string | null = null
   if (s === 'امروز') iso = today
   else if (s === 'فردا') iso = addDaysIso(today, 1)

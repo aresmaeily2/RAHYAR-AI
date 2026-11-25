@@ -1,0 +1,81 @@
+name: RahyAr CI — Windows Native Tauri 2 Build (MSVC NSIS + MSI)
+
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  windows-tauri-msvc:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout Exact Commit
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Rust Stable (MSVC Default)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable-x86_64-pc-windows-msvc
+          components: clippy, rustfmt
+
+      - name: Install Tauri CLI
+        working-directory: apps/desktop-win
+        shell: pwsh
+        run: npm install --no-audit --no-fund
+
+      - name: Cargo Check & Unit Tests (MSVC)
+        working-directory: apps/desktop-win/src-tauri
+        shell: pwsh
+        run: |
+          cargo check
+          cargo test
+
+      - name: Build Native Windows Tauri 2 Installers (NSIS Setup EXE + MSI)
+        working-directory: apps/desktop-win
+        shell: pwsh
+        run: |
+          npx tauri build --bundles nsis,msi
+
+      - name: Package Native Installers & Compute SHA-256
+        if: always()
+        shell: pwsh
+        run: |
+          $out = "ci-win-artifacts"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          "COMMIT_SHA=$env:GITHUB_SHA" | Out-File "$out\provenance.txt" -Encoding UTF8
+          $nsis = Get-ChildItem -Recurse "apps\desktop-win\src-tauri\target\release\bundle\nsis" -Filter "*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          $msi  = Get-ChildItem -Recurse "apps\desktop-win\src-tauri\target\release\bundle\msi"  -Filter "*.msi" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($nsis) { Copy-Item $nsis.FullName "$out\RahyAr-Windows-x64-Setup.exe" }
+          if ($msi)  { Copy-Item $msi.FullName  "$out\RahyAr-Windows-x64.msi" }
+          $lines = @()
+          Get-ChildItem $out -File | Where-Object { $_.Name -notlike 'SHA256SUMS*' } | ForEach-Object {
+            $h = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            $lines += "$h  $($_.Name)"
+          }
+          $lines | Set-Content "$out\SHA256SUMS-$env:GITHUB_SHA.txt" -Encoding UTF8
+          Get-Content "$out\SHA256SUMS-$env:GITHUB_SHA.txt"
+
+      - name: Upload Windows Native Tauri Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-tauri-installers-${{ github.sha }}
+          path: ci-win-artifacts/
+          retention-days: 30

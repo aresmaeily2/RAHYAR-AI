@@ -1,0 +1,165 @@
+name: RahyAr CI — Android Native Build & Verification (SDK 36)
+
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-android-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  android-native-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Exact Commit
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Setup Android SDK 36 & Build-Tools 36.0.0
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platforms;android-36 build-tools;36.0.0 platform-tools"
+
+      - name: Setup Gradle Wrapper Cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Prepare Release Keystore from Secrets (Memory-Safe / Ephemeral)
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [ -n "${KEYSTORE_B64:-}" ]; then
+            echo "$KEYSTORE_B64" | base64 --decode > /tmp/rahyar-release-ephemeral.jks
+            chmod 600 /tmp/rahyar-release-ephemeral.jks
+            echo "ANDROID_KEYSTORE_PATH=/tmp/rahyar-release-ephemeral.jks" >> "$GITHUB_ENV"
+            echo "HAS_RELEASE_KEYSTORE=true" >> "$GITHUB_ENV"
+            echo "Release keystore provisioned securely in ephemeral runner temp."
+          else
+            echo "HAS_RELEASE_KEYSTORE=false" >> "$GITHUB_ENV"
+            echo "No release keystore secret configured; building Debug APK only."
+          fi
+
+      - name: Verify Gradle Wrapper & Run Clean, Lint, JVM Unit Tests, Debug & Signed Release Builds
+        working-directory: apps/android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          chmod +x ./gradlew
+          ./gradlew --version
+          if [ "${HAS_RELEASE_KEYSTORE:-false}" = "true" ]; then
+            ./gradlew clean lintDebug testDebugUnitTest assembleDebug assembleRelease --stacktrace --no-daemon
+          else
+            ./gradlew clean lintDebug testDebugUnitTest assembleDebug --stacktrace --no-daemon
+          fi
+
+      - name: Verify Debug & Signed Release APKs with aapt2, zipalign & apksigner
+        run: |
+          set -euo pipefail
+          mkdir -p ci-android-artifacts
+          BT="${ANDROID_HOME}/build-tools/36.0.0"
+          DEBUG_APK="apps/android/app/build/outputs/apk/debug/app-debug.apk"
+          if [ ! -f "$DEBUG_APK" ]; then
+            echo "ERROR: Debug APK not found at $DEBUG_APK"
+            exit 1
+          fi
+          cp "$DEBUG_APK" ci-android-artifacts/RahyAr-Android-v3.0.0-debug.apk
+          echo "COMMIT_SHA=${{ github.sha }}" > ci-android-artifacts/provenance.txt
+          "$BT/aapt2" dump badging ci-android-artifacts/RahyAr-Android-v3.0.0-debug.apk > ci-android-artifacts/aapt2-badging-debug.txt
+          "$BT/zipalign" -c -v 4 ci-android-artifacts/RahyAr-Android-v3.0.0-debug.apk | tail -n 10 > ci-android-artifacts/zipalign-check-debug.txt
+          "$BT/apksigner" verify --verbose --print-certs ci-android-artifacts/RahyAr-Android-v3.0.0-debug.apk > ci-android-artifacts/apksigner-verify-debug.txt
+
+          if [ "${HAS_RELEASE_KEYSTORE:-false}" = "true" ]; then
+            REL_APK="apps/android/app/build/outputs/apk/release/app-release.apk"
+            if [ ! -f "$REL_APK" ]; then
+              echo "ERROR: Signed Release APK not found at $REL_APK (refusing to publish unsigned APK)"
+              exit 1
+            fi
+            cp "$REL_APK" ci-android-artifacts/RahyAr-Android-v3.0.0-release.apk
+            "$BT/aapt2" dump badging ci-android-artifacts/RahyAr-Android-v3.0.0-release.apk > ci-android-artifacts/aapt2-badging-release.txt
+            "$BT/zipalign" -c -v 4 ci-android-artifacts/RahyAr-Android-v3.0.0-release.apk | tail -n 10 > ci-android-artifacts/zipalign-check-release.txt
+            "$BT/apksigner" verify --verbose --print-certs ci-android-artifacts/RahyAr-Android-v3.0.0-release.apk > ci-android-artifacts/apksigner-verify-release.txt
+            if grep -q "CN=Android Debug" ci-android-artifacts/apksigner-verify-release.txt; then
+              echo "ERROR: Release APK appears signed with Android Debug certificate!"
+              exit 1
+            fi
+            cat ci-android-artifacts/apksigner-verify-release.txt
+          fi
+
+          cd ci-android-artifacts && sha256sum * > SHA256SUMS-${{ github.sha }}.txt
+          cat SHA256SUMS-${{ github.sha }}.txt
+
+      - name: Shred Ephemeral Keystore
+        if: always()
+        run: |
+          rm -f /tmp/rahyar-release-ephemeral.jks
+
+      - name: Upload Android Native APK & Verification Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-native-apk-${{ github.sha }}
+          path: ci-android-artifacts/
+          retention-days: 30
+
+  android-emulator-acceptance:
+    needs: android-native-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Exact Commit
+        uses: actions/checkout@v4
+
+      - name: Download Built Debug & Signed Release APKs
+        uses: actions/download-artifact@v4
+        with:
+          name: android-native-apk-${{ github.sha }}
+          path: ci-android-artifacts
+
+      - name: Enable KVM Hardware Acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls -la /dev/kvm
+
+      - name: Setup JDK 21 & Android 15 (API 35) x86_64 Google APIs Emulator
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Install Android 15 Emulator System Image & Platform Tools
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools emulator platforms;android-35 system-images;android-35;google_apis;x86_64"
+
+      - name: Run Real Android 15 Emulator Acceptance Suite (Debug + Restart + Signed Release + 12 Screenshots)
+        run: |
+          chmod +x scripts/android-emulator-acceptance.sh
+          bash scripts/android-emulator-acceptance.sh emulator-acceptance ci-android-artifacts/RahyAr-Android-v3.0.0-debug.apk ci-android-artifacts/RahyAr-Android-v3.0.0-release.apk
+
+      - name: Upload Real Android Emulator Screenshots, Logcat & Persistence Evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-emulator-acceptance-${{ github.sha }}
+          path: emulator-acceptance/
+          retention-days: 30
