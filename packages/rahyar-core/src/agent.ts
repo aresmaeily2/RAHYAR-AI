@@ -1,5 +1,5 @@
 // ─── RahyAr Core — Prototype A: Persian AI Agent, L0–L3 Permission Governance, Cost Caps & Audit Log ──
-import { toLatinDigits } from './calendar.ts'
+import { toLatinDigits } from './calendar'
 
 export type RiskTier = 'L0_READ' | 'L1_SAFE_LOCAL' | 'L2_STATE_MUTATION' | 'L3_EXTERNAL_DESTRUCTIVE'
 export type ProviderTier = 'tier0_deterministic' | 'tier1_local_ollama' | 'tier2_fast_cloud' | 'tier3_frontier_cloud'

@@ -1,7 +1,7 @@
 // ─── RahyAr AI — Standalone Windows Desktop Application Entrypoint (Bun Compile + SQLite WAL + Embedded UI) ──
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { createRahyarBackend } from '../backend/src/server.ts'
+import { createRahyarBackend } from '../backend/src/server'
 import uiHtml from './dist/index.html' with { type: 'text' }
 
 const args = new Set(process.argv.slice(2))
@@ -38,7 +38,7 @@ const server = Bun.serve({
         Bun.spawn(['powershell', '-NoProfile', '-WindowStyle', 'Hidden', '-Command', ps], { stdout: 'ignore', stderr: 'ignore' })
         return Response.json({ ok: true, delivered: 'windows_toast' })
       } catch (e) {
-        return Response.json({ ok: false, error: String(e) }, 500)
+        return Response.json({ ok: false, error: String(e) }, { status: 500 })
       }
     }
     return core.handleRequest(req)

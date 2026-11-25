@@ -9,7 +9,7 @@ import {
   nextOccurrenceUtc,
   type RahyarTask,
   type RahyarReminder,
-} from '../../../packages/rahyar-core/src/calendar.ts'
+} from '../../../packages/rahyar-core/src/calendar'
 import {
   assertSafeMinorAmount,
   buildPeriodReport,
@@ -25,14 +25,14 @@ import {
   type FinanceTransaction,
   type PendingFinanceDraft,
   type TxKind,
-} from '../../../packages/rahyar-core/src/finance.ts'
+} from '../../../packages/rahyar-core/src/finance'
 import {
   evaluateAgentPolicy,
   parsePersianCommandToProposal,
   type AgentPolicyState,
   type AuditEntry,
   type ToolProposal,
-} from '../../../packages/rahyar-core/src/agent.ts'
+} from '../../../packages/rahyar-core/src/agent'
 
 export function createRahyarBackend(dbPath = ':memory:') {
   const db = new Database(dbPath)

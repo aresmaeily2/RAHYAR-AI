@@ -11,13 +11,13 @@ import {
   nextHlc,
   nextOccurrenceUtc,
   type RahyarTask,
-} from '../packages/rahyar-core/src/calendar.ts'
+} from '../packages/rahyar-core/src/calendar'
 import {
   assertSafeMinorAmount,
   createEncryptedBackup,
   restoreEncryptedBackup,
-} from '../packages/rahyar-core/src/finance.ts'
-import { createRahyarBackend } from '../apps/backend/src/server.ts'
+} from '../packages/rahyar-core/src/finance'
+import { createRahyarBackend } from '../apps/backend/src/server'
 
 describe('Prototype B — 1,200+ Jalali/Gregorian Vectors, Bilingual Rules, Sync & Restart Recovery', () => {
   test('1,200 consecutive days (2024–2027 incl. leap year 1403) match Intl Persian calendar 100%', () => {
